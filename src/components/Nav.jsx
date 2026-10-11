@@ -15,7 +15,7 @@ export default function Nav() {
 
   useEffect(() => {
     const onDocClick = (e) => { if (navRef.current && !navRef.current.contains(e.target)) setOpen(false); };
-    const onResize = () => { if (window.innerWidth > 760) setOpen(false); };
+    const onResize = () => { if (window.innerWidth > 980) setOpen(false); };
     document.addEventListener('click', onDocClick);
     window.addEventListener('resize', onResize);
     return () => { document.removeEventListener('click', onDocClick); window.removeEventListener('resize', onResize); };
