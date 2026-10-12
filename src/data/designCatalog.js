@@ -81,3 +81,15 @@ export function specFilename({ subtype, dims }) {
   const { length, width, height } = dims;
   return `${subtype.id}-${length}x${width}x${height}ft.png`.replace(/\.(?=\d)/g, '_');
 }
+
+// Photo-edit mode: place the chosen structure into the visitor's own photo.
+export function buildEditPrompt({ subtype, dims, material }) {
+  const name = subtype.label.toLowerCase();
+  const { length, width, height } = dims;
+  return [
+    `Edit this photo to add a ${name} built by Weekend-Live, made of ${material.toLowerCase()}, sized ${length} ft long × ${width} ft wide × ${height} ft high.`,
+    'Keep everything already in the photo — walls, floor, buildings, trees, perspective, shadows and lighting — exactly as it is.',
+    `Place the ${name} where it fits naturally, in correct real-world scale for those measurements, with realistic materials, shadows and a few plants around it.`,
+    `Add thin white dimension lines on the ${name} labelled "${length} ft", "${width} ft" and "${height} ft", plus a small clean label "${subtype.label}". All text spelled correctly. Photorealistic.`,
+  ].join(' ');
+}

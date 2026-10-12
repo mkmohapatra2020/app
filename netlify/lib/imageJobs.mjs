@@ -14,6 +14,7 @@ export function readConfig(env) {
   try { if (env.AZURE_OPENAI_ENDPOINT) base = new URL(env.AZURE_OPENAI_ENDPOINT).origin; } catch { /* keep default */ }
   return {
     url: `${base}/openai/v1/images/generations`,
+    editUrl: `${base}/openai/v1/images/edits`,
     apiKey: (env.AZURE_OPENAI_API_KEY || '').trim(),
     deployment: env.AZURE_IMAGE_DEPLOYMENT || 'gpt-image-2.5-sunburst',
   };
@@ -27,7 +28,7 @@ export function validateJob(body) {
   if (!prompt) return { error: 'Prompt is empty.' };
   if (prompt.length > MAX_PROMPT) return { error: 'Prompt is too long.' };
   if (!SIZES.has(size)) return { error: 'Unsupported image size.' };
-  return { id, prompt, size };
+  return { id, prompt, size, mode: body?.mode === 'edit' ? 'edit' : 'generate' };
 }
 
 function friendlyError(status, data) {
@@ -45,17 +46,32 @@ export async function runJob({ body, store, env, fetchImpl = fetch }) {
     if (ID_RE.test(String(body?.id || ''))) await store.setJSON(`${body.id}.json`, { status: 'error', error: job.error });
     return;
   }
-  const { id, prompt, size } = job;
+  const { id, prompt, size, mode } = job;
   const cfg = readConfig(env);
   try {
     await store.setJSON(`${id}.json`, { status: 'pending', started: Date.now() });
     if (!cfg.apiKey) throw Object.assign(new Error('AZURE_OPENAI_API_KEY is not set in Netlify environment variables.'), { safe: true });
 
-    const res = await fetchImpl(cfg.url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'api-key': cfg.apiKey },
-      body: JSON.stringify({ model: cfg.deployment, prompt, n: 1, size }),
-    });
+    let res;
+    if (mode === 'edit') {
+      const src = await store.get(`${id}.src`, { type: 'arrayBuffer' });
+      if (!src) throw Object.assign(new Error('The uploaded photo was not found. Please upload it again.'), { safe: true });
+      const srcMeta = await store.get(`${id}.srcmeta`, { type: 'json' });
+      const form = new FormData();
+      form.append('model', cfg.deployment);
+      form.append('prompt', prompt);
+      form.append('size', size);
+      form.append('n', '1');
+      form.append('image', new Blob([src], { type: srcMeta?.type || 'image/jpeg' }), 'photo.jpg');
+      res = await fetchImpl(cfg.editUrl, { method: 'POST', headers: { 'api-key': cfg.apiKey }, body: form });
+      await Promise.all([store.delete(`${id}.src`), store.delete(`${id}.srcmeta`)]);
+    } else {
+      res = await fetchImpl(cfg.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'api-key': cfg.apiKey },
+        body: JSON.stringify({ model: cfg.deployment, prompt, n: 1, size }),
+      });
+    }
     let data = null;
     try { data = await res.json(); } catch { /* non-JSON */ }
     if (!res.ok) throw Object.assign(new Error(friendlyError(res.status, data)), { safe: true });
@@ -84,4 +100,22 @@ export async function jobStatus({ id, store }) {
   if (!image) return json({ status: 'error', error: 'The image has expired. Please generate again.' });
   await Promise.all([store.delete(`${id}.json`), store.delete(`${id}.img`)]);
   return new Response(image, { status: 200, headers: { 'Content-Type': meta.type || 'image/png', 'Cache-Control': 'no-store' } });
+}
+
+// Upload step for photo edits: stores the visitor's photo for the background job.
+const MAX_UPLOAD = 4 * 1024 * 1024;
+export async function saveSource({ body, store }) {
+  const id = String(body?.id || '');
+  if (!ID_RE.test(id)) return json({ error: { message: 'Invalid job id.' } }, 400);
+  const type = body?.type === 'image/png' ? 'image/png' : 'image/jpeg';
+  let bytes;
+  try { bytes = Buffer.from(String(body?.image || ''), 'base64'); } catch { bytes = Buffer.alloc(0); }
+  if (!bytes.length) return json({ error: { message: 'No photo received.' } }, 400);
+  if (bytes.length > MAX_UPLOAD) return json({ error: { message: 'Photo is too large — please use one under 4 MB.' } }, 413);
+  const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8;
+  const isPng = bytes[0] === 0x89 && bytes[1] === 0x50;
+  if (!isJpeg && !isPng) return json({ error: { message: 'Please upload a JPG or PNG photo.' } }, 415);
+  await store.set(`${id}.src`, bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+  await store.setJSON(`${id}.srcmeta`, { type: isPng ? 'image/png' : type });
+  return json({ ok: true });
 }

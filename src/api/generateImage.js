@@ -48,6 +48,11 @@ async function generateViaNetlifyJob({ prompt, size, signal }) {
   });
   if (start.status !== 202 && !start.ok) throw await errorFrom(start);
 
+  return pollJob(id, signal);
+}
+
+// Shared poller for Netlify background jobs.
+async function pollJob(id, signal) {
   const deadline = Date.now() + MAX_WAIT_MS;
   while (Date.now() < deadline) {
     await wait(POLL_MS, signal);
@@ -60,6 +65,44 @@ async function generateViaNetlifyJob({ prompt, size, signal }) {
     throw new Error(data?.error || 'Image generation failed. Please try again.');
   }
   throw new Error('This is taking longer than usual. Please try again in a minute.');
+}
+
+const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+  const r = new FileReader();
+  r.onload = () => resolve(String(r.result).split(',')[1]);
+  r.onerror = () => reject(new Error('Could not read the photo.'));
+  r.readAsDataURL(blob);
+});
+
+// Edit a photo (Outdoor Space Visualizer). `image` is a JPEG/PNG Blob.
+export async function editImage({ image, prompt, size = '1536x1024', signal }) {
+  if (import.meta.env.DEV) {
+    const form = new FormData();
+    form.append('model', __IMAGE_DEPLOYMENT__);
+    form.append('prompt', prompt);
+    form.append('size', size);
+    form.append('n', '1');
+    form.append('image', image, 'photo.jpg');
+    const res = await fetch('/api/edit-image', { method: 'POST', body: form, signal });
+    if (!res.ok) throw await errorFrom(res);
+    return blobFromResponseJson(await res.json());
+  }
+  const id = crypto.randomUUID();
+  const up = await fetch('/api/upload-image-source', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, image: await blobToBase64(image), type: image.type || 'image/jpeg' }),
+    signal,
+  });
+  if (!up.ok) throw await errorFrom(up);
+  const start = await fetch('/api/start-image-job', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, prompt, size, mode: 'edit' }),
+    signal,
+  });
+  if (start.status !== 202 && !start.ok) throw await errorFrom(start);
+  return pollJob(id, signal);
 }
 
 export async function generateImage({ prompt, size = '1024x1024', signal }) {

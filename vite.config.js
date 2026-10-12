@@ -48,6 +48,9 @@ export default defineConfig(({ mode }) => {
     },
   };
 
+  // Photo edits (Outdoor Space Visualizer) — multipart body is forwarded as-is.
+  imageProxy['/api/edit-image'] = { ...imageProxy['/api/generate-image'], rewrite: () => '/openai/v1/images/edits' };
+
   return {
     plugins: [react()],
     define: { __IMAGE_DEPLOYMENT__: JSON.stringify(deployment) },
