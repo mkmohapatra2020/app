@@ -24,7 +24,7 @@ const TryNowDialog = forwardRef(function TryNowDialog(_, ref) {
   const dialogRef = useRef(null);
   const firstFieldRef = useRef(null);
   const resultRef = useRef(null);
-  const job = useImageJob();
+  const job = useImageJob({ preferBackend: true });
 
   const [categoryId, setCategoryId] = useState(catalog[0].id);
   const category = catalog.find((c) => c.id === categoryId);
@@ -82,7 +82,7 @@ const TryNowDialog = forwardRef(function TryNowDialog(_, ref) {
     if (loading || invalid.length) return;
     if (mode === 'photo') {
       if (!photo) { job.fail('Please upload a photo of your space first.'); return; }
-      job.edit({ image: photo.blob, prompt, size: photo.size });
+      job.edit({ image: photo.blob, prompt, size: photo.size, spaceType: 'outdoor space', zones: [subtype.label] });
     } else {
       job.generate({ prompt, size: '1024x1024' });
     }

@@ -2,6 +2,101 @@
   command = "npm run build"
   publish = "dist"
 
+# Weekend-Live backend proxy: the browser calls /wl-api/... on this domain and
+# Netlify forwards to the Azure Functions API (no CORS setup needed).
+# The swagger paths include /api and the function app adds /api, hence /api/api.
+[[redirects]]
+  from = "/wl-api/*"
+  to = "https://func-weekendlive-api-e8ffdch2dua8grcq.centralindia-01.azurewebsites.net/api/api/:splat"
+  status = 200
+  force = true
+
+# Single-page app routes (listed explicitly so /api/* functions are never shadowed).
+[[redirects]]
+  from = "/login"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/register"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/forgot-password"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/reset-password"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/profile"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/workshops/*"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/workshops"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/campaigns/*"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/events"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/community"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/learn/*"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/learn"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/heritage"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/projects/*"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/shop/*"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/shop"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/cart"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/checkout"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/contact"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/admin"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/my-designs"
+  to = "/index.html"
+  status = 200
+
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"

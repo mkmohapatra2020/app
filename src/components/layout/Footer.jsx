@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { contact, footerLinks, tagline } from '../../data/site.js';
 import { whatsappUrl } from '../../utils/contact.js';
 
@@ -14,7 +15,7 @@ export default function Footer() {
           </div>
           <nav aria-label="Footer">
             <h3>Explore</h3>
-            <ul>{footerLinks.map(([href, label]) => <li key={href}><a href={href}>{label}</a></li>)}</ul>
+            <ul>{footerLinks.map(([href, label]) => <li key={href}><Link to={href}>{label}</Link></li>)}</ul>
           </nav>
           <div>
             <h3>Location</h3>

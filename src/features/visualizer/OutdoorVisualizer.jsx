@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import useImageJob from '../../hooks/useImageJob.js';
+import { visualizationService } from '../../services/visualizationService.js';
 import { generalEnquiry, useEnquiry } from '../enquiry/enquiry.js';
 import { preparePhoto } from '../../utils/photo.js';
 import BeforeAfter from '../../components/common/BeforeAfter.jsx';
@@ -16,16 +17,17 @@ export default function OutdoorVisualizer() {
   const [photo, setPhoto] = useState(null);
   const [space, setSpace] = useState(SPACES[0]);
   const [zones, setZones] = useState(ZONES.map(([id]) => id));
-  const job = useImageJob();
+  const job = useImageJob({ preferBackend: true });
   const { loading, elapsed, error } = job;
   const result = job.status === 'done' ? job.resultUrl : null;
+  const [aiTips, setAiTips] = useState([]);
 
   useEffect(() => () => { if (photo) URL.revokeObjectURL(photo.url); }, [photo]);
 
   const onFile = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    job.reset();
+    job.reset(); setAiTips([]);
     try { setPhoto(await preparePhoto(file)); } catch (err) { job.fail(err.message); }
   };
 
@@ -35,7 +37,11 @@ export default function OutdoorVisualizer() {
     if (!photo || !zones.length || loading) return;
     const wanted = ZONES.filter(([id]) => zones.includes(id)).map(([, label]) => label.toLowerCase());
     const prompt = `Edit this photo of a ${space.toLowerCase()} in Odisha, India to show a Weekend-Live outdoor living design concept. Keep the existing walls, floor, buildings, perspective and lighting exactly as they are. Add, in realistic scale: ${wanted.join(', ')}. Use a teak-wood pergola, a weatherproof timber deck, comfortable outdoor seating and planters with tropical plants where relevant. Mark each added zone with a thin white outline and a small, clean, correctly spelled label (${wanted.map((w) => `"${w.replace(' placement', '').replace(' layout', '').replace(' zones', '')}"`).join(', ')}). Photorealistic.`;
-    job.edit({ image: photo.blob, prompt, size: photo.size });
+    job.edit({ image: photo.blob, prompt, size: photo.size, spaceType: space, zones });
+    // In parallel: ask the backend visualizer for placement suggestions (optional).
+    visualizationService.uploadHomePhoto({ image: photo.blob }).then((up) => (up.success && (up.data.id || up.data.url)
+      ? visualizationService.suggestions({ reference: up.data, spaceType: space, zones })
+      : null)).then((r) => { if (r?.success && r.data?.length) setAiTips(r.data); }).catch(() => {});
   };
 
   const tips = ZONES.filter(([id]) => zones.includes(id));
@@ -87,6 +93,7 @@ export default function OutdoorVisualizer() {
           {photo && tips.length > 0 && (
             <div className="vis-tips">
               <h4>Placement tips</h4>
+              {aiTips.length > 0 && <><p className="rec-label">Suggestions for your photo</p><ul>{aiTips.map((t) => <li key={t}>{t}</li>)}</ul><p className="rec-label">General guidance</p></>}
               <ul>{tips.map(([id, label, tip]) => <li key={id}><b>{label}:</b> {tip}</li>)}</ul>
               {result && <button type="button" className="btn btn-outline btn-small" onClick={() => generalEnquiry(enquiry, `I used the Outdoor Space Visualizer for my ${space.toLowerCase()} and would like a site visit and quote.`)}>Get a site visit & quote</button>}
             </div>

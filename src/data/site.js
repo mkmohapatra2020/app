@@ -21,12 +21,20 @@ export const contact = {
 
 export const tagline = 'Building Skills, Creating Spaces, Connecting Generations.';
 
+// Header links. Paths starting with "/#" scroll to a home-page section.
 export const nav = [
-  ['#about', 'About'],
-  ['#diy', 'DIY'],
-  ['#outdoor', 'Outdoor'],
-  ['#seniors', 'Seniors'],
-  ['#contact', 'Contact'],
+  ['/workshops', 'Workshops'],
+  ['/#outdoor', 'Outdoor'],
+  ['/#seniors', 'Seniors'],
+  ['/community', 'Community'],
+  ['/learn', 'Learn'],
+  ['/shop', 'Shop'],
+];
+export const moreNav = [
+  ['/#about', 'About us'],
+  ['/events', 'Events'],
+  ['/heritage', 'Heritage & crafts'],
+  ['/contact', 'Contact & quotes'],
 ];
 
 export const hero = {
@@ -217,8 +225,12 @@ export const membership = [
 ];
 
 export const footerLinks = [
-  ['#diy', 'DIY Workshops'],
-  ['#outdoor', 'Outdoor Living'],
-  ['#seniors', 'Senior Home Improvements'],
-  ['#heritage', 'Heritage Projects'],
+  ['/workshops', 'DIY Workshops'],
+  ['/#outdoor', 'Outdoor Living'],
+  ['/#seniors', 'Senior Home Improvements'],
+  ['/heritage', 'Heritage Projects'],
+  ['/community', 'Community'],
+  ['/learn', 'DIY Knowledge Center'],
+  ['/shop', 'Shop'],
+  ['/contact', 'Request a quote'],
 ];

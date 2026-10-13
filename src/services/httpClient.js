@@ -7,6 +7,7 @@
  * AbortSignal, JSON / blob / text responses, and friendly error messages.
  */
 import { API_CONFIG, DEFAULT_HEADERS } from './apiConfig.js';
+import { session } from './session.js';
 
 const { STATUS_CODES: S } = API_CONFIG;
 
@@ -15,6 +16,10 @@ export function friendlyError(status, payload) {
   if (status === S.TOO_MANY_REQUESTS) return 'Too many requests right now — please wait about a minute and try again.';
   if (status === S.PAYLOAD_TOO_LARGE) return 'That file is too large. Please use a smaller photo.';
   if (status === 0) return 'Network error — please check your connection and try again.';
+  if (status === S.UNAUTHORIZED) return payload?.message || 'Please sign in to continue.';
+  if (status === S.FORBIDDEN) return 'You do not have permission to do that.';
+  if (status === S.NOT_FOUND && !payload?.message) return 'Not found.';
+  if (status >= 500 && !payload?.message) return 'The server had a problem. Please try again shortly.';
   const msg = payload?.error?.message || payload?.message || (typeof payload?.error === 'string' ? payload.error : '');
   return msg || `Request failed (${status}).`;
 }
@@ -33,11 +38,15 @@ class HttpClient {
    * @param {string} url
    * @param {{ method?: string, body?: any, headers?: object, timeout?: number,
    *           signal?: AbortSignal, responseType?: 'auto'|'json'|'blob'|'text',
-   *           rawBody?: boolean }} [config]
+   *           rawBody?: boolean, auth?: boolean }} [config]
+   *  auth: attach the signed-in user's Bearer token (backend calls).
    */
   async request(url, config = {}) {
-    const { method = 'GET', body, headers = {}, timeout = API_CONFIG.TIMEOUT_MS, signal, responseType = 'auto', rawBody = false } = config;
-    const finalHeaders = { ...DEFAULT_HEADERS, ...headers };
+    const { method = 'GET', body, headers = {}, timeout = API_CONFIG.TIMEOUT_MS, signal, responseType = 'auto', rawBody = false, auth = false } = config;
+    const finalHeaders = { ...DEFAULT_HEADERS };
+    const token = auth ? session.token() : null;
+    if (token) finalHeaders.Authorization = `Bearer ${token}`;
+    Object.assign(finalHeaders, headers); // caller headers win
     let payload = body;
     if (body !== undefined && !rawBody && !(body instanceof FormData) && !(body instanceof Blob)) {
       payload = JSON.stringify(body);
@@ -46,6 +55,8 @@ class HttpClient {
     const t = withTimeout(signal, timeout);
     try {
       const res = await fetch(url, { method, headers: finalHeaders, body: payload, signal: t.signal, cache: method === 'GET' ? 'no-store' : undefined });
+      // Expired / invalid token: sign out so the UI can ask the user to log in again.
+      if (res.status === S.UNAUTHORIZED && token) session.clear('expired');
       return await this.handleResponse(res, responseType);
     } catch (err) {
       if (err?.name === 'AbortError' || signal?.aborted) return { success: false, status: 0, aborted: true, error: 'Cancelled' };

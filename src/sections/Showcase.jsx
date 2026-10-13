@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Section from '../components/common/Section.jsx';
 import Img from '../components/common/Img.jsx';
 import BeforeAfter from '../components/common/BeforeAfter.jsx';
@@ -13,7 +14,7 @@ export default function Showcase() {
             {s.before
               ? <BeforeAfter before={s.before} after={s.image} alt={s.title} />
               : <div className="show-img"><Img name={s.image} alt={s.title} sizes="(max-width: 760px) 100vw, 33vw" /></div>}
-            <div className="show-body"><h3>{s.title}</h3><p>{s.text}</p></div>
+            <div className="show-body"><h3><Link to={`/projects/${s.id}`}>{s.title}</Link></h3><p>{s.text}</p><Link to={`/projects/${s.id}`} className="link-btn">View project →</Link></div>
           </article>
         ))}
       </div>

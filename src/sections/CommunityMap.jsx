@@ -1,13 +1,24 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Section, { SampleTag } from '../components/common/Section.jsx';
-import { communityPlaces, SHOW_SAMPLE_TAGS } from '../data/site.js';
+import { SHOW_SAMPLE_TAGS } from '../data/site.js';
+import useResource from '../hooks/useResource.js';
+import { locationService } from '../services/locationService.js';
+import { fallbackLocations } from '../data/fallbacks.js';
 import { MAP_W, MAP_H, districts, cityPoints, insetState, insetFocus } from '../data/odishaMap.js';
 
 const FOCUS = ['Khordha', 'Cuttack', 'Puri'];
 
 export default function CommunityMap() {
-  const [active, setActive] = useState(communityPlaces[0].id);
-  const place = communityPlaces.find((p) => p.id === active);
+  // Live places from /locations, matched to the map pins by name; any extra
+  // places from the API still appear as tabs.
+  const live = useResource('locations', (a) => locationService.list(a), { fallback: fallbackLocations });
+  const places = (live.data || []).map((p) => {
+    const local = fallbackLocations.find((l) => l.name.toLowerCase() === p.name.toLowerCase());
+    return { ...local, ...Object.fromEntries(Object.entries(p).filter(([, v]) => (Array.isArray(v) ? v.length : v))), id: local?.id || p.id, sample: live.fromApi ? false : local?.sample };
+  });
+  const [active, setActive] = useState(fallbackLocations[0].id);
+  const place = places.find((p) => p.id === active) || places[0];
 
   return (
     <Section id="community" tone="teal" eyebrow="Interactive community map" title="DIY projects across Odisha"
@@ -42,17 +53,16 @@ export default function CommunityMap() {
         </div>
         <div className="map-panel reveal" aria-live="polite">
           <div className="map-tabs" role="tablist" aria-label="Places">
-            {communityPlaces.map((p) => (
+            {places.map((p) => (
               <button key={p.id} type="button" role="tab" aria-selected={p.id === active} className={`chip${p.id === active ? ' sel' : ''}`} onClick={() => setActive(p.id)}>● {p.name}</button>
             ))}
           </div>
           <h3>{place.name} <SampleTag show={SHOW_SAMPLE_TAGS && place.sample} /></h3>
-          <h4>Projects</h4>
-          <ul className="ticks">{place.projects.map((p) => <li key={p}>{p}</li>)}</ul>
-          <h4>Participants</h4>
-          <p>{place.participants}</p>
-          <h4>Story</h4>
-          <blockquote>{place.story}</blockquote>
+          {place.projects?.length > 0 && <><h4>Projects</h4><ul className="ticks">{place.projects.map((p) => <li key={p}>{p}</li>)}</ul></>}
+          {place.participants && <><h4>Participants</h4><p>{place.participants}</p></>}
+          {place.story && <><h4>Story</h4><blockquote>{place.story}</blockquote></>}
+          {place.address && <p className="muted">📍 {place.address}</p>}
+          <Link to="/community" className="btn btn-small map-cta">See community stories →</Link>
         </div>
       </div>
     </Section>

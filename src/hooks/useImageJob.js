@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import useApi from './useApi.js';
 import useElapsed from './useElapsed.js';
 import { imageService } from '../services/imageService.js';
+import { editPhoto } from '../services/aiImageService.js';
 
 /**
  * AI image jobs (generate or edit) with progress and result management.
@@ -9,10 +10,12 @@ import { imageService } from '../services/imageService.js';
  *   job.generate({ prompt, size })  |  job.edit({ image, prompt, size })
  *   job.status: 'idle' | 'loading' | 'done' | 'error'
  *   job.resultUrl (object URL, revoked automatically), job.error, job.elapsed
+ *   useImageJob({ preferBackend: true }) → edits go through the backend first.
  */
-export default function useImageJob() {
+export default function useImageJob({ preferBackend = false } = {}) {
   const gen = useApi((args) => imageService.generate(args));
-  const edit = useApi((args) => imageService.edit(args));
+  // preferBackend: try the Weekend-Live AI visualisation API first, then Azure.
+  const edit = useApi((args) => (preferBackend ? editPhoto(args) : imageService.edit(args)));
   const [resultUrl, setResultUrl] = useState(null);
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');

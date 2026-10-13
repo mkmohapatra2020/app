@@ -51,6 +51,17 @@ export default defineConfig(({ mode }) => {
   // Photo edits (Outdoor Space Visualizer) — multipart body is forwarded as-is.
   imageProxy['/api/edit-image'] = { ...imageProxy['/api/generate-image'], rewrite: () => '/openai/v1/images/edits' };
 
+  // Weekend-Live backend (Azure Functions). The swagger paths already start with
+  // /api and the function app adds its own /api prefix, hence /api/api.
+  const backend = env.WL_API_URL || 'https://func-weekendlive-api-e8ffdch2dua8grcq.centralindia-01.azurewebsites.net/api/api';
+  const backendUrl = new URL(backend);
+  imageProxy['/wl-api'] = {
+    target: backendUrl.origin,
+    changeOrigin: true,
+    secure: true,
+    rewrite: (p) => p.replace(/^\/wl-api/, backendUrl.pathname.replace(/\/$/, '')),
+  };
+
   return {
     plugins: [react()],
     build: {

@@ -1,58 +1,107 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
+import { BrowserRouter, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import Nav from './components/layout/Nav.jsx';
-import Hero from './sections/Hero.jsx';
 import LazySection from './components/common/LazySection.jsx';
 import ErrorBoundary from './components/common/ErrorBoundary.jsx';
+import RequireAuth from './components/common/RequireAuth.jsx';
+import LoadingSpinner from './components/common/LoadingSpinner.jsx';
 import EnquiryDialog from './features/enquiry/EnquiryDialog.jsx';
-import useReveal from './hooks/useReveal.js';
-import useHashScroll from './hooks/useHashScroll.js';
 import { EnquiryContext } from './features/enquiry/enquiry.js';
-import { afterLoad } from './utils/idle.js';
+import { ToastProvider } from './context/ToastContext.jsx';
+import { CartProvider } from './context/CartContext.jsx';
+import HomePage from './pages/HomePage.jsx';
+import useReveal from './hooks/useReveal.js';
 
-// Everything below the hero is code-split and rendered when it nears the viewport.
-// `minHeight` reserves roughly the section's height so the page doesn't jump.
-const SECTIONS = [
-  { name: 'pillars', anchor: 'about', minHeight: 900, load: () => import('./sections/Pillars.jsx') },
-  { name: 'workshops', anchor: 'diy', minHeight: 900, load: () => import('./sections/Campaigns.jsx') },
-  { name: 'project configurator', minHeight: 520, load: () => import('./features/configurator/ConfiguratorSection.jsx') },
-  { name: 'community map', anchor: 'community', minHeight: 900, load: () => import('./sections/CommunityMap.jsx') },
-  { name: 'outdoor showcase', anchor: 'outdoor', minHeight: 1100, load: () => import('./sections/Showcase.jsx') },
-  { name: 'outdoor visualizer', minHeight: 640, load: () => import('./features/visualizer/VisualizerSection.jsx') },
-  { name: 'project gallery', anchor: 'gallery', minHeight: 900, load: () => import('./sections/ProjectGallery.jsx') },
-  { name: 'senior hub', anchor: 'seniors', minHeight: 1500, load: () => import('./sections/SeniorHub.jsx') },
-  { name: 'knowledge center', anchor: 'learn', minHeight: 1000, load: () => import('./sections/KnowledgeCenter.jsx') },
-  { name: 'workshop journey', anchor: 'journey', minHeight: 520, load: () => import('./sections/Journey.jsx') },
-  { name: 'kids passport', minHeight: 560, load: () => import('./features/passport/PassportSection.jsx') },
-  { name: 'heritage', anchor: 'heritage', minHeight: 900, load: () => import('./sections/Heritage.jsx') },
-  { name: 'stories', anchor: 'stories', minHeight: 500, load: () => import('./sections/Stories.jsx') },
-  { name: 'membership', anchor: 'club', minHeight: 640, load: () => import('./sections/Membership.jsx') },
-  { name: 'footer', anchor: 'contact', minHeight: 420, load: () => import('./components/layout/Footer.jsx') },
-];
+// Every screen except the home page is its own chunk.
+const pages = {
+  Login: lazy(() => import('./pages/auth/LoginPage.jsx')),
+  Register: lazy(() => import('./pages/auth/RegisterPage.jsx')),
+  Forgot: lazy(() => import('./pages/auth/ForgotPasswordPage.jsx')),
+  Reset: lazy(() => import('./pages/auth/ResetPasswordPage.jsx')),
+  Profile: lazy(() => import('./pages/account/ProfilePage.jsx')),
+  Workshops: lazy(() => import('./pages/workshops/WorkshopsPage.jsx')),
+  WorkshopDetail: lazy(() => import('./pages/workshops/WorkshopDetailPage.jsx')),
+  CampaignDetail: lazy(() => import('./pages/workshops/CampaignDetailPage.jsx')),
+  Events: lazy(() => import('./pages/events/EventsPage.jsx')),
+  Community: lazy(() => import('./pages/community/CommunityPage.jsx')),
+  Learn: lazy(() => import('./pages/learn/LearnPage.jsx')),
+  Article: lazy(() => import('./pages/learn/ArticlePage.jsx')),
+  Heritage: lazy(() => import('./pages/heritage/HeritagePage.jsx')),
+  Project: lazy(() => import('./pages/projects/ProjectPage.jsx')),
+  Shop: lazy(() => import('./pages/shop/ShopPage.jsx')),
+  Product: lazy(() => import('./pages/shop/ProductPage.jsx')),
+  Cart: lazy(() => import('./pages/shop/CartPage.jsx')),
+  Checkout: lazy(() => import('./pages/shop/CheckoutPage.jsx')),
+  Contact: lazy(() => import('./pages/contact/ContactPage.jsx')),
+  Admin: lazy(() => import('./pages/admin/AdminPage.jsx')),
+  NotFound: lazy(() => import('./pages/NotFoundPage.jsx')),
+};
+const loadFooter = () => import('./components/layout/Footer.jsx');
 
-const NudgeModal = lazy(() => import('./features/nudge/NudgeModal.jsx'));
+function ScrollToTop() {
+  const { pathname, hash } = useLocation();
+  useEffect(() => { if (!hash) window.scrollTo(0, 0); }, [pathname, hash]);
+  return null;
+}
 
-export default function App() {
+function Layout() {
   useReveal();
-  useHashScroll();
-  const enquiry = useRef(null);
-  const [afterLoaded, setAfterLoaded] = useState(false);
-
-  // Once the page has loaded and the browser is idle, prefetch every section
-  // chunk so scrolling never waits on the network, and mount the nudge.
-  useEffect(() => afterLoad(() => { SECTIONS.forEach((s) => s.load()); setAfterLoaded(true); }, 3000), []);
-
-  const footer = SECTIONS[SECTIONS.length - 1];
   return (
-    <EnquiryContext.Provider value={enquiry}>
+    <>
       <a className="skip-link" href="#main">Skip to content</a>
       <ErrorBoundary inline name="menu"><Nav /></ErrorBoundary>
-      <ErrorBoundary inline name="banner"><Hero /></ErrorBoundary>
-      <main id="main">
-        {SECTIONS.slice(0, -1).map((s) => <LazySection key={s.name} {...s} />)}
-      </main>
-      <LazySection key={footer.name} {...footer} />
-      <EnquiryDialog ref={enquiry} />
-      {afterLoaded && <Suspense fallback={null}><NudgeModal /></Suspense>}
-    </EnquiryContext.Provider>
+      <ErrorBoundary inline name="page">
+        <Suspense fallback={<div className="page-loading"><LoadingSpinner size="lg" text="Loading…" /></div>}>
+          <Outlet />
+        </Suspense>
+      </ErrorBoundary>
+      <LazySection name="footer" anchor="contact" minHeight={420} load={loadFooter} />
+    </>
+  );
+}
+
+const auth = (el, admin = false) => <RequireAuth admin={admin}>{el}</RequireAuth>;
+
+export default function App() {
+  const enquiry = useRef(null);
+  const P = pages;
+  return (
+    <BrowserRouter>
+      <ToastProvider>
+        <CartProvider>
+          <EnquiryContext.Provider value={enquiry}>
+            <ScrollToTop />
+            <Routes>
+              <Route element={<Layout />}>
+                <Route index element={<HomePage />} />
+                <Route path="login" element={<P.Login />} />
+                <Route path="register" element={<P.Register />} />
+                <Route path="forgot-password" element={<P.Forgot />} />
+                <Route path="reset-password" element={<P.Reset />} />
+                <Route path="profile" element={auth(<P.Profile />)} />
+                <Route path="my-designs" element={auth(<P.Profile tab="designs" />)} />
+                <Route path="workshops" element={<P.Workshops />} />
+                <Route path="workshops/:id" element={<P.WorkshopDetail />} />
+                <Route path="campaigns/:id" element={<P.CampaignDetail />} />
+                <Route path="events" element={<P.Events />} />
+                <Route path="community" element={<P.Community />} />
+                <Route path="learn" element={<P.Learn />} />
+                <Route path="learn/:slug" element={<P.Article />} />
+                <Route path="heritage" element={<P.Heritage />} />
+                <Route path="projects/:id" element={<P.Project />} />
+                <Route path="shop" element={<P.Shop />} />
+                <Route path="shop/:id" element={<P.Product />} />
+                <Route path="cart" element={<P.Cart />} />
+                <Route path="checkout" element={auth(<P.Checkout />)} />
+                <Route path="contact" element={<P.Contact />} />
+                <Route path="admin" element={auth(<P.Admin />, true)} />
+                <Route path="*" element={<P.NotFound />} />
+              </Route>
+            </Routes>
+            <EnquiryDialog ref={enquiry} />
+          </EnquiryContext.Provider>
+        </CartProvider>
+      </ToastProvider>
+    </BrowserRouter>
   );
 }

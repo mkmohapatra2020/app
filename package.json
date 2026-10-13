@@ -9,9 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@netlify/blobs": "10.0.11",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@netlify/blobs": "10.0.11"
+    "react-router-dom": "6.30.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
