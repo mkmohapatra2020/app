@@ -1,0 +1,46 @@
+/* Global responsive & mobile polish (touch targets, iOS zoom, landscape) */
+  /* ---------- responsive & mobile polish ---------- */
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+  body{overflow-x:hidden;}
+  .carousel-slide{margin:0;} /* <figure> has a default 40px side margin */
+  .eyebrow{font-size:0.76rem;}
+  .crew-card .time{font-size:0.78rem;}
+  .blueprint-frame .dim, .dim.dim-bottom{font-size:0.78rem;}
+  input, select, textarea, button{font-family:inherit;}
+
+  @media (max-width:980px), (pointer:coarse){
+    /* comfortable 44px touch targets */
+    .try-now{min-height:44px;padding:0 16px;}
+    .nav-toggle{width:44px;height:44px;}
+    .nav-links a{padding:12px 10px;}
+    .carousel-btn{width:44px;height:44px;}
+    .chip, .chip-sm{min-height:44px;display:inline-flex;align-items:center;}
+    .try-head .try-close{width:44px;height:44px;}
+    .try-dim-input input{min-height:44px;}
+    .try-select select{min-height:46px;}
+    .try-actions .btn{min-height:46px;}
+    /* 16px+ form text stops iPhones zooming into fields */
+    input, select, textarea, .try-dim-input input, .try-select select, .try-body textarea{font-size:16px;}
+  }
+  @media (max-width:760px){
+    /* pop-up uses nearly the whole screen on phones */
+    .try-dialog{width:calc(100vw - 16px);max-height:calc(100dvh - 16px);border-radius:18px;}
+  }
+  @media (max-width:360px){
+    .nav-logo{font-size:1.05rem;}
+    .try-now{padding:0 12px;}
+    .try-now-spark{display:none;}
+    .try-dims{gap:7px;}
+    .try-dim-input input{padding-left:9px;}
+    .try-dim-input b{padding-right:7px;}
+  }
+  /* short landscape phones: keep the pop-up header compact */
+  @media (max-height:520px){
+    .try-head{padding-top:14px;padding-bottom:12px;}
+    .try-head .try-sub{display:none;}
+  }
+  /* no sticky hover lifts on touch screens */
+  @media (hover:none){
+    .try-chips .chip:hover, .try-go:not(:disabled):hover, .try-now:hover{transform:none;}
+    .try-head .try-close:hover{transform:none;}
+  }

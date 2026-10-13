@@ -1,0 +1,221 @@
+/* Design tokens, base elements, reveal animation, header, buttons, chips & fields */
+:root{
+    --teak:#3E2A18;
+    --bark:#6B4226;
+    --gold:#E1A94C;
+    --gold-soft:#F0C784;
+    --teal:#2F6E73;
+    --teal-deep:#1F4C50;
+    --palm:#3A5334;
+    --parchment:#F4EEDC;
+    --parchment-deep:#EAE1C7;
+    --ink:#241708;
+    --ink-soft:#4A3B29;
+    --line:rgba(36,23,8,0.14);
+    --radius:18px;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--parchment);
+    color:var(--ink);
+    font-family:'Work Sans',sans-serif;
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  img{max-width:100%;display:block;}
+
+  h1,h2,h3{
+    font-family:'Fraunces',serif;
+    margin:0;
+    color:var(--teak);
+    font-weight:600;
+    letter-spacing:-0.01em;
+  }
+
+  .eyebrow{
+    font-family:'Work Sans',sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.22em;
+    font-size:0.72rem;
+    font-weight:600;
+    color:var(--teal-deep);
+  }
+
+  .wrap{
+    max-width:1140px;
+    margin:0 auto;
+    padding:0 32px;
+  }
+
+  section{position:relative;scroll-margin-top:84px;}
+
+  a{color:inherit;}
+
+  /* ---------- reveal on scroll ---------- */
+  .reveal{
+    opacity:0;
+    transform:translateY(24px);
+    transition:opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.in{
+    opacity:1;
+    transform:translateY(0);
+  }
+  @media (prefers-reduced-motion: reduce){
+    .reveal{opacity:1;transform:none;transition:none;}
+  }
+
+  /* ---------- top nav ---------- */
+  .nav{
+    position:sticky;
+    top:0;
+    z-index:50;
+    background:rgba(244,238,220,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{
+    max-width:1140px;
+    margin:0 auto;
+    padding:16px 32px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    position:relative;
+  }
+  .nav-logo{
+    font-family:'Fraunces',serif;
+    font-style:italic;
+    font-weight:600;
+    font-size:1.35rem;
+    color:var(--teak);
+  }
+  .nav-links{
+    display:flex;
+    gap:28px;
+    font-size:0.88rem;
+    font-weight:500;
+    list-style:none;
+    margin:0;
+    padding:0;
+  }
+  .nav-links a{text-decoration:none;color:var(--ink-soft);}
+  .nav-links a:hover{color:var(--teal-deep);}
+  .nav-cta{
+    display:inline-block;
+    background:var(--teak);
+    color:var(--parchment);
+    padding:9px 18px;
+    border-radius:100px;
+    font-size:0.85rem;
+    font-weight:600;
+    text-decoration:none;
+    white-space:nowrap;
+  }
+  .nav-toggle{
+    display:none;
+    width:42px;height:42px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:transparent;
+    cursor:pointer;
+    padding:10px;
+  }
+  .nav-toggle span{display:block;height:2px;width:100%;margin:4px 0;background:var(--teak);border-radius:2px;transition:transform .25s ease,opacity .25s ease;}
+  .nav-mobile-cta{display:none;}
+  /* nav collapses to the menu button on phones and tablets */
+  @media (max-width:980px){
+    .nav-inner{padding:11px 18px;gap:10px;}
+    .nav-logo{font-size:1.2rem;}
+    .nav-cta{display:none;}
+    .nav-toggle{display:block;margin-left:auto;}
+    .nav-links{
+      display:flex;
+      visibility:hidden;
+      opacity:0;
+      pointer-events:none;
+      position:absolute;
+      top:calc(100% + 8px);
+      left:18px;right:18px;
+      padding:12px;
+      flex-direction:column;
+      gap:0;
+      background:rgba(244,238,220,.98);
+      border:1px solid var(--line);
+      border-radius:14px;
+      box-shadow:0 16px 34px rgba(62,42,24,.16);
+      transform:translateY(-8px);
+      transition:opacity .2s ease,transform .2s ease,visibility .2s ease;
+    }
+    .nav-links li{width:100%;}
+    .nav-links a{display:block;padding:10px 8px;}
+    .nav-mobile-cta{display:block;margin-top:5px;padding-top:6px;border-top:1px solid var(--line);}
+    .nav-mobile-cta a{background:var(--teak);border-radius:9px;color:var(--parchment);font-weight:600;text-align:center;}
+    .nav.nav-open .nav-links{visibility:visible;opacity:1;pointer-events:auto;transform:translateY(0);}
+    .nav.nav-open .nav-toggle span:nth-child(1){transform:translateY(6px) rotate(45deg);}
+    .nav.nav-open .nav-toggle span:nth-child(2){opacity:0;}
+    .nav.nav-open .nav-toggle span:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
+  }
+  @media (min-width:561px) and (max-width:980px){
+    .nav-links{left:auto;right:18px;width:300px;}
+  }
+  @media (max-width:760px){
+    .wrap{padding-left:18px;padding-right:18px;}
+    .hero .wrap{padding-left:18px;padding-right:18px;}
+    .hero-ctas{gap:9px;}
+    .btn{padding:11px 16px;font-size:.86rem;}
+  }
+  @media (max-width:390px){.hero-ctas{flex-direction:column;align-items:stretch;}.hero-ctas .btn{justify-content:center;}}
+
+
+  /* ---------- buttons ---------- */
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:13px 24px;
+    border-radius:100px;
+    font-weight:600;
+    font-size:0.94rem;
+    text-decoration:none;
+    border:1px solid transparent;
+    cursor:pointer;
+    font-family:'Work Sans',sans-serif;
+  }
+  .btn-primary{background:var(--gold);color:var(--teak);}
+  .btn-primary:hover{background:var(--gold-soft);}
+  .btn-ghost{border-color:rgba(244,238,220,0.4);color:var(--parchment);background:transparent;}
+  .btn-ghost:hover{border-color:var(--parchment);}
+
+  /* ---------- chips & fields ---------- */
+  .chip-group{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{
+    border:1px solid var(--line);
+    background:var(--parchment);
+    border-radius:100px;
+    padding:8px 15px;
+    font-size:0.84rem;
+    cursor:pointer;
+    user-select:none;
+    transition:background 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .chip.sel{background:var(--teal-deep);border-color:var(--teal-deep);color:#fff;}
+  textarea{
+    width:100%;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    font-family:'Work Sans',sans-serif;
+    font-size:0.9rem;
+    resize:vertical;
+    min-height:70px;
+    background:var(--parchment);
+  }
+  textarea:focus, .chip:focus-visible, .btn:focus-visible, a:focus-visible{
+    outline:2px solid var(--teal);
+    outline-offset:2px;
+  }

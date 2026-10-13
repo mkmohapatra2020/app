@@ -53,6 +53,20 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    build: {
+      target: 'es2020',
+      cssCodeSplit: true,
+      sourcemap: false,
+      rollupOptions: {
+        output: {
+          // React rarely changes: keep it in its own long-cached file.
+          manualChunks(id) {
+            if (id.includes('node_modules/react') || id.includes('node_modules/scheduler')) return 'react-vendor';
+            return undefined;
+          },
+        },
+      },
+    },
     define: { __IMAGE_DEPLOYMENT__: JSON.stringify(deployment) },
     server: { proxy: imageProxy },
     preview: { proxy: imageProxy },
