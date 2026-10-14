@@ -100,7 +100,6 @@
   .nav-avatar img{width:100%;height:100%;object-fit:cover;}
   .nav-signin{font-weight:600;font-size:.88rem;color:var(--teak);text-decoration:none;padding:8px 6px;}
   .nav-signin:hover{color:var(--teal-deep);}
-  @media (max-width:1180px) and (min-width:981px){ .nav-links{gap:18px;} .nav-cta{display:none;} }
   @media (max-width:980px){
     .nav-more-btn{display:none;}
     .nav-dropdown{position:static;opacity:1;visibility:visible;transform:none;box-shadow:none;border:0;padding:0;background:none;min-width:0;}
@@ -342,3 +341,37 @@
   @media (prefers-reduced-motion: reduce){ .skeleton,.toast,.auth-card{animation:none;} }
   .show-body h3 a{color:inherit;text-decoration:none;}
   .show-body h3 a:hover{color:var(--teal-deep);}
+
+  /* ---------- header polish: nothing wraps; tidy Sign in + More ---------- */
+  .nav-inner{max-width:1360px;}
+  .nav-toggle{flex-shrink:0;}
+  @media (min-width:981px){ .nav-inner{gap:20px;} }
+  .nav-logo,.nav-links a,.nav-more-btn,.try-now,.nav-cta,.nav-signin{white-space:nowrap;}
+  .nav-logo{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;text-decoration:none;}
+  .nav-actions{flex-shrink:0;gap:10px;}
+  .try-now{line-height:1.1;}
+  @media (min-width:981px){
+    .nav-links{align-items:center;gap:clamp(16px,1.9vw,28px);}
+    .nav-more-btn{display:inline-flex;align-items:center;gap:5px;padding:8px 2px;line-height:1.2;}
+    .nav-caret{transition:transform .2s ease;opacity:.75;}
+    .nav-more-btn[aria-expanded="true"]{color:var(--teak);}
+    .nav-more-btn[aria-expanded="true"] .nav-caret{transform:rotate(180deg);}
+    .nav-dropdown:not(.nav-dropdown-right){left:50%;transform:translate(-50%,-6px);}
+    .nav-dropdown.open:not(.nav-dropdown-right){transform:translate(-50%,0);}
+  }
+  .nav-signin{
+    display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:0 16px;
+    border:1.5px solid rgba(62,42,24,.28);border-radius:100px;background:rgba(255,250,240,.6);
+    font:600 .88rem/1 'Work Sans',sans-serif;color:var(--teak);transition:border-color .2s,background .2s,color .2s;
+  }
+  .nav-signin:hover{border-color:var(--teal);color:var(--teal-deep);background:#fffaf0;}
+  .nav-signin:focus-visible{outline:2px solid var(--teal);outline-offset:3px;}
+  /* Mid-size laptops: drop the duplicate Book Workshop (it's in the hero), then tighten. */
+  @media (max-width:1280px) and (min-width:981px){ .nav-cta{display:none;} }
+  @media (max-width:1120px) and (min-width:981px){
+    .nav-inner{padding-left:22px;padding-right:22px;}
+    .nav-links{font-size:.84rem;}
+    .nav-signin{padding:0 12px;}
+    .nav-signin svg{display:none;}
+    .try-now{padding:8px 14px;}
+  }

@@ -121,7 +121,7 @@ export default function Nav() {
         <ul className="nav-links" id="primary-navigation" ref={listRef}>
           {nav.map(link)}
           <li className="nav-more" style={{ '--i': nav.length }}>
-            <button type="button" className="nav-more-btn" aria-expanded={moreOpen} aria-haspopup="true" onClick={() => setMoreOpen((o) => !o)}>More <span aria-hidden="true">▾</span></button>
+            <button type="button" className="nav-more-btn" aria-expanded={moreOpen} aria-haspopup="true" onClick={() => setMoreOpen((o) => !o)}>More<svg className="nav-caret" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
             <ul className={`nav-dropdown${moreOpen ? ' open' : ''}`}>{moreNav.map(([to, label]) => <li key={to}><Link to={to}>{label}</Link></li>)}</ul>
           </li>
           <li className="nav-mobile-only" style={{ '--i': nav.length + 1 }}>
@@ -151,7 +151,12 @@ export default function Nav() {
                   <li><button type="button" onClick={logout}>Sign out</button></li>
                 </ul>
               </>
-            ) : <Link to="/login" className="nav-signin">Sign in</Link>}
+            ) : (
+              <Link to="/login" className="nav-signin">
+                <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="10" cy="7" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.7" /><path d="M3.8 17c.9-3.2 3.3-4.8 6.2-4.8s5.3 1.6 6.2 4.8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
+                <span>Sign in</span>
+              </Link>
+            )}
           </div>
           <button type="button" className="nav-cta" onClick={() => bookWorkshop(enquiry)}><span>Book Workshop</span></button>
         </div>

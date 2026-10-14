@@ -8,8 +8,18 @@ const E = BACKEND_ENDPOINTS.USERS;
 
 class UserService {
   async getProfile({ signal } = {}) {
-    const r = mapRes(await api.get(E.PROFILE, { signal }), (d) => toUser(unwrap(d)));
-    if (r.success) session.update(Object.fromEntries(Object.entries(r.data).filter(([, v]) => v !== '' && v !== undefined)));
+    let hasRole = false;
+    const r = mapRes(await api.get(E.PROFILE, { signal }), (d) => {
+      const raw = unwrap(d) || {};
+      hasRole = ['role', 'userRole', 'roles', 'type', 'isAdmin'].some((k) => raw[k] !== undefined);
+      return toUser(raw);
+    });
+    if (r.success) {
+      const patch = Object.fromEntries(Object.entries(r.data).filter(([, v]) => v !== '' && v !== undefined));
+      // A profile without a role must not demote an admin (toUser defaults role to 'user').
+      if (!hasRole) { delete patch.role; delete patch.isAdmin; }
+      session.update(patch);
+    }
     return r;
   }
   async updateProfile({ profile, signal }) {
