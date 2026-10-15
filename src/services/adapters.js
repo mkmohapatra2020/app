@@ -1,6 +1,6 @@
 /**
  * Response adapters.
- * The swagger file has no schemas, so each adapter accepts the common naming
+ * Most swagger responses are a generic ApiResponse { success, message, data }, so each adapter accepts the common naming
  * styles (camelCase, PascalCase, snake_case, nested `data`) and returns the
  * shape the UI uses. When the real API shape is known, adjust ONLY this file.
  */
@@ -315,25 +315,111 @@ export function toSkill(payload) {
   return { level: str(pick(p, 'level', 'skillLevel', 'result', 'assessment')).toLowerCase(), summary: str(pick(p, 'summary', 'feedback', 'description', 'message')), score: num(pick(p, 'score')) };
 }
 
+// Backend status text → studio stage. Swagger: aiVisualizationRequest.status (free text).
+export function toStage(status) {
+  const s = str(status).toLowerCase();
+  if (/complete|done|success|ready|finished|generated/.test(s)) return 'completed';
+  if (/fail|error|reject|cancel/.test(s)) return 'failed';
+  if (/generat|process|running|progress|in.?flight/.test(s)) return 'generating';
+  if (/queue|pending|wait/.test(s)) return 'queued';
+  return s ? 'submitted' : '';
+}
+
+// aiVisualizationRequest | submitAiVisualizationResponse | aiVisualizationStatusResponse
 export function toVisualization(payload) {
   const p = unwrap(payload) || {};
-  const status = str(pick(p, 'status', 'state'), '').toLowerCase();
+  const raw = str(pick(p, 'status', 'state'), '');
+  const stage = toStage(raw);
   return {
     id: str(pick(p, 'requestId', 'id', 'visualizationId')),
-    status: /complete|done|success|ready|finished/.test(status) ? 'done' : /fail|error|reject/.test(status) ? 'error' : status ? 'pending' : '',
-    image: toImage(pick(p, 'resultImageUrl', 'outputImageUrl', 'generatedImageUrl', 'imageUrl', 'resultUrl', 'result.imageUrl', 'images.0')),
+    status: stage === 'completed' ? 'done' : stage === 'failed' ? 'error' : stage ? 'pending' : '',
+    stage,
+    rawStatus: raw,
+    // The swagger model has no result-image field yet; these names are tried in order.
+    image: toImage(pick(p, 'resultImageUrl', 'outputImageUrl', 'generatedImageUrl', 'resultBlobUrl', 'outputBlobUrl', 'imageUrl', 'resultUrl', 'result.imageUrl', 'images.0')),
+    resultBlobName: str(pick(p, 'resultBlobName', 'outputBlobName', 'generatedBlobName', 'blobName')),
     b64: str(pick(p, 'b64_json', 'imageBase64', 'resultBase64')),
-    original: toImage(pick(p, 'originalImageUrl', 'referenceImageUrl', 'inputImageUrl', 'sourceImageUrl')),
-    error: str(pick(p, 'error', 'errorMessage', 'message')),
-    createdAt: isoDate(pick(p, 'createdAt', 'submittedAt', 'date')),
-    prompt: str(pick(p, 'prompt', 'description', 'style')),
+    original: toImage(pick(p, 'originalImageUrl', 'referenceImageUrl', 'inputImageUrl', 'sourceImageUrl', 'referenceImages.0')),
+    error: str(pick(p, 'errorMessage', 'error', 'message')),
+    createdAt: isoDate(pick(p, 'submittedDate', 'createdDate', 'createdAt', 'submittedAt', 'date')),
+    completedAt: isoDate(pick(p, 'completedDate')),
+    prompt: str(pick(p, 'userPrompt', 'prompt', 'description')),
+    projectName: str(pick(p, 'projectName')),
+    businessArea: str(pick(p, 'businessArea')),
+    typeId: num(pick(p, 'visualizationTypeId')),
     suggestions: list(pick(p, 'suggestions', 'recommendations', 'tips')).map((s) => (typeof s === 'string' ? s : str(pick(s, 'text', 'title', 'description')))),
   };
 }
 
+// uploadAiReferenceResponse { blobUrl } (older shapes still accepted)
 export function toUploadRef(payload) {
   const p = unwrap(payload) || {};
-  return { id: str(pick(p, 'id', 'uploadId', 'fileId', 'referenceId', 'blobName', 'imageId')), url: toImage(pick(p, 'url', 'imageUrl', 'fileUrl', 'blobUrl', 'uri')) };
+  const url = toImage(pick(p, 'blobUrl', 'url', 'imageUrl', 'fileUrl', 'uri'));
+  return { id: str(pick(p, 'id', 'uploadId', 'fileId', 'referenceId', 'blobName', 'imageId')) || url, url };
+}
+
+// blobSasResponse { blobUri, sasToken } → a readable URL
+export function toSasUrl(payload) {
+  const p = unwrap(payload) || {};
+  const uri = str(pick(p, 'blobUri', 'uri', 'url'));
+  const sas = str(pick(p, 'sasToken', 'token')).replace(/^\?/, '');
+  if (!uri) return '';
+  return sas && !uri.includes('?') ? `${uri}?${sas}` : uri;
+}
+
+// ---------- flagship programmes (shapes not in swagger — tolerant mapping) ----------
+// Elderly DIY / family programmes list item.
+export function toProgram(p = {}) {
+  const diff = pick(p, 'difficulty', 'difficultyLevel', 'level');
+  // 1 very easy · 2 easy · 3 moderate (numbers from the API are used as-is).
+  const t = str(diff).toLowerCase();
+  const d = Number.isFinite(Number(diff)) && t !== '' ? Number(diff)
+    : /very\s*easy|beginner|basic/.test(t) ? 1 : /moderate|medium|intermediate|hard|advanced/.test(t) ? 3 : /easy/.test(t) ? 2 : undefined;
+  return {
+    id: pick(p, 'programId', 'id'),
+    title: str(pick(p, 'title', 'name', 'programName')),
+    text: str(pick(p, 'description', 'summary', 'details')),
+    image: toImage(pick(p, 'imageUrl', 'image', 'thumbnailUrl', 'photo')),
+    difficulty: d ? Math.max(1, Math.min(3, d)) : undefined,
+    duration: str(pick(p, 'duration', 'durationText', 'durationMinutes')),
+    assistance: str(pick(p, 'assistanceRequired', 'assistance', 'assistanceLevel')),
+    meta: str(pick(p, 'ageGroup', 'audience', 'schedule', 'frequency')),
+    date: isoDate(pick(p, 'startDate', 'date', 'eventDate')),
+    seatsLeft: num(pick(p, 'seatsLeft', 'availableSeats', 'remainingSeats')),
+    status: str(pick(p, 'status', 'registrationStatus')),
+  };
+}
+
+// Heritage restoration project, with photos grouped by stage.
+export function toHeritageProject(p = {}) {
+  const photos = list(pick(p, 'photos', 'images', 'heritagePhotos')).map((x) => ({ type: str(pick(x, 'photoType', 'type', 'stage')).toLowerCase(), url: toImage(pick(x, 'imageUrl', 'url') || x) }));
+  const by = (t) => photos.find((x) => x.type.startsWith(t))?.url || '';
+  return {
+    id: pick(p, 'id', 'heritageRestorationId', 'projectId'),
+    title: str(pick(p, 'title', 'name')),
+    place: str(pick(p, 'location', 'city')),
+    type: str(pick(p, 'projectType', 'type')),
+    text: str(pick(p, 'description')),
+    condition: str(pick(p, 'currentCondition')),
+    work: str(pick(p, 'recommendedWork')),
+    status: str(pick(p, 'status')),
+    before: by('before'), during: by('during'), after: by('after') || photos[0]?.url || '',
+  };
+}
+
+// Incubator project.
+export function toIncubatorProject(p = {}) {
+  const files = list(pick(p, 'files', 'attachments'));
+  const firstImg = files.map((f) => ({ t: str(pick(f, 'fileType', 'type')), u: toImage(pick(f, 'fileUrl', 'url') || f) })).find((f) => /image|photo|png|jpe?g|webp/i.test(f.t + f.u));
+  return {
+    id: pick(p, 'id', 'projectId'),
+    title: str(pick(p, 'projectName', 'title', 'name')),
+    text: str(pick(p, 'description')),
+    category: str(pick(p, 'category')),
+    stage: str(pick(p, 'stage', 'status', 'currentStage')),
+    who: str(pick(p, 'ownerName', 'createdByName', 'submittedBy', 'category')),
+    image: toImage(pick(p, 'imageUrl', 'thumbnailUrl', 'coverImage')) || firstImg?.u || '',
+  };
 }
 
 // ---------- admin ----------

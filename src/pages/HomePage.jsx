@@ -11,6 +11,7 @@ import { afterLoad } from '../utils/idle.js';
 // `minHeight` reserves roughly the section's height so the page doesn't jump.
 const SECTIONS = [
   { name: 'pillars', anchor: 'about', minHeight: 900, load: () => import('../sections/Pillars.jsx') },
+  { name: 'flagships', anchor: 'flagships', minHeight: 760, load: () => import('../sections/Flagships.jsx') },
   { name: 'workshops', anchor: 'diy', minHeight: 900, load: () => import('../sections/Campaigns.jsx') },
   { name: 'project configurator', minHeight: 520, load: () => import('../features/configurator/ConfiguratorSection.jsx') },
   { name: 'community map', anchor: 'community', minHeight: 900, load: () => import('../sections/CommunityMap.jsx') },
@@ -21,6 +22,8 @@ const SECTIONS = [
   { name: 'knowledge center', anchor: 'learn', minHeight: 1000, load: () => import('../sections/KnowledgeCenter.jsx') },
   { name: 'workshop journey', anchor: 'journey', minHeight: 520, load: () => import('../sections/Journey.jsx') },
   { name: 'kids passport', minHeight: 560, load: () => import('../features/passport/PassportSection.jsx') },
+  { name: 'heritage restoration', anchor: 'restoration', minHeight: 1800, load: () => import('../sections/HeritageRestoration.jsx') },
+  { name: 'build together', anchor: 'together', minHeight: 1100, load: () => import('../sections/BuildTogether.jsx') },
   { name: 'heritage', anchor: 'heritage', minHeight: 900, load: () => import('../sections/Heritage.jsx') },
   { name: 'stories', anchor: 'stories', minHeight: 500, load: () => import('../sections/Stories.jsx') },
   { name: 'membership', anchor: 'club', minHeight: 640, load: () => import('../sections/Membership.jsx') },

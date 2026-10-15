@@ -38,7 +38,32 @@ export const BACKEND_ENDPOINTS = {
     SUBMIT: '/ai-visualization/submit',
     BY_ID: (id) => `/ai-visualization/${enc(id)}`,
     STATUS: (id) => `/ai-visualization/${enc(id)}/status`,
-    MY_REQUESTS: '/ai-visualization/my-requests',
+    MY_REQUESTS: '/ai-visualization/my-requests', // ?customerId=
+    READ_SAS: '/ai-visualization/read-sas-token',  // { blobName } → { blobUri, sasToken }
+    WRITE_SAS: '/ai-visualization/write-sas-token',
+  },
+  HERITAGE_RESTORATION: {
+    CREATE: '/v1/heritage-restoration', // note: v1 only on create (as per swagger)
+    LIST: '/heritage-restoration',
+    BY_ID: (id) => `/heritage-restoration/${enc(id)}`,
+    PHOTOS: (id) => `/heritage-restoration/${enc(id)}/photos`,
+    ASSESSMENT: (id) => `/heritage-restoration/${enc(id)}/assessment`,
+  },
+  ELDERLY_DIY: {
+    LIST: '/elderly-diy',
+    REGISTER: '/elderly-diy/register',
+    MY_PROGRAMS: '/elderly-diy/my-programs',
+  },
+  FAMILY_PROGRAMS: {
+    LIST: '/family-programs',
+    REGISTER: '/family-programs/register',
+  },
+  INCUBATOR: {
+    CREATE: '/incubator/projects',
+    LIST: '/v1/incubator/projects', // note: v1 only on list (as per swagger)
+    BY_ID: (id) => `/incubator/projects/${enc(id)}`,
+    FILES: (id) => `/incubator/projects/${enc(id)}/files`,
+    MENTOR_SESSION: (id) => `/incubator/projects/${enc(id)}/mentor-session`,
   },
   AUTH: {
     REGISTER: '/auth/register',
@@ -99,6 +124,10 @@ export const BACKEND_ENDPOINTS = {
     STATISTICS: '/admin/statistics',
     REVENUE: '/admin/revenue',
     CAMPAIGN_OCCUPANCY: '/admin/campaign-occupancy',
+    HERITAGE_STATS: '/admin/heritage-stats',
+    INCUBATOR_STATS: '/admin/incubator-stats',
+    ELDERLY_DIY_STATS: '/admin/elderly-diy-stats',
+    AI_COST_STATS: '/admin/ai-cost-stats',
   },
   AI: {
     RECOMMEND_WORKSHOP: '/ai/recommend-workshop',
@@ -143,6 +172,19 @@ export const BACKEND_ENDPOINTS = {
     ATTENDANCE: '/workshops/attendance',
     CERTIFICATE: '/workshops/certificate',
   },
+};
+
+// AI Design Studio category → visualizationTypeId (SubmitVisualizationDto).
+// ASSUMPTION: the swagger gives no list of type ids. Confirm these with the
+// backend team and edit here; `outdoor` is used by the homepage visualizer.
+export const VISUALIZATION_TYPES = {
+  outdoor: 1,
+  pergola: 1,
+  gazebo: 2,
+  terrace: 3,
+  senior: 4,
+  heritage: 5,
+  product: 6,
 };
 
 // Builds a full backend URL: backendUrl(BACKEND_ENDPOINTS.CAMPAIGNS.BY_ID, 12)

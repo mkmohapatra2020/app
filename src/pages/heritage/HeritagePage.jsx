@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import HeritageRestoration from '../../sections/HeritageRestoration.jsx';
+import { scrollToTarget } from '../../utils/scrollTo.js';
 import PageShell, { EmptyState, SkeletonGrid, SourceNote } from '../../components/common/PageShell.jsx';
 import RemoteImage from '../../components/common/RemoteImage.jsx';
 import useResource from '../../hooks/useResource.js';
@@ -13,11 +16,15 @@ export default function HeritagePage() {
   const gallery = useResource(tab === 'gallery' ? 'crafts:gallery' : null, (a) => contentService.craftGallery(a), { fallback: [] });
   const enquiry = useEnquiry();
   const src = { projects, crafts, gallery }[tab];
+  const { hash } = useLocation();
+  useEffect(() => { if (hash) scrollToTarget(hash); }, [hash]);
 
   return (
+    <>
     <PageShell title="Heritage & traditional crafts" eyebrow="Preserving skills across generations" crumbs={[[null, 'Heritage']]}
       intro="Wood carving, bamboo weaving, village living ideas and eco-friendly building from Odisha's craft traditions."
       actions={<button type="button" className="btn btn-primary btn-small" onClick={() => generalEnquiry(enquiry, "I'd like to explore the Heritage Collection.")}>Ask about a heritage project</button>}>
+      <a className="hr-jump" href="#restoration"><span aria-hidden="true">✦</span> New: Heritage Restoration — antique furniture, vintage doors and heritage homes<b>See restorations ↓</b></a>
       <div className="tabs" role="tablist">
         {[['projects', 'Heritage projects'], ['crafts', 'Craft techniques'], ['gallery', 'Craft gallery']].map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={`tab${tab === id ? ' sel' : ''}`} onClick={() => setTab(id)}>{label}</button>)}
       </div>
@@ -40,5 +47,7 @@ export default function HeritagePage() {
         </div>
       )}
     </PageShell>
+    <HeritageRestoration />
+    </>
   );
 }

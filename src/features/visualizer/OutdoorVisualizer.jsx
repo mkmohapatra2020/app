@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import useImageJob from '../../hooks/useImageJob.js';
 import { visualizationService } from '../../services/visualizationService.js';
 import { generalEnquiry, useEnquiry } from '../enquiry/enquiry.js';
@@ -52,6 +53,7 @@ export default function OutdoorVisualizer() {
         <span className="eyebrow">Outdoor space visualizer</span>
         <h3>See your terrace or backyard transformed</h3>
         <p>Upload a photo and our AI suggests where a pergola, deck, seating and garden could go.</p>
+        <p className="vis-studio-link"><span className="pill">New</span> Need gazebos, senior-home, heritage or product concepts, reference images and saved requests? <Link to="/design-studio">Open the AI Design Studio →</Link></p>
       </div>
       <div className="vis-layout">
         <div className="vis-controls">

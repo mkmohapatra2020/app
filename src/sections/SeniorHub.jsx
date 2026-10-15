@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Section from '../components/common/Section.jsx';
 import Img from '../components/common/Img.jsx';
 import SafetyScore from '../features/safetyScore/SafetyScore.jsx';
@@ -15,7 +16,10 @@ export default function SeniorHub() {
           <ul className="senior-list">
             {seniorFeatures.map(([t, d]) => <li key={t}><span className="check" aria-hidden="true">✓</span><div><strong>{t}</strong><span>{d}</span></div></li>)}
           </ul>
-          <button type="button" className="btn btn-primary" onClick={() => requestAssessment(enquiry)}>Free Home Assessment</button>
+          <div className="row-btns">
+            <button type="button" className="btn btn-primary" onClick={() => requestAssessment(enquiry)}>Free Home Assessment</button>
+            <Link className="btn btn-outline" to="/elderly-diy">Elderly DIY Programs</Link>
+          </div>
         </div>
       </div>
       <SafetyScore />

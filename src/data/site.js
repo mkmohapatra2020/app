@@ -31,6 +31,11 @@ export const nav = [
   ['/shop', 'Shop'],
 ];
 export const moreNav = [
+  ['/heritage#restoration', 'Heritage Restoration'],
+  ['/elderly-diy', 'Elderly DIY Programs'],
+  ['/incubator', 'DIY Incubator'],
+  ['/design-studio', 'AI Design Studio'],
+  ['/#together', 'Build Together'],
   ['/#about', 'About us'],
   ['/events', 'Events'],
   ['/heritage', 'Heritage & crafts'],
@@ -229,6 +234,10 @@ export const footerLinks = [
   ['/#outdoor', 'Outdoor Living'],
   ['/#seniors', 'Senior Home Improvements'],
   ['/heritage', 'Heritage Projects'],
+  ['/heritage#restoration', 'Heritage Restoration'],
+  ['/elderly-diy', 'Elderly DIY Programs'],
+  ['/incubator', 'DIY Incubator'],
+  ['/design-studio', 'AI Design Studio'],
   ['/community', 'Community'],
   ['/learn', 'DIY Knowledge Center'],
   ['/shop', 'Shop'],

@@ -9,12 +9,13 @@ import useSession from '../../hooks/useSession.js';
 import { userService } from '../../services/userService.js';
 import { passportService } from '../../services/passportService.js';
 import { visualizationService } from '../../services/visualizationService.js';
+import { programService } from '../../services/programService.js';
 import { authService } from '../../services/authService.js';
 import { membership as localTiers } from '../../data/site.js';
 import { passportStamps } from '../../data/features.js';
 import { useToast } from '../../context/ToastContext.jsx';
 
-const TABS = [['profile', 'Profile'], ['membership', 'Membership'], ['badges', 'Passport badges'], ['designs', 'My AI designs']];
+const TABS = [['profile', 'Profile'], ['membership', 'Membership'], ['badges', 'Passport badges'], ['programs', 'My programs'], ['designs', 'My AI designs']];
 
 export default function ProfilePage({ tab: initialTab = 'profile' }) {
   const [tab, setTab] = useState(initialTab);
@@ -31,6 +32,7 @@ export default function ProfilePage({ tab: initialTab = 'profile' }) {
         {tab === 'profile' && <ProfileTab />}
         {tab === 'membership' && <MembershipTab />}
         {tab === 'badges' && <BadgesTab />}
+        {tab === 'programs' && <ProgramsTab />}
         {tab === 'designs' && <DesignsTab />}
       </div>
     </PageShell>
@@ -153,22 +155,43 @@ function BadgesTab() {
   );
 }
 
+function ProgramsTab() {
+  const mine = useResource('elderly-diy:mine', (a) => programService.elderlyMine(a), { fallback: [] });
+  if (mine.loading) return <SkeletonGrid count={2} />;
+  if (!mine.data?.length) return <EmptyState icon="🪴" title="No programs yet">Browse the <Link to="/elderly-diy">Elderly DIY Programs</Link> and join one — it will appear here.</EmptyState>;
+  return (
+    <div className="item-grid">
+      {mine.data.map((p) => (
+        <article key={p.id || p.title} className="item-card">
+          <div className="item-card-img"><RemoteImage src={p.image} fallback="hero-family" alt="" /></div>
+          <div className="item-card-body">
+            {p.status && <span className="pill">{p.status}</span>}
+            <h3>{p.title}</h3>
+            {p.text && <p>{p.text}</p>}
+            {(p.date || p.duration) && <p className="muted">{[p.date && new Date(p.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }), p.duration].filter(Boolean).join(' · ')}</p>}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
 function DesignsTab() {
   const list = useResource('my-designs', (a) => visualizationService.myRequests(a), { fallback: [] });
   const [open, setOpen] = useState(null);
-  const detail = useApi((a) => visualizationService.get(a));
+  const detail = useApi(async (a) => { const r = await visualizationService.get(a); if (r.success && !r.data.image) { const url = await visualizationService.resultUrl(r.data, a.signal); if (url) return { ...r, data: { ...r.data, image: url } }; } return r; });
   const view = async (v) => { setOpen(v); if (!v.image) await detail.execute({ id: v.id }); };
   const shown = open && (detail.data && detail.data.id === open.id ? { ...open, ...detail.data } : open);
 
   if (list.loading) return <SkeletonGrid count={3} />;
-  if (!list.data?.length) return <EmptyState icon="🖼️" title="No AI designs yet">Try <b>Change My Space</b> from the Try now button or the <Link to="/#visualizer">Outdoor Space Visualizer</Link> — your designs will be saved here.</EmptyState>;
+  if (!list.data?.length) return <EmptyState icon="🖼️" title="No AI designs yet">Try the <Link to="/design-studio">AI Design Studio</Link>, <b>Change My Space</b> from the Try now button or the <Link to="/#visualizer">Outdoor Space Visualizer</Link> — your designs will be saved here.</EmptyState>;
   return (
     <div className="designs">
       <div className="design-grid">
         {list.data.map((v) => (
           <button type="button" key={v.id} className={`design-card${open?.id === v.id ? ' sel' : ''}`} onClick={() => view(v)}>
             <RemoteImage src={v.image || v.original} fallback="show-roofgarden" alt="" />
-            <span className={`status status-${v.status || 'pending'}`}>{v.status === 'done' ? 'Ready' : v.status === 'error' ? 'Failed' : 'Processing'}</span>
+            <span className={`status status-${v.status || 'pending'}`}>{v.status === 'done' ? 'Ready' : v.status === 'error' ? 'Failed' : v.stage === 'queued' ? 'Queued' : 'Generating'}</span>
             <span className="design-date">{v.createdAt ? new Date(v.createdAt).toLocaleDateString('en-IN') : `Request ${v.id}`}</span>
           </button>
         ))}

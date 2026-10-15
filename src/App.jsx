@@ -27,6 +27,9 @@ const pages = {
   Learn: lazy(() => import('./pages/learn/LearnPage.jsx')),
   Article: lazy(() => import('./pages/learn/ArticlePage.jsx')),
   Heritage: lazy(() => import('./pages/heritage/HeritagePage.jsx')),
+  ElderDiy: lazy(() => import('./pages/elderly/ElderDiyPage.jsx')),
+  Incubator: lazy(() => import('./pages/incubator/IncubatorPage.jsx')),
+  Studio: lazy(() => import('./pages/studio/DesignStudioPage.jsx')),
   Project: lazy(() => import('./pages/projects/ProjectPage.jsx')),
   Shop: lazy(() => import('./pages/shop/ShopPage.jsx')),
   Product: lazy(() => import('./pages/shop/ProductPage.jsx')),
@@ -88,6 +91,9 @@ export default function App() {
                 <Route path="learn" element={<P.Learn />} />
                 <Route path="learn/:slug" element={<P.Article />} />
                 <Route path="heritage" element={<P.Heritage />} />
+                <Route path="elderly-diy" element={<P.ElderDiy />} />
+                <Route path="incubator" element={<P.Incubator />} />
+                <Route path="design-studio" element={<P.Studio />} />
                 <Route path="projects/:id" element={<P.Project />} />
                 <Route path="shop" element={<P.Shop />} />
                 <Route path="shop/:id" element={<P.Product />} />

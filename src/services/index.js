@@ -19,4 +19,7 @@ export { notificationService } from './notificationService.js';
 export { passportService } from './passportService.js';
 export { projectService } from './projectService.js';
 export { visualizationService } from './visualizationService.js';
+export { heritageRestorationService } from './heritageRestorationService.js';
+export { programService } from './programService.js';
+export { incubatorService } from './incubatorService.js';
 export * from './apiConfig.js';
