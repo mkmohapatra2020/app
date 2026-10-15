@@ -19,7 +19,7 @@
   html{scroll-behavior:smooth;}
   body{
     margin:0;
-    background:var(--parchment);
+    background:var(--bg);
     color:var(--ink);
     font-family:'Work Sans',sans-serif;
     font-size:16px;
@@ -31,7 +31,7 @@
   h1,h2,h3{
     font-family:'Fraunces',serif;
     margin:0;
-    color:var(--teak);
+    color:var(--heading);
     font-weight:600;
     letter-spacing:-0.01em;
   }
@@ -42,7 +42,7 @@
     letter-spacing:0.22em;
     font-size:0.72rem;
     font-weight:600;
-    color:var(--teal-deep);
+    color:var(--accent-text);
   }
 
   .wrap{
@@ -74,7 +74,7 @@
     position:sticky;
     top:0;
     z-index:50;
-    background:rgba(244,238,220,0.92);
+    background:var(--nav-bg);
     backdrop-filter:blur(6px);
     border-bottom:1px solid var(--line);
   }
@@ -92,7 +92,7 @@
     font-style:italic;
     font-weight:600;
     font-size:1.35rem;
-    color:var(--teak);
+    color:var(--heading);
   }
   .nav-links{
     display:flex;
@@ -104,7 +104,7 @@
     padding:0;
   }
   .nav-links a{text-decoration:none;color:var(--ink-soft);}
-  .nav-links a:hover{color:var(--teal-deep);}
+  .nav-links a:hover{color:var(--accent-text);}
   .nav-cta{
     display:inline-block;
     background:var(--teak);
@@ -144,7 +144,7 @@
       padding:12px;
       flex-direction:column;
       gap:0;
-      background:rgba(244,238,220,.98);
+      background:var(--nav-bg-solid);
       border:1px solid var(--line);
       border-radius:14px;
       box-shadow:0 16px 34px rgba(62,42,24,.16);
@@ -189,13 +189,13 @@
   .btn-primary{background:var(--gold);color:var(--teak);}
   .btn-primary:hover{background:var(--gold-soft);}
   .btn-ghost{border-color:rgba(244,238,220,0.4);color:var(--parchment);background:transparent;}
-  .btn-ghost:hover{border-color:var(--parchment);}
+  .btn-ghost:hover{border-color:var(--bg);}
 
   /* ---------- chips & fields ---------- */
   .chip-group{display:flex;flex-wrap:wrap;gap:8px;}
   .chip{
     border:1px solid var(--line);
-    background:var(--parchment);
+    background:var(--bg);
     border-radius:100px;
     padding:8px 15px;
     font-size:0.84rem;
@@ -213,7 +213,7 @@
     font-size:0.9rem;
     resize:vertical;
     min-height:70px;
-    background:var(--parchment);
+    background:var(--bg);
   }
   textarea:focus, .chip:focus-visible, .btn:focus-visible, a:focus-visible{
     outline:2px solid var(--teal);

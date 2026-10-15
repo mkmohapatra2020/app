@@ -1,0 +1,179 @@
+/* =====================================================================
+   Themes — Light (default), Dark, Forest.
+   <html data-theme="light|dark|forest"> is set by src/theme/theme.js
+   (and by the inline script in index.html before first paint).
+   Components use these semantic tokens; brand colours (--teak, --gold …)
+   stay in base.css.
+   ===================================================================== */
+:root,
+:root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#F4EEDC;            /* page */
+  --bg-deep:#EAE1C7;       /* warm bands, page headers */
+  --surface:#FFFFFF;       /* inputs, white cards */
+  --card:#FFFDF7;          /* standard cards */
+  --heading:#3E2A18;       /* headings, strong text */
+  --ink:#241708;
+  --ink-soft:#4A3B29;
+  --line:rgba(36,23,8,0.14);
+  --accent-text:#1F4C50;   /* eyebrows, links */
+  --accent-soft:#E0EEEE;   /* pills */
+  --forest-text:#2F4A2C;
+  --forest-tint:#E4EBDB;
+  --mist:#ECEAE3;
+  --elder-border:#D8E2CF;
+  --elder-ink-c:#1E1409;
+  --elder-soft:#3B2E1F;
+  --nav-bg:rgba(244,238,220,0.92);
+  --nav-bg-solid:#F5EFDE;
+  --nav-bg-scrolled:rgba(250,245,232,.96);
+  --skel-a:#efe7d3;
+  --skel-b:#f7f1e3;
+  --shadow:0 14px 34px rgba(62,42,24,.10);
+}
+
+/* Dark — warm "workshop at night": deep wood, lamp-lit text. */
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#15100A;
+  --bg-deep:#1E170F;
+  --surface:#251C13;
+  --card:#211910;
+  --heading:#F2E6CC;
+  --ink:#ECE2CE;
+  --ink-soft:#BFB197;
+  --line:rgba(236,226,206,.14);
+  --accent-text:#8ECFCB;
+  --accent-soft:rgba(142,207,203,.16);
+  --forest-text:#A8CF96;
+  --forest-tint:rgba(168,207,150,.14);
+  --mist:#1E170F;
+  --elder-border:rgba(236,226,206,.2);
+  --elder-ink-c:#F4EBDC;
+  --elder-soft:#D6C9B0;
+  --nav-bg:rgba(21,16,10,.9);
+  --nav-bg-solid:#1E170F;
+  --nav-bg-scrolled:rgba(24,18,11,.96);
+  --skel-a:#231a11;
+  --skel-b:#30251a;
+  --shadow:0 14px 34px rgba(0,0,0,.45);
+  --teak:#2B1D10;          /* footer / dark bands sit just above the page */
+  --line-strong:rgba(236,226,206,.28);
+}
+
+/* Forest — the same layout dressed in leaf green and sage. */
+:root[data-theme="forest"]{
+  color-scheme:light;
+  --bg:#EEF1E4;
+  --bg-deep:#E1E8D2;
+  --surface:#FBFCF6;
+  --card:#F8FAF1;
+  --heading:#22361E;
+  --ink:#1B2617;
+  --ink-soft:#45543D;
+  --line:rgba(27,38,23,.14);
+  --accent-text:#2E5A32;
+  --accent-soft:#DCE8D3;
+  --forest-text:#2E5A32;
+  --forest-tint:#DCE8D3;
+  --mist:#E3E9D6;
+  --elder-border:#C9D8BD;
+  --elder-ink-c:#16200F;
+  --elder-soft:#34432C;
+  --nav-bg:rgba(238,241,228,.92);
+  --nav-bg-solid:#EFF2E6;
+  --nav-bg-scrolled:rgba(243,246,236,.96);
+  --skel-a:#e0e7d3;
+  --skel-b:#eef2e6;
+  --shadow:0 14px 34px rgba(34,54,30,.12);
+  --teak:#22351F;          /* footer, dark bands and dark buttons turn forest */
+  --bark:#3F5A36;
+  --teal:#3F7A45;
+  --teal-deep:#2E5A32;
+}
+
+/* ---------- dark theme touch-ups ---------- */
+:root[data-theme="dark"] img{filter:brightness(.93) saturate(.96);}
+:root[data-theme="dark"] .hero img,:root[data-theme="dark"] .ba img{filter:none;}
+:root[data-theme="dark"] .btn-outline{border-color:var(--accent-text);color:var(--accent-text);}
+:root[data-theme="dark"] .btn-outline:hover{background:var(--accent-text);color:#10201F;}
+:root[data-theme="dark"] .btn-quiet{color:var(--ink-soft);}
+:root[data-theme="dark"] .chip.sel,:root[data-theme="dark"] .option.sel{background:#2F6E73;border-color:#2F6E73;}
+:root[data-theme="dark"] .pill{color:var(--accent-text);}
+:root[data-theme="dark"] .sample-tag{background:#4a3a14;color:#F0C784;}
+:root[data-theme="dark"] .source-note{background:#3a2e12;color:#F0C784;}
+:root[data-theme="dark"] .enq-error,:root[data-theme="dark"] .f-alert-error{background:#3d1d12;color:#F4B9A3;}
+:root[data-theme="dark"] .f-alert-success,:root[data-theme="dark"] .passport-msg{background:#173323;color:#A9DDB9;}
+:root[data-theme="dark"] .elder .btn-outline{border-color:var(--forest-text);color:var(--forest-text);}
+:root[data-theme="dark"] .elder-filter button.sel,:root[data-theme="dark"] .studio-cat.sel,:root[data-theme="dark"] .inc .filter-row .chip.sel{background:#3B5E37;border-color:#3B5E37;}
+:root[data-theme="dark"] .elder-level i{border-color:var(--forest-text);}
+:root[data-theme="dark"] .elder-level i.on{background:var(--forest-text);}
+:root[data-theme="dark"] .inc-flow button[aria-current] .inc-flow-icon{background:#3B5E37;}
+:root[data-theme="dark"] .studio-num,:root[data-theme="dark"] .st-done .st-dot{background:#3B5E37;}
+:root[data-theme="dark"] .studio-timeline li.st-done:not(:last-child)::after,:root[data-theme="dark"] .inc-flow li.on:not(:last-child)::after{background:#5E8A56;}
+:root[data-theme="dark"] .inc-flow li.on .inc-flow-icon{border-color:#5E8A56;}
+:root[data-theme="dark"] .elder-cta,:root[data-theme="dark"] .inc-cta{background:#22351F;}
+:root[data-theme="dark"] .map-sea{fill:#0f2426;}
+
+/* ---------- theme switcher ---------- */
+.theme-switch{position:relative;}
+.theme-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:42px;height:42px;padding:0 12px;border-radius:100px;font:600 .86rem 'Work Sans',sans-serif;white-space:nowrap;border:1px solid var(--line);background:transparent;color:var(--heading);cursor:pointer;transition:background .2s,border-color .2s;}
+.theme-btn:hover{background:rgba(225,169,76,.2);}
+.theme-btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+.theme-btn svg{width:19px;height:19px;flex:none;}
+.theme-btn .theme-label{line-height:1;}
+.theme-btn .theme-caret{width:10px;height:10px;opacity:.7;transition:transform .2s;}
+.theme-btn[aria-expanded="true"] .theme-caret{transform:rotate(180deg);}
+/* Text label only where the header has room; icon-only otherwise. */
+@media (max-width:1280px){.theme-btn{width:42px;padding:0;}.theme-btn .theme-label,.theme-btn .theme-caret{display:none;}}
+/* Theme choices inside the phone/tablet menu */
+.nav-theme-row{display:none;}
+@media (max-width:980px){
+  .nav-theme-row{display:block;padding:6px 8px 6px;}
+  .nav-theme-row > span{display:block;font:700 .72rem 'Work Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:8px;}
+  .nav-theme-opts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
+  .nav-theme-opts button{display:flex;flex-direction:column;align-items:center;gap:5px;min-height:62px;padding:8px 4px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:600 .78rem 'Work Sans',sans-serif;cursor:pointer;}
+  .nav-theme-opts button[aria-checked="true"]{border-color:var(--gold);box-shadow:0 0 0 2px rgba(225,169,76,.3);}
+  .nav-theme-opts .theme-swatch{width:22px;height:22px;}
+}
+.theme-menu{position:absolute;right:0;top:calc(100% + 10px);z-index:60;min-width:220px;margin:0;padding:6px;list-style:none;background:var(--nav-bg-solid);border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 34px rgba(0,0,0,.18);opacity:0;visibility:hidden;transform:translateY(-6px);transition:opacity .18s,transform .18s,visibility .18s;}
+.theme-menu.open{opacity:1;visibility:visible;transform:none;}
+.theme-menu button{display:flex;align-items:center;gap:12px;width:100%;min-height:46px;padding:8px 10px;border:0;border-radius:10px;background:transparent;color:var(--ink);font:500 .92rem 'Work Sans',sans-serif;text-align:left;cursor:pointer;}
+.theme-menu button:hover,.theme-menu button:focus-visible{background:var(--accent-soft);outline:none;}
+.theme-menu button[aria-checked="true"]{font-weight:700;color:var(--heading);}
+.theme-menu button[aria-checked="true"]::after{content:'✓';margin-left:auto;color:var(--gold);font-weight:700;}
+.theme-swatch{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);box-shadow:inset 0 0 0 3px rgba(255,255,255,.35);}
+.theme-swatch.sw-light{background:linear-gradient(135deg,#F4EEDC 50%,#3E2A18 50%);}
+.theme-swatch.sw-dark{background:linear-gradient(135deg,#15100A 50%,#E1A94C 50%);}
+.theme-swatch.sw-forest{background:linear-gradient(135deg,#EEF1E4 50%,#22351F 50%);}
+.theme-swatch.sw-system{background:conic-gradient(#F4EEDC 0 50%,#15100A 50% 100%);}
+.theme-menu small{display:block;font-size:.74rem;color:var(--ink-soft);font-weight:400;}
+@media (max-width:420px){.theme-btn{width:38px;height:38px;}}
+html.theme-anim *,html.theme-anim *::before,html.theme-anim *::after{transition:background-color .35s ease,color .35s ease,border-color .35s ease !important;}
+@media (prefers-reduced-motion: reduce){html.theme-anim *{transition:none !important;}}
+
+/* sign-in pill on dark */
+:root[data-theme="dark"] .nav-signin{background:transparent;border-color:rgba(236,226,206,.3);}
+:root[data-theme="dark"] .nav-signin:hover{background:var(--surface);border-color:var(--accent-text);}
+
+/* phones: make room for the theme button */
+@media (max-width:480px){
+  .nav-inner{gap:6px;}
+  .nav-actions{gap:4px;}
+  .theme-btn,.nav-icon-btn{width:38px;height:38px;}
+  .theme-btn{border-color:transparent;}
+}
+@media (max-width:420px){
+  .nav-logo{font-size:1.08rem;}
+  .try-now{padding:7px 11px;}
+  .try-now-spark{display:none;}
+  .theme-menu{right:-44px;}
+}
+@media (max-width:380px){
+  .nav-inner{padding-left:12px;padding-right:12px;}
+  .try-now{padding:6px 9px;font-size:.78rem;}
+  .nav-logo{font-size:1rem;}
+}
+
+/* phone menu: keep the Book Workshop button visible on dark */
+:root[data-theme="dark"] .nav-mobile-cta button{background:var(--gold);color:#2B1D10;}

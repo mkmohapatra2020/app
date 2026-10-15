@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import TryNow from '../../features/tryNow/TryNow.jsx';
+import ThemeSwitcher, { ThemeRow } from '../../theme/ThemeSwitcher.jsx';
 import { nav, moreNav } from '../../data/site.js';
 import { bookWorkshop, useEnquiry } from '../../features/enquiry/enquiry.js';
 import useSession from '../../hooks/useSession.js';
@@ -129,11 +130,13 @@ export default function Nav() {
               ? <><Link to="/profile">My profile</Link>{isAdmin && <Link to="/admin">Admin dashboard</Link>}<button type="button" className="nav-text-btn" onClick={logout}>Sign out</button></>
               : <><Link to="/login">Sign in</Link><Link to="/register">Create account</Link></>}
           </li>
-          <li className="nav-mobile-cta" style={{ '--i': nav.length + 2 }}><button type="button" onClick={() => bookWorkshop(enquiry)}>Book Workshop</button></li>
+          <li className="nav-mobile-only" style={{ '--i': nav.length + 2 }}><ThemeRow /></li>
+          <li className="nav-mobile-cta" style={{ '--i': nav.length + 3 }}><button type="button" onClick={() => bookWorkshop(enquiry)}>Book Workshop</button></li>
           {pill && <li className="nav-pill" aria-hidden="true" style={{ transform: `translateX(${pill.left}px)`, width: pill.width }} />}
         </ul>
         <div className="nav-actions">
           <TryNow />
+          <ThemeSwitcher />
           <Link to="/cart" className="nav-icon-btn" aria-label={`Cart, ${cart.count} item${cart.count === 1 ? '' : 's'}`}>
             <span aria-hidden="true">🛒</span>{cart.count > 0 && <b className="nav-badge">{cart.count}</b>}
           </Link>

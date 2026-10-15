@@ -6,6 +6,20 @@
 <title>Weekend-Live — DIY Workshops, Outdoor Living & Senior-Friendly Homes in Bhubaneswar</title>
 <meta name="description" content="Weekend-Live helps families in Odisha learn DIY skills, build outdoor spaces and make homes safe for all generations — workshops, decks, pergolas, gazebos and senior home improvements in Bhubaneswar.">
 <meta name="theme-color" content="#3E2A18">
+<meta name="color-scheme" content="light dark">
+<script>
+  /* Apply the saved theme before first paint (same logic as src/theme/theme.js). */
+  (function () {
+    try {
+      var p = localStorage.getItem('wl-theme') || 'system';
+      var t = p === 'system' ? (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : p;
+      if (!/^(light|dark|forest)$/.test(t)) t = 'light';
+      document.documentElement.setAttribute('data-theme', t);
+      var c = { light: '#3E2A18', dark: '#15100A', forest: '#22351F' }[t];
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', c);
+    } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+  })();
+</script>
 <meta property="og:title" content="Weekend-Live — Building Skills, Creating Spaces, Connecting Generations">
 <meta property="og:description" content="DIY workshops, outdoor living and senior-friendly home improvements in Bhubaneswar, Odisha.">
 <meta property="og:image" content="/images/hero-family-1280.webp">
