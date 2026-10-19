@@ -6,13 +6,13 @@ import { assessmentService } from '../../services/assessmentService.js';
 import { fallbackSafety } from '../../data/fallbacks.js';
 
 // Interactive senior safety check. Questions come from
-// /elderly-assessment/questions (built-in set as fallback); the completed
+// /elderly-assessment/questions; the completed
 // assessment is saved via POST /elderly-assessment, and the visit is booked
 // through /elderly-assessment/visit.
 export default function SafetyScore() {
   const enquiry = useEnquiry();
   const q = useResource('assessment:questions', (a) => assessmentService.questions(a), { fallback: fallbackSafety });
-  const areas = q.data || fallbackSafety;
+  const areas = q.data || [];
   const ALL = useMemo(() => areas.flatMap((a) => a.questions.map(([id, text, fix]) => ({ id, q: text, fix, area: a.title }))), [areas]);
   const [answers, setAnswers] = useState({});
   const submit = useApi((a) => assessmentService.submit(a));
@@ -45,8 +45,16 @@ export default function SafetyScore() {
       <div className="tool-head">
         <span className="eyebrow">Senior Safety Score</span>
         <h3>How safe is your parents' home?</h3>
-        <p>Answer {ALL.length} quick questions to get a score and a list of simple fixes.</p>
+        {ALL.length > 0 && <p>Answer {ALL.length} quick questions to get a score and a list of simple fixes.</p>}
       </div>
+      {!ALL.length && (
+        <div className="vis-empty" style={{ aspectRatio: 'auto', padding: '28px' }}>
+          <div>
+            <p>{q.loading ? 'Loading the safety questions…' : 'The safety questions could not be loaded right now.'}</p>
+            {!q.loading && <div className="row-btns" style={{ justifyContent: 'center' }}><button type="button" className="btn btn-outline btn-small" onClick={q.reload}>Try again</button><button type="button" className="btn btn-primary btn-small" onClick={() => requestAssessment(enquiry)}>Book a free home assessment</button></div>}
+          </div>
+        </div>
+      )}
       <div className="safety-areas">
         {areas.map((a) => (
           <fieldset key={a.id} className="safety-area">
@@ -67,7 +75,7 @@ export default function SafetyScore() {
         ))}
       </div>
       <div className="safety-result" aria-live="polite">
-        {!complete ? (
+        {!ALL.length ? null : !complete ? (
           <p className="progress-note">{answered} of {ALL.length} answered</p>
         ) : (
           <>

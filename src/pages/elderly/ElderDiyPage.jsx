@@ -57,6 +57,14 @@ export default function ElderDiyPage() {
               {FILTERS.map(([v, label]) => <button key={v} type="button" aria-pressed={level === v} className={level === v ? 'sel' : ''} onClick={() => setLevel(v)}>{label}</button>)}
             </div>
           </div>
+          {!live.loading && activities.length === 0 && (
+            <div className="elder-empty">
+              <p><strong>{live.error ? 'We could not load the programmes right now.' : 'New programmes are being scheduled.'}</strong></p>
+              <p>Join the Elder DIY Program and we will call you as soon as the next sessions open.</p>
+              <div className="elder-actions">{live.error && <button type="button" className="btn btn-outline btn-xl" onClick={live.reload}>Try again</button>}<button type="button" className="btn btn-primary btn-xl" onClick={() => join()}>Join Elder DIY Program</button></div>
+            </div>
+          )}
+          {live.loading && <p className="elder-empty">Loading programmes…</p>}
           <div className="elder-grid">
             {shown.map((a) => (
               <article key={a.id} className="elder-card">

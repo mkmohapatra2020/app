@@ -29,6 +29,7 @@ export default function ProjectGallery() {
         ))}
       </div>
       <p className="result-count" aria-live="polite">{projects.loading ? 'Loading projects…' : `${items.length} project${items.length === 1 ? '' : 's'}`}</p>
+      {!projects.loading && items.length === 0 && <p className="empty-note">{projects.error ? 'Projects could not be loaded right now. Please try again shortly.' : 'No projects in this category yet.'}</p>}
       <div className="gallery-grid">
         {items.map((g) => (
           <Link to={`/projects/${encodeURIComponent(g.id)}`} className="gal-item" key={g.id}>

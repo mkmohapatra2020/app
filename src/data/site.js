@@ -1,9 +1,14 @@
 // All homepage content lives here, so text, dates and contacts can be edited
 // without touching the components.
 
-// While this is true, sections with placeholder data (community map, stories)
-// show a small "Sample" tag. Set to false once real content is in place.
-export const SHOW_SAMPLE_TAGS = true;
+// USE_SAMPLE_DATA = false → every list and detail screen shows ONLY real data
+// from the Weekend-Live API (via APIM). If the API returns nothing or fails,
+// the screen shows an empty / error message — never built-in sample content.
+// Set to true only for offline demos.
+export const USE_SAMPLE_DATA = false;
+
+// "Sample" tags are shown only when sample data is switched on.
+export const SHOW_SAMPLE_TAGS = USE_SAMPLE_DATA;
 
 export const contact = {
   phone: '+91 89172 50407',

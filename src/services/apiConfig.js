@@ -10,8 +10,10 @@ export const API_BASE_URLS = {
   // Same-origin by default: Netlify functions in production, Vite proxy in dev.
   API_BASE_URL: import.meta.env.VITE_API_BASE_URL || '',
   // Weekend-Live backend (Azure Functions). Called through a same-origin proxy
-  // (/wl-api → https://func-weekendlive-api…/api/api) so the browser never hits CORS.
+  // (/wl-api → https://appi-wl.azure-api.net/service/api) so the browser never hits CORS
+  // and the APIM subscription key stays on the server.
   // Set VITE_BACKEND_URL to call another URL directly.
+  // Dev: .env.development sets VITE_BACKEND_URL to the APIM URL (direct calls).
   BACKEND: import.meta.env.VITE_BACKEND_URL || '/wl-api',
 };
 

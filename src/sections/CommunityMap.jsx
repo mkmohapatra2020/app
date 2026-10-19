@@ -17,8 +17,10 @@ export default function CommunityMap() {
     const local = fallbackLocations.find((l) => l.name.toLowerCase() === p.name.toLowerCase());
     return { ...local, ...Object.fromEntries(Object.entries(p).filter(([, v]) => (Array.isArray(v) ? v.length : v))), id: local?.id || p.id, sample: live.fromApi ? false : local?.sample };
   });
-  const [active, setActive] = useState(fallbackLocations[0].id);
-  const place = places.find((p) => p.id === active) || places[0];
+  const key = (n) => String(n || '').toLowerCase();
+  const [active, setActive] = useState(null); // place name (lower case)
+  const place = places.find((p) => key(p.name) === active) || places[0];
+  const isOn = (name) => !!place && key(place.name) === key(name);
 
   return (
     <Section id="community" tone="teal" eyebrow="Interactive community map" title="DIY projects across Odisha"
@@ -36,9 +38,9 @@ export default function CommunityMap() {
               <text x={MAP_W - 70} y={MAP_H - 60} className="map-sea-label">Bay of Bengal</text>
             </g>
             {cityPoints.map((c) => (
-              <g key={c.id} className={`map-pin${c.id === active ? ' is-active' : ''}`} transform={`translate(${c.x} ${c.y})`}
-                tabIndex={0} role="button" aria-pressed={c.id === active} aria-label={`Show projects in ${c.name}`}
-                onClick={() => setActive(c.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActive(c.id); } }}>
+              <g key={c.id} className={`map-pin${isOn(c.name) ? ' is-active' : ''}`} transform={`translate(${c.x} ${c.y})`}
+                tabIndex={0} role="button" aria-pressed={isOn(c.name)} aria-label={`Show projects in ${c.name}`}
+                onClick={() => setActive(key(c.name))} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActive(key(c.name)); } }}>
                 <circle r="34" className="map-pin-hit" />
                 <circle r="13" className="map-pin-ring" />
                 <circle r="7" className="map-pin-dot" />
@@ -54,14 +56,18 @@ export default function CommunityMap() {
         <div className="map-panel reveal" aria-live="polite">
           <div className="map-tabs" role="tablist" aria-label="Places">
             {places.map((p) => (
-              <button key={p.id} type="button" role="tab" aria-selected={p.id === active} className={`chip${p.id === active ? ' sel' : ''}`} onClick={() => setActive(p.id)}>● {p.name}</button>
+              <button key={p.id || p.name} type="button" role="tab" aria-selected={isOn(p.name)} className={`chip${isOn(p.name) ? ' sel' : ''}`} onClick={() => setActive(key(p.name))}>● {p.name}</button>
             ))}
           </div>
+          {!place ? (
+            <p>{live.loading ? 'Loading community projects…' : live.error ? 'Community projects could not be loaded right now.' : 'Community projects will appear here soon.'}</p>
+          ) : (<>
           <h3>{place.name} <SampleTag show={SHOW_SAMPLE_TAGS && place.sample} /></h3>
           {place.projects?.length > 0 && <><h4>Projects</h4><ul className="ticks">{place.projects.map((p) => <li key={p}>{p}</li>)}</ul></>}
           {place.participants && <><h4>Participants</h4><p>{place.participants}</p></>}
           {place.story && <><h4>Story</h4><blockquote>{place.story}</blockquote></>}
           {place.address && <p className="muted">📍 {place.address}</p>}
+          </>)}
           <Link to="/community" className="btn btn-small map-cta">See community stories →</Link>
         </div>
       </div>

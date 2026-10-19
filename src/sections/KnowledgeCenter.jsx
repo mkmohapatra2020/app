@@ -5,13 +5,14 @@ import useResource from '../hooks/useResource.js';
 import { contentService } from '../services/contentService.js';
 import { fallbackArticles } from '../data/fallbacks.js';
 
-// Latest guides from GET /articles (built-in guides as fallback).
+// Latest guides from GET /articles.
 export default function KnowledgeCenter() {
   const a = useResource('articles', (x) => contentService.articles(x), { fallback: fallbackArticles });
   const list = (a.data || []).slice(0, 6);
   return (
     <Section id="learn" tone="warm" eyebrow="Learn & build" title="DIY knowledge center"
       intro="Free guides from our workshops — practical, safe and written for Odisha homes.">
+      {!a.loading && list.length === 0 && <p className="empty-note">{a.error ? 'Guides could not be loaded right now. Please try again shortly.' : 'New guides are on their way.'}</p>}
       <div className="article-grid">
         {list.map((g) => {
           const to = `/learn/${encodeURIComponent(g.slug || g.id)}`;

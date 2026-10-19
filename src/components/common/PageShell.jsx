@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { USE_SAMPLE_DATA } from '../../data/site.js';
 
 // Consistent page header + container for every non-home screen.
 export default function PageShell({ title, eyebrow, intro, crumbs = [], actions, children, narrow = false, className = '' }) {
@@ -29,7 +30,8 @@ export function EmptyState({ icon = '🌿', title, children }) {
 }
 
 export function SourceNote({ fromApi }) {
-  return fromApi ? null : <p className="source-note">Showing sample content while live data is unavailable.</p>;
+  if (fromApi || !USE_SAMPLE_DATA) return null;
+  return <p className="source-note">Showing sample content while live data is unavailable.</p>;
 }
 
 export function SkeletonGrid({ count = 6 }) {

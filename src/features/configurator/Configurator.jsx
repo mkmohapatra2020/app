@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { projectTypes, skillLevels, budgets, times, recommendProjects } from '../../data/features.js';
 import { fallbackCampaigns } from '../../data/fallbacks.js';
+import { USE_SAMPLE_DATA } from '../../data/site.js';
 import { bookWorkshop, generalEnquiry, useEnquiry } from '../enquiry/enquiry.js';
 import { aiService } from '../../services/aiService.js';
 import useApi from '../../hooks/useApi.js';
@@ -42,7 +43,7 @@ export default function Configurator() {
     wsAi.execute({ interests: [typeLabel], skill: pick.skill });
   }, [done]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const local = done ? recommendProjects(pick) : [];
+  const local = done && USE_SAMPLE_DATA ? recommendProjects(pick) : [];
   const fromAi = ai.data?.length ? ai.data.slice(0, 3) : null;
   const campaigns = peek('campaigns') || fallbackCampaigns;
   const aiWorkshop = wsAi.data?.[0];
@@ -54,8 +55,10 @@ export default function Configurator() {
     const res = await skillAi.execute({ answers });
     const total = answers.reduce((n, a) => n + a.score, 0);
     const localLevel = total <= 1 ? 'beginner' : total <= 4 ? 'intermediate' : 'advanced';
-    const level = res.success && ['beginner', 'intermediate', 'advanced'].find((l) => res.data.level.includes(l)) ? ['beginner', 'intermediate', 'advanced'].find((l) => res.data.level.includes(l)) : localLevel;
-    setQuiz((q) => ({ ...q, result: level, summary: res.success ? res.data.summary : '' }));
+    const apiLevel = res.success ? ['beginner', 'intermediate', 'advanced'].find((l) => String(res.data?.level || '').toLowerCase().includes(l)) : undefined;
+    if (!apiLevel && !USE_SAMPLE_DATA) { setQuiz((q) => ({ ...q, error: res.error || 'The skill check is not available right now. Please pick a level yourself.' })); return; }
+    const level = apiLevel || localLevel;
+    setQuiz((q) => ({ ...q, result: level, error: '', summary: res.success ? res.data.summary : '' }));
   };
 
   return (
@@ -91,6 +94,7 @@ export default function Configurator() {
                   </div>
                 </div>
               ))}
+              {quiz.error && <p className="enq-error" role="alert">{quiz.error}</p>}
               {quiz.result ? (
                 <p className="quiz-result">Suggested level: <b>{skillLevels.find(([k]) => k === quiz.result)[1]}</b>{quiz.summary ? ` — ${quiz.summary}` : ''} <button type="button" className="btn btn-primary btn-small" onClick={() => choose('skill', quiz.result)}>Use this level</button></p>
               ) : (
@@ -105,6 +109,7 @@ export default function Configurator() {
         <div className="config-results" aria-live="polite">
           <h4>{fromAi ? '✨ AI picks for you' : 'Recommended for you'}</h4>
           {ai.loading && <p className="muted"><span className="try-btn-spinner" aria-hidden="true" /> Asking our AI for personalised picks…</p>}
+          {!ai.loading && !fromAi && !local.length && <p className="empty-note">{ai.error ? 'Our AI recommender is not available right now. Please try again in a moment.' : 'No recommendations came back for these choices — try different options.'} <button type="button" className="link-btn" onClick={() => ai.execute({ type: projectTypes.find(([k]) => k === pick.type)?.[1], skill: pick.skill, budget: pick.budget, hours: pick.hours })}>Try again</button></p>}
           <div className="rec-grid">
             {(fromAi || local).map((p) => {
               const wsId = p.workshopId || p.workshop;

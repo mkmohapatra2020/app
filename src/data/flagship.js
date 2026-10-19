@@ -1,3 +1,5 @@
+import { USE_SAMPLE_DATA } from './site.js';
+
 // Content for the flagship programmes: Heritage Restoration, Elderly DIY,
 // DIY Incubator, AI Design Studio and Intergenerational programmes.
 // Edit text, images and options here without touching the components.
@@ -213,7 +215,7 @@ function matchImage(title, localItems, i) {
 }
 
 export function withLocalDefaults(apiItems, localItems) {
-  if (!apiItems?.length) return localItems;
+  if (!apiItems?.length) return USE_SAMPLE_DATA ? localItems : [];
   return apiItems.map((a, i) => ({
     ...a,
     id: `api-${a.id ?? i}`,

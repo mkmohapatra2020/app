@@ -6,7 +6,7 @@ import { heritageRestorationService } from '../services/heritageRestorationServi
 import BeforeAfter from '../components/common/BeforeAfter.jsx';
 import { SampleTag } from '../components/common/Section.jsx';
 import { restoration as R } from '../data/flagship.js';
-import { SHOW_SAMPLE_TAGS } from '../data/site.js';
+import { SHOW_SAMPLE_TAGS, USE_SAMPLE_DATA } from '../data/site.js';
 import { bookHeritageAssessment, useEnquiry } from '../features/enquiry/enquiry.js';
 
 const STAGES = [['before', 'Before'], ['during', 'During'], ['after', 'After']];
@@ -78,17 +78,18 @@ function RestorationGallery({ id }) {
     id: p.id, title: p.title, place: p.place, photos: { before: p.before, during: p.during, after: p.after },
     notes: [p.condition || p.text, p.work || p.text, p.text || p.work],
   }));
-  const items = real.length ? real : R.gallery;
+  const items = real.length ? real : USE_SAMPLE_DATA ? R.gallery : [];
   return (
     <div className="hr-gallery" id={id}>
       <div className="hr-gallery-head">
         <h3>Restoration gallery<SampleTag show={SHOW_SAMPLE_TAGS && !real.length} /></h3>
-        <div className="hr-stage-tabs" role="tablist" aria-label="Restoration stage">
+        {items.length > 0 && <div className="hr-stage-tabs" role="tablist" aria-label="Restoration stage">
           {STAGES.map(([s, label]) => (
             <button key={s} type="button" role="tab" aria-selected={stage === s} className={stage === s ? 'sel' : ''} onClick={() => setStage(s)}>{label}</button>
           ))}
-        </div>
+        </div>}
       </div>
+      {items.length === 0 && <p className="hr-empty">{live.loading ? 'Loading restorations…' : live.error ? 'Restoration projects could not be loaded right now.' : 'Our first documented restorations will be published here soon.'}</p>}
       <div className="hr-gallery-grid">
         {items.map((g) => (
           <figure key={g.id} className="hr-shot reveal">

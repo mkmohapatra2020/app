@@ -74,6 +74,7 @@ export default function IncubatorPage() {
           </div>
         </section>
 
+        {SHOW_SAMPLE_TAGS && (
         <div className="inc-split">
           <section id="inc-mentors" aria-labelledby="inc-mentors-h" className="inc-panel">
             <h2 id="inc-mentors-h" className="inc-h2">Mentor network<SampleTag show={SHOW_SAMPLE_TAGS} /></h2>
@@ -94,6 +95,7 @@ export default function IncubatorPage() {
             </ul>
           </section>
         </div>
+        )}
 
         <section id="inc-gallery" aria-labelledby="inc-gal-h" className="inc-block">
           <div className="row-between inc-gal-head">
@@ -111,7 +113,7 @@ export default function IncubatorPage() {
                 </figure>
               ))}
             </div>
-          ) : <p className="muted">No prototypes at this stage yet — yours could be the first.</p>}
+          ) : <p className="muted">{live.loading ? 'Loading prototypes…' : live.error ? 'Prototypes could not be loaded right now.' : stage === 'All' ? 'No prototypes have been published yet — yours could be the first.' : 'No prototypes at this stage yet — yours could be the first.'}</p>}
         </section>
 
         <section id="inc-submit" className="inc-cta" aria-labelledby="inc-cta-h">

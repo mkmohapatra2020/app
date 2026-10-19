@@ -4,14 +4,14 @@ import RemoteImage from '../components/common/RemoteImage.jsx';
 import useResource from '../hooks/useResource.js';
 import { programService } from '../services/programService.js';
 import { together as T, withLocalDefaults } from '../data/flagship.js';
-import { joinFamilyProgram, useEnquiry } from '../features/enquiry/enquiry.js';
+import { generalEnquiry, joinFamilyProgram, useEnquiry } from '../features/enquiry/enquiry.js';
 
 // Homepage: intergenerational programmes + Learn → Build → Share → Preserve.
 export default function BuildTogether() {
   const enquiry = useEnquiry();
   const live = useResource('family-programs', (a) => programService.familyList(a), { fallback: [] });
   const programs = withLocalDefaults(live.data, T.programs);
-  const ask = (title) => joinFamilyProgram(enquiry, programs, title);
+  const ask = (title) => (programs.length ? joinFamilyProgram(enquiry, programs, title) : generalEnquiry(enquiry, "I'd like to plan a family build day."));
   return (
     <Section id="together" tone="warm" eyebrow={T.eyebrow} title={T.title} intro={T.lede}>
       <ol className="bt-timeline reveal" aria-label="How it works">
@@ -23,6 +23,7 @@ export default function BuildTogether() {
           </li>
         ))}
       </ol>
+      {!live.loading && programs.length === 0 && <p className="empty-note">{live.error ? 'Programmes could not be loaded right now. Please try again shortly.' : 'New Build Together programmes are being scheduled — plan a family build day below and we will be in touch.'}</p>}
       <div className="bt-grid">
         {programs.map((p) => (
           <article key={p.id} className="bt-card reveal">

@@ -24,7 +24,7 @@ export default function Campaigns() {
   return (
     <Section id="diy" tone="warm" eyebrow="DIY campaign calendar" title="Upcoming DIY campaigns"
       intro="Weekend workshops for families, kids and first-time builders. Seats are limited so everyone gets hands-on time.">
-      {upcoming.length === 0 && <p className="empty-note">New workshop dates are coming soon — tap “Book Workshop” to be notified.</p>}
+      {!live.loading && upcoming.length === 0 && <p className="empty-note">{live.error ? 'Workshop dates could not be loaded right now. Please try again shortly.' : 'New workshop dates are coming soon — tap “Book Workshop” to be notified.'}</p>}
       <div className="camp-grid">
         {upcoming.map((c) => (
           <article className="camp reveal" key={c.id}>

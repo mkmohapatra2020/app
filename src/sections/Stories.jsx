@@ -17,6 +17,7 @@ export default function Stories() {
   const { isAuthenticated } = useSession();
   return (
     <Section id="stories" eyebrow="Participant stories" title="What families say">
+      {!t.loading && !(t.data || []).length && <p className="empty-note">{t.error ? 'Stories could not be loaded right now.' : 'Be the first to share your Weekend-Live story.'}</p>}
       <div className="story-grid">
         {(t.data || []).slice(0, 6).map((s) => (
           <figure className="story reveal" key={s.id || s.quote}>
