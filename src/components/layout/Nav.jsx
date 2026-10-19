@@ -113,7 +113,7 @@ export default function Nav() {
   return (
     <nav className={`nav${open ? ' nav-open' : ''}${scrolled ? ' nav-scrolled' : ''}`} ref={navRef} aria-label="Main">
       <div className="nav-inner">
-        <Link className="nav-logo" to="/"><span className="nav-logo-mark" aria-hidden="true">✦</span>Weekend-Live</Link>
+        <Link className="nav-logo" to="/"><img className="nav-logo-mark" src="/logo-mark.webp" alt="" width="145" height="96" decoding="async" />Weekend-Live</Link>
         <button
           className="nav-toggle" type="button"
           aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open}

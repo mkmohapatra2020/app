@@ -69,7 +69,7 @@ export const BACKEND_ENDPOINTS = {
   },
   AUTH: {
     REGISTER: '/auth/register',
-    LOGIN: '/auth/login',
+    LOGIN: '/auth/logincheck',
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
     GOOGLE: '/auth/google',

@@ -1,0 +1,3090 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "OpenAPI Document on Azure Functions",
+    "version": "1.0.0"
+  },
+  "host": "func-weekendlive-api-e8ffdch2dua8grcq.centralindia-01.azurewebsites.net",
+  "basePath": "/api",
+  "schemes": [
+    "https"
+  ],
+  "paths": {
+    "/api/ai-visualization/upload": {
+      "post": {
+        "tags": [
+          "AiVisualization"
+        ],
+        "operationId": "UploadAiReference",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/uploadAiReferenceRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of UploadAiReferenceResponse",
+            "schema": {
+              "$ref": "#/definitions/uploadAiReferenceResponse"
+            }
+          },
+          "400": {
+            "description": "Payload of OpenApiErrorResponse",
+            "schema": {
+              "$ref": "#/definitions/openApiErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/ai-visualization/submit": {
+      "post": {
+        "tags": [
+          "AiVisualization"
+        ],
+        "operationId": "SubmitAiVisualization",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/submitVisualizationDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of SubmitAiVisualizationResponse",
+            "schema": {
+              "$ref": "#/definitions/submitAiVisualizationResponse"
+            }
+          },
+          "400": {
+            "description": "Payload of OpenApiErrorResponse",
+            "schema": {
+              "$ref": "#/definitions/openApiErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/ai-visualization/read-sas-token": {
+      "post": {
+        "tags": [
+          "AiVisualization"
+        ],
+        "operationId": "ReadSASToken",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/blobSasRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of BlobSasResponse",
+            "schema": {
+              "$ref": "#/definitions/blobSasResponse"
+            }
+          },
+          "400": {
+            "description": "Payload of OpenApiErrorResponse",
+            "schema": {
+              "$ref": "#/definitions/openApiErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/ai-visualization/write-sas-token": {
+      "post": {
+        "tags": [
+          "AiVisualization"
+        ],
+        "operationId": "WriteSASToken",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/blobSasRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of BlobSasResponse",
+            "schema": {
+              "$ref": "#/definitions/blobSasResponse"
+            }
+          },
+          "400": {
+            "description": "Payload of OpenApiErrorResponse",
+            "schema": {
+              "$ref": "#/definitions/openApiErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/ai-visualization/{requestId}": {
+      "get": {
+        "tags": [
+          "AiVisualization"
+        ],
+        "operationId": "GetAiVisualization",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "requestId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of AIVisualizationRequest",
+            "schema": {
+              "$ref": "#/definitions/aiVisualizationRequest"
+            }
+          },
+          "400": {
+            "description": "Payload of OpenApiErrorResponse",
+            "schema": {
+              "$ref": "#/definitions/openApiErrorResponse"
+            }
+          },
+          "404": {
+            "description": "No description"
+          }
+        }
+      }
+    },
+    "/api/ai-visualization/{requestId}/status": {
+      "get": {
+        "tags": [
+          "AiVisualization"
+        ],
+        "operationId": "GetAiVisualizationStatus",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "requestId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of AiVisualizationStatusResponse",
+            "schema": {
+              "$ref": "#/definitions/aiVisualizationStatusResponse"
+            }
+          },
+          "400": {
+            "description": "Payload of OpenApiErrorResponse",
+            "schema": {
+              "$ref": "#/definitions/openApiErrorResponse"
+            }
+          },
+          "404": {
+            "description": "No description"
+          }
+        }
+      }
+    },
+    "/api/ai-visualization/my-requests": {
+      "get": {
+        "tags": [
+          "AiVisualization"
+        ],
+        "operationId": "GetMyVisualizations",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "customerId",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of Array of AIVisualizationRequest",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/aiVisualizationRequest"
+              }
+            }
+          },
+          "400": {
+            "description": "Payload of OpenApiErrorResponse",
+            "schema": {
+              "$ref": "#/definitions/openApiErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "Register",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/registerRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "Login",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/loginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "ForgotPassword",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/forgotPasswordRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "ResetPassword",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/resetPasswordRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/google": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "GoogleLogin",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/socialLoginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/facebook": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "operationId": "FacebookLogin",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/socialLoginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/campaigns": {
+      "get": {
+        "tags": [
+          "Campaigns"
+        ],
+        "operationId": "ListCampaigns",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "city",
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "age",
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "month",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/campaigns/{id}": {
+      "get": {
+        "tags": [
+          "Campaigns"
+        ],
+        "operationId": "CampaignDetails",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/campaigns/{id}/register": {
+      "post": {
+        "tags": [
+          "Campaigns"
+        ],
+        "operationId": "RegisterForCampaign",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/campaigns/{id}/registration": {
+      "delete": {
+        "tags": [
+          "Campaigns"
+        ],
+        "operationId": "CancelRegistration",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/campaigns/{id}/participants": {
+      "get": {
+        "tags": [
+          "Campaigns"
+        ],
+        "operationId": "CampaignParticipants",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/community/posts": {
+      "get": {
+        "tags": [
+          "Community"
+        ],
+        "operationId": "CommunityPosts",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Community"
+        ],
+        "operationId": "CreatePost",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/community/posts/{id}/like": {
+      "post": {
+        "tags": [
+          "Community"
+        ],
+        "operationId": "LikePost",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/community/posts/{id}/comment": {
+      "post": {
+        "tags": [
+          "Community"
+        ],
+        "operationId": "Comment",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/testimonials": {
+      "get": {
+        "tags": [
+          "Content"
+        ],
+        "operationId": "GetTestimonials",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Content"
+        ],
+        "operationId": "AddReview",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/articles": {
+      "get": {
+        "tags": [
+          "Content"
+        ],
+        "operationId": "GetArticles",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/articles/{slug}": {
+      "get": {
+        "tags": [
+          "Content"
+        ],
+        "operationId": "ArticleDetails",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/articles/search": {
+      "get": {
+        "tags": [
+          "Content"
+        ],
+        "operationId": "SearchArticles",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/heritage-projects": {
+      "get": {
+        "tags": [
+          "Content"
+        ],
+        "operationId": "HeritageProjects",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/crafts": {
+      "get": {
+        "tags": [
+          "Content"
+        ],
+        "operationId": "CraftTechniques",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/crafts/gallery": {
+      "get": {
+        "tags": [
+          "Content"
+        ],
+        "operationId": "CraftGallery",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/products": {
+      "get": {
+        "tags": [
+          "ECommerce"
+        ],
+        "operationId": "Products",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/products/{id}": {
+      "get": {
+        "tags": [
+          "ECommerce"
+        ],
+        "operationId": "ProductDetails",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/cart": {
+      "post": {
+        "tags": [
+          "ECommerce"
+        ],
+        "operationId": "Cart",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/checkout": {
+      "post": {
+        "tags": [
+          "ECommerce"
+        ],
+        "operationId": "Checkout",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/elderly-assessment/questions": {
+      "get": {
+        "tags": [
+          "ElderlyAssessment"
+        ],
+        "operationId": "AssessmentQuestions",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/elderly-assessment": {
+      "post": {
+        "tags": [
+          "ElderlyAssessment"
+        ],
+        "operationId": "SubmitAssessment",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/elderly-assessment/visit": {
+      "post": {
+        "tags": [
+          "ElderlyAssessment"
+        ],
+        "operationId": "BookVisit",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/events": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "operationId": "Events",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/events/upcoming": {
+      "get": {
+        "tags": [
+          "Events"
+        ],
+        "operationId": "UpcomingEvents",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/events/book": {
+      "post": {
+        "tags": [
+          "Events"
+        ],
+        "operationId": "BookEvent",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/heritage-restoration": {
+      "post": {
+        "tags": [
+          "HeritageRestoration"
+        ],
+        "operationId": "CreateHeritageRestoration",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/createHeritageRestorationRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/heritage-restoration": {
+      "get": {
+        "tags": [
+          "HeritageRestoration"
+        ],
+        "operationId": "ListHeritageRestoration",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/heritage-restoration/{id}": {
+      "get": {
+        "tags": [
+          "HeritageRestoration"
+        ],
+        "operationId": "GetHeritageRestoration",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/heritage-restoration/{id}/photos": {
+      "post": {
+        "tags": [
+          "HeritageRestoration"
+        ],
+        "operationId": "AddHeritagePhoto",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/addHeritagePhotoRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/heritage-restoration/{id}/assessment": {
+      "post": {
+        "tags": [
+          "HeritageRestoration"
+        ],
+        "operationId": "AddHeritageAssessment",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/addHeritageAssessmentRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/site-visit": {
+      "post": {
+        "tags": [
+          "Leads"
+        ],
+        "operationId": "RequestSiteVisit",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/quotation": {
+      "post": {
+        "tags": [
+          "Leads"
+        ],
+        "operationId": "RequestQuotation",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/leads/callback": {
+      "post": {
+        "tags": [
+          "Leads"
+        ],
+        "operationId": "CallbackRequest",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/locations": {
+      "get": {
+        "tags": [
+          "LocationsAdminAi"
+        ],
+        "operationId": "Locations",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/locations/nearby": {
+      "get": {
+        "tags": [
+          "LocationsAdminAi"
+        ],
+        "operationId": "NearbyWorkshops",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/dashboard": {
+      "get": {
+        "tags": [
+          "LocationsAdminAi"
+        ],
+        "operationId": "AdminDashboard",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/statistics": {
+      "get": {
+        "tags": [
+          "LocationsAdminAi"
+        ],
+        "operationId": "AdminStatistics",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/revenue": {
+      "get": {
+        "tags": [
+          "LocationsAdminAi"
+        ],
+        "operationId": "AdminRevenue",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/campaign-occupancy": {
+      "get": {
+        "tags": [
+          "LocationsAdminAi"
+        ],
+        "operationId": "CampaignOccupancy",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/recommend-workshop": {
+      "post": {
+        "tags": [
+          "LocationsAdminAi"
+        ],
+        "operationId": "RecommendWorkshop",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/recommend-projects": {
+      "post": {
+        "tags": [
+          "LocationsAdminAi"
+        ],
+        "operationId": "RecommendProjects",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/skill-assessment": {
+      "post": {
+        "tags": [
+          "LocationsAdminAi"
+        ],
+        "operationId": "SkillAssessment",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/email": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "SendEmail",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/sms": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "SendSms",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/whatsapp": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "SendWhatsApp",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/notifications/push": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "operationId": "SendPush",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/passport/badges": {
+      "post": {
+        "tags": [
+          "Passport"
+        ],
+        "operationId": "EarnBadge",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/passport/user-badges": {
+      "get": {
+        "tags": [
+          "Passport"
+        ],
+        "operationId": "UserBadges",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/passport/progress": {
+      "get": {
+        "tags": [
+          "Passport"
+        ],
+        "operationId": "PassportProgress",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/payment/create": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "operationId": "CreatePayment",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/payment/verify": {
+      "post": {
+        "tags": [
+          "Payment"
+        ],
+        "operationId": "VerifyPayment",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/heritage-stats": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "HeritageStats",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/incubator-stats": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "IncubatorStats",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/elderly-diy-stats": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "ElderlyDIYStats",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/ai-cost-stats": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "operationId": "AICostStats",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/elderly-diy": {
+      "get": {
+        "tags": [
+          "ElderlyDIY"
+        ],
+        "operationId": "ListElderlyDIYPrograms",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/elderly-diy/register": {
+      "post": {
+        "tags": [
+          "ElderlyDIY"
+        ],
+        "operationId": "RegisterElderlyDIY",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/registerElderlyDIYRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/elderly-diy/my-programs": {
+      "get": {
+        "tags": [
+          "ElderlyDIY"
+        ],
+        "operationId": "GetMyElderlyDIYPrograms",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/family-programs": {
+      "get": {
+        "tags": [
+          "FamilyPrograms"
+        ],
+        "operationId": "ListFamilyPrograms",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/family-programs/register": {
+      "post": {
+        "tags": [
+          "FamilyPrograms"
+        ],
+        "operationId": "RegisterFamilyProgram",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/registerFamilyProgramRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/incubator/projects": {
+      "post": {
+        "tags": [
+          "DIYIncubator"
+        ],
+        "operationId": "CreateIncubatorProject",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/createIncubatorProjectRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/incubator/projects": {
+      "get": {
+        "tags": [
+          "DIYIncubator"
+        ],
+        "operationId": "ListIncubatorProjects",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/incubator/projects/{id}": {
+      "get": {
+        "tags": [
+          "DIYIncubator"
+        ],
+        "operationId": "GetIncubatorProject",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/incubator/projects/{id}/files": {
+      "post": {
+        "tags": [
+          "DIYIncubator"
+        ],
+        "operationId": "AddIncubatorFile",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/addIncubatorFileRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/incubator/projects/{id}/mentor-session": {
+      "post": {
+        "tags": [
+          "DIYIncubator"
+        ],
+        "operationId": "AddIncubatorMentorSession",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/addMentorshipSessionRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/categories": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "operationId": "ProjectCategories",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/gallery": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "operationId": "ProjectsGallery",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "operationId": "ProjectDetails",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{id}/comparison": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "operationId": "ProjectComparison",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/users/profile": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "GetProfile",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "UpdateProfile",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/users/profile-photo": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "UploadProfilePhoto",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/membership": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "GetMembership",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/membership/subscribe": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "operationId": "SubscribeMembership",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/visualizer/upload": {
+      "post": {
+        "tags": [
+          "Visualizer"
+        ],
+        "operationId": "UploadHomePhoto",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/visualizer/generate": {
+      "post": {
+        "tags": [
+          "Visualizer"
+        ],
+        "operationId": "GenerateSuggestions",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/workshops": {
+      "get": {
+        "tags": [
+          "Workshops"
+        ],
+        "operationId": "ListWorkshops",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/workshops/{id}": {
+      "get": {
+        "tags": [
+          "Workshops"
+        ],
+        "operationId": "WorkshopDetails",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/workshops/booking": {
+      "post": {
+        "tags": [
+          "Workshops"
+        ],
+        "operationId": "WorkshopBooking",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/workshops/attendance": {
+      "post": {
+        "tags": [
+          "Workshops"
+        ],
+        "operationId": "WorkshopAttendance",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/workshops/certificate": {
+      "post": {
+        "tags": [
+          "Workshops"
+        ],
+        "operationId": "WorkshopCertificate",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/openApiJsonRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payload of ApiResponse",
+            "schema": {
+              "$ref": "#/definitions/apiResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "addHeritageAssessmentRequest": {
+      "type": "object",
+      "properties": {
+        "assessmentDate": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "assessmentNotes": {
+          "type": "string"
+        },
+        "riskLevel": {
+          "type": "string"
+        },
+        "estimatedCost": {
+          "format": "double",
+          "type": "number"
+        }
+      }
+    },
+    "addHeritagePhotoRequest": {
+      "type": "object",
+      "properties": {
+        "photoType": {
+          "type": "string"
+        },
+        "imageUrl": {
+          "type": "string"
+        }
+      }
+    },
+    "addIncubatorFileRequest": {
+      "type": "object",
+      "properties": {
+        "fileType": {
+          "type": "string"
+        },
+        "fileUrl": {
+          "type": "string"
+        }
+      }
+    },
+    "addMentorshipSessionRequest": {
+      "type": "object",
+      "properties": {
+        "mentorId": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "sessionDate": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "aiVisualizationRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "requestId": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "customerId": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "visualizationTypeId": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "businessArea": {
+          "type": "string"
+        },
+        "projectName": {
+          "type": "string"
+        },
+        "modelName": {
+          "type": "string"
+        },
+        "userPrompt": {
+          "type": "string"
+        },
+        "systemPrompt": {
+          "type": "string"
+        },
+        "computedPrompt": {
+          "type": "string"
+        },
+        "queueMessageId": {
+          "type": "string"
+        },
+        "retryCount": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "tokenUsage": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "generationCost": {
+          "format": "double",
+          "type": "number"
+        },
+        "status": {
+          "type": "string"
+        },
+        "submittedDate": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "completedDate": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "errorMessage": {
+          "type": "string"
+        },
+        "createdBy": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "createdDate": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "modifiedBy": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "modifiedDate": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "isDeleted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "aiVisualizationStatusResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "apiResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object"
+        }
+      }
+    },
+    "blobSasRequest": {
+      "type": "object",
+      "properties": {
+        "blobName": {
+          "type": "string"
+        }
+      }
+    },
+    "blobSasResponse": {
+      "type": "object",
+      "properties": {
+        "blobUri": {
+          "type": "string"
+        },
+        "sasToken": {
+          "type": "string"
+        }
+      }
+    },
+    "createHeritageRestorationRequest": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "projectType": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "currentCondition": {
+          "type": "string"
+        },
+        "recommendedWork": {
+          "type": "string"
+        },
+        "estimatedCost": {
+          "format": "double",
+          "type": "number"
+        }
+      }
+    },
+    "createIncubatorProjectRequest": {
+      "type": "object",
+      "properties": {
+        "projectName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        }
+      }
+    },
+    "forgotPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "jsonElement": {
+      "type": "object",
+      "properties": {
+        "valueKind": {
+          "format": "int32",
+          "default": 0,
+          "enum": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "type": "integer"
+        },
+        "item": {
+          "$ref": "#/definitions/jsonElement"
+        }
+      }
+    },
+    "loginRequest": {
+      "type": "object",
+      "properties": {
+        "usernameOrEmail": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "openApiErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        }
+      }
+    },
+    "openApiJsonRequest": {
+      "type": "object",
+      "properties": {
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/jsonElement"
+          }
+        }
+      }
+    },
+    "registerElderlyDIYRequest": {
+      "type": "object",
+      "properties": {
+        "programId": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "emergencyContact": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "registerFamilyProgramRequest": {
+      "type": "object",
+      "properties": {
+        "programId": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "participantCount": {
+          "format": "int32",
+          "type": "integer"
+        }
+      }
+    },
+    "registerRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "resetPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "newPassword": {
+          "type": "string"
+        }
+      }
+    },
+    "socialLoginRequest": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        }
+      }
+    },
+    "submitAiVisualizationResponse": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "submitVisualizationDto": {
+      "type": "object",
+      "properties": {
+        "customerId": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "visualizationTypeId": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "projectName": {
+          "type": "string"
+        },
+        "userPrompt": {
+          "type": "string"
+        },
+        "systemPrompt": {
+          "type": "string"
+        },
+        "referenceImages": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "uploadAiReferenceRequest": {
+      "type": "object",
+      "properties": {
+        "fileName": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "contentBase64": {
+          "type": "string"
+        }
+      }
+    },
+    "uploadAiReferenceResponse": {
+      "type": "object",
+      "properties": {
+        "blobUrl": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

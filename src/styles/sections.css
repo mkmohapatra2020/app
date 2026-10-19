@@ -297,7 +297,8 @@
   /* footer */
   footer{background:var(--teak);color:#E2D6BC;padding:64px 0 28px;}
   .footer-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:28px;padding-bottom:30px;border-bottom:1px solid rgba(244,238,220,.16);}
-  .footer-logo{font:italic 600 1.7rem 'Fraunces',serif;color:var(--parchment);}
+  .footer-logo{font:italic 600 1.7rem 'Fraunces',serif;color:var(--parchment);display:flex;flex-direction:column;align-items:flex-start;gap:6px;white-space:nowrap;}
+  .footer-logo-mark{height:64px;width:auto;}
   .footer-tag{color:var(--gold);font-weight:600;letter-spacing:.12em;font-size:.86rem;margin-top:4px;}
   .footer-mission{font-size:.9rem;color:#C9BB9B;margin:12px 0 0;max-width:32ch;}
   footer h3{color:var(--parchment);font:700 .78rem 'Work Sans',sans-serif;letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;}

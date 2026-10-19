@@ -9,8 +9,8 @@ export default function Footer() {
       <div className="wrap">
         <div className="footer-grid">
           <div>
-            <div className="footer-logo">Weekend-Live</div>
-            <div className="footer-tag">Build • Learn • Live</div>
+            <div className="footer-logo"><img className="footer-logo-mark" src="/logo-mark.webp" alt="" width="145" height="96" loading="lazy" decoding="async" />Weekend-Live</div>
+            <div className="footer-tag">Build • Learn • Live Outdoors</div>
             <p className="footer-mission">{tagline}</p>
           </div>
           <nav aria-label="Footer">

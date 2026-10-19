@@ -7,7 +7,7 @@
 //   WL_API_URL  (optional) default https://appi-wl.azure-api.net/service/api
 //   WL_API_KEY  (optional) Azure API Management subscription key
 const DEFAULT_URL = 'https://appi-wl.azure-api.net/service/api';
-const PASS_REQ = ['authorization', 'content-type', 'accept', 'accept-language'];
+const PASS_REQ = ['authorization', 'content-type', 'accept', 'accept-language', 'ocp-apim-subscription-key'];
 const PASS_RES = ['content-type', 'cache-control', 'etag', 'last-modified', 'location'];
 
 export default async (req) => {

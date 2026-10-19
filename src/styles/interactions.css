@@ -10,8 +10,9 @@
   @media (min-width:981px){ .nav-scrolled .nav-inner{padding-top:10px;padding-bottom:10px;} }
   .nav-progress{position:absolute;left:0;right:0;bottom:-1px;height:3px;background:linear-gradient(90deg,var(--gold),var(--teal));transform-origin:0 50%;transform:scaleX(0);pointer-events:none;}
   .nav-logo{gap:8px;transition:transform .25s ease;}
-  .nav-logo-mark{display:inline-block;color:var(--gold);font-style:normal;font-size:.8em;transition:transform .6s cubic-bezier(.34,1.56,.64,1);}
-  .nav-logo:hover .nav-logo-mark{transform:rotate(180deg) scale(1.2);}
+  .nav-logo-mark{display:block;height:40px;width:auto;flex-shrink:0;transition:transform .35s cubic-bezier(.34,1.56,.64,1);}
+  .nav-logo:hover .nav-logo-mark{transform:scale(1.08) rotate(-3deg);}
+  @media (max-width:420px){.nav-logo-mark{height:32px;}}
   @media (min-width:981px){
     .nav-links{position:relative;align-items:center;}
     .nav-links a{position:relative;display:inline-block;padding:8px 2px;transition:color .2s ease;}

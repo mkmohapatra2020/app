@@ -1,0 +1,10 @@
+{
+  "name": "weekend-live-api",
+  "private": true,
+  "version": "1.0.0",
+  "main": "src/functions/*",
+  "dependencies": {
+    "@azure/functions": "^4.5.0",
+    "@azure/storage-blob": "^12.34.0"
+  }
+}
