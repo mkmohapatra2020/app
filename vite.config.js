@@ -51,30 +51,16 @@ export default defineConfig(({ mode }) => {
   // Photo edits (Outdoor Space Visualizer) — multipart body is forwarded as-is.
   imageProxy['/api/edit-image'] = { ...imageProxy['/api/generate-image'], rewrite: () => '/openai/v1/images/edits' };
 
-  // Weekend-Live API via Azure API Management (same as netlify/functions/wl-api.mjs).
-  // /wl-api/campaigns → https://appi-wl.azure-api.net/service/api/campaigns
-  // WL_API_KEY (APIM subscription key) is added here, never sent to the browser.
-  const backend = env.WL_API_URL || 'https://appi-wl.azure-api.net/service/api';
-  const backendUrl = new URL(backend);
-  const apimKey = (env.WL_API_KEY || '').trim();
-  imageProxy['/wl-api'] = {
-    target: backendUrl.origin,
-    changeOrigin: true,
-    secure: true,
-    headers: apimKey ? { 'Ocp-Apim-Subscription-Key': apimKey } : {},
-    rewrite: (p) => p.replace(/^\/wl-api/, backendUrl.pathname.replace(/\/$/, '')),
-  };
-
   // Print where API calls go when `npm run dev` / `npm run preview` starts.
-  const apiInfo = {
-    name: 'wl-api-info',
-    configureServer(server) {
-      const direct = env.VITE_BACKEND_URL;
-      const key = direct ? (env.VITE_WL_API_KEY || '').trim() : apimKey;
-      server.httpServer?.once('listening', () => console.log(`\n  Weekend-Live API → ${direct || backend} (${direct ? 'browser calls APIM directly' : 'via /wl-api proxy'}; subscription key: ${key ? 'set' : 'MISSING'})\n`));
-    },
-    configurePreviewServer(server) { server.httpServer?.once('listening', () => console.log(`\n  Weekend-Live API → ${backend} (subscription key: ${apimKey ? 'set' : 'MISSING'})\n`)); },
-  };
+  // The browser calls APIM directly (no proxy); it needs VITE_WL_API_KEY and an
+  // APIM CORS policy that allows this origin.
+  const backend = env.VITE_BACKEND_URL || 'https://appi-wl.azure-api.net/service/api';
+  const keySet = !!(env.VITE_WL_API_KEY || '').trim();
+  // Must return nothing: a returned function would be run by Vite as a post hook.
+  const log = (server) => { server.httpServer?.once('listening', () => console.log(`
+  Weekend-Live API → ${backend} (direct; subscription key: ${keySet ? 'set' : 'MISSING — add VITE_WL_API_KEY'})
+`)); };
+  const apiInfo = { name: 'wl-api-info', configureServer: log, configurePreviewServer: log };
 
   return {
     plugins: [react(), apiInfo],

@@ -7,6 +7,7 @@
  */
 import { useSyncExternalStore } from 'react';
 import { editPhoto } from '../../services/aiImageService.js';
+import { refreshMembership } from '../membership/useMembership.js';
 
 let requests = [];
 const listeners = new Set();
@@ -67,8 +68,11 @@ export function submitDesign({ category, sitePhotos, refPhotos, notes }) {
     };
     const res = await editPhoto({
       image: source.blob, prompt, size: source.size, references, onStage, signal,
-      category: category.id, projectName: `${category.label} — Design Studio`,
+      category: category.id, typeId: category.typeId, businessArea: category.businessArea,
+      projectName: `${category.label} — Design Studio`,
     });
+    // Credits may have been spent (or released) — refresh balances either way.
+    refreshMembership();
     if (res.aborted || signal.aborted) return;
     if (res.success) {
       patch(id, { result: URL.createObjectURL(res.data), prompt, savedToAccount: res.via === 'backend' });

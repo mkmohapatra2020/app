@@ -25,6 +25,7 @@ const TryNowDialog = lazy(loadDialog);
  * "Try now" button. Anything on the page can also open it with:
  *   window.dispatchEvent(new CustomEvent('wl:open-try-now', { detail: { mode: 'photo' } }))
  * Only one dialog is mounted, owned by the button rendered with `owner`.
+ * The button itself is shown to signed-in visitors only.
  */
 export default function TryNow({ className = '', owner = true }) {
   const [mounted, setMounted] = useState(false);
@@ -75,9 +76,11 @@ export default function TryNow({ className = '', owner = true }) {
 
   return (
     <>
-      <button type="button" className={`try-now ${className}`} onClick={open} onPointerEnter={loadDialog} onFocus={loadDialog}>
-        <span className="try-now-spark" aria-hidden="true">✦</span> Try now
-      </button>
+      {isAuthenticated && (
+        <button type="button" className={`try-now ${className}`} onClick={open} onPointerEnter={loadDialog} onFocus={loadDialog}>
+          <span className="try-now-spark" aria-hidden="true">✦</span> Try now
+        </button>
+      )}
       {owner && mounted && (
         <Suspense fallback={null}>
           <TryNowDialog ref={attach} />

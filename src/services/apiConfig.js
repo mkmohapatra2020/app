@@ -7,14 +7,14 @@
 export const IS_DEV = import.meta.env.DEV;
 
 export const API_BASE_URLS = {
-  // Same-origin by default: Netlify functions in production, Vite proxy in dev.
+  // Same-origin: Azure Static Web Apps functions (api/) in production, Vite proxy in dev.
   API_BASE_URL: import.meta.env.VITE_API_BASE_URL || '',
-  // Weekend-Live backend (Azure Functions). Called through a same-origin proxy
-  // (/wl-api → https://appi-wl.azure-api.net/service/api) so the browser never hits CORS
-  // and the APIM subscription key stays on the server.
-  // Set VITE_BACKEND_URL to call another URL directly.
-  // Dev: .env.development sets VITE_BACKEND_URL to the APIM URL (direct calls).
-  BACKEND: import.meta.env.VITE_BACKEND_URL || '/wl-api',
+  // Weekend-Live backend: the browser calls the APIM gateway directly (needs the
+  // APIM CORS policy for the site origin). Set VITE_BACKEND_URL to override.
+  // VITE_APIM_BASE_URL (…/service, as in the image-generation spec) is accepted too.
+  BACKEND: import.meta.env.VITE_BACKEND_URL
+    || (import.meta.env.VITE_APIM_BASE_URL ? `${import.meta.env.VITE_APIM_BASE_URL.replace(/\/$/, '')}/api` : '')
+    || 'https://appi-wl.azure-api.net/service/api',
 };
 
 // Azure model deployment name (not a secret — the key never reaches the browser).
@@ -25,7 +25,7 @@ export const API_ENDPOINTS = {
     // Local dev only — Vite proxy adds the api-key and forwards to Azure.
     DEV_GENERATE: '/api/generate-image',
     DEV_EDIT: '/api/edit-image',
-    // Production — Netlify functions (background job + polling).
+    // Production — Azure Static Web Apps functions in api/ (background job + polling).
     UPLOAD_SOURCE: '/api/upload-image-source',
     START_JOB: '/api/start-image-job',
     JOB_STATUS: (id) => `/api/image-jobs/${encodeURIComponent(id)}`,
@@ -40,12 +40,11 @@ export const BACKEND_ENDPOINTS = {
     SUBMIT: '/ai-visualization/submit',
     BY_ID: (id) => `/ai-visualization/${enc(id)}`,
     STATUS: (id) => `/ai-visualization/${enc(id)}/status`,
-    MY_REQUESTS: '/ai-visualization/my-requests', // ?customerId=
-    READ_SAS: '/ai-visualization/read-sas-token',  // { blobName } → { blobUri, sasToken }
-    WRITE_SAS: '/ai-visualization/write-sas-token',
+    MY_HISTORY: '/ai-visualization/my-history', // ?customerId= (required)
+    // SAS tokens moved to /read-sas-token and /write-sas-token (FILES below).
   },
   HERITAGE_RESTORATION: {
-    CREATE: '/v1/heritage-restoration', // note: v1 only on create (as per swagger)
+    CREATE: '/heritage-restoration',
     LIST: '/heritage-restoration',
     BY_ID: (id) => `/heritage-restoration/${enc(id)}`,
     PHOTOS: (id) => `/heritage-restoration/${enc(id)}/photos`,
@@ -62,14 +61,17 @@ export const BACKEND_ENDPOINTS = {
   },
   INCUBATOR: {
     CREATE: '/incubator/projects',
-    LIST: '/v1/incubator/projects', // note: v1 only on list (as per swagger)
+    LIST: '/incubator/projects',
     BY_ID: (id) => `/incubator/projects/${enc(id)}`,
     FILES: (id) => `/incubator/projects/${enc(id)}/files`,
     MENTOR_SESSION: (id) => `/incubator/projects/${enc(id)}/mentor-session`,
   },
   AUTH: {
-    REGISTER: '/auth/register',
-    LOGIN: '/auth/logincheck',
+    ENCRYPTION_KEY: '/auth/encryption-key',
+    REGISTER: '/auth/register',          // { cipherText } (RSA-OAEP-256)
+    REGISTER_VERIFY: '/auth/register/verify',
+    LOGIN: '/auth/login',           // encrypted { cipherText } (RSA-OAEP-256)
+    LOGIN_CHECK: '/auth/logincheck', // plain { usernameOrEmail, password } — fallback only
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
     GOOGLE: '/auth/google',
@@ -157,6 +159,35 @@ export const BACKEND_ENDPOINTS = {
     BY_ID: (id) => `/projects/${enc(id)}`,
     COMPARISON: (id) => `/projects/${enc(id)}/comparison`,
   },
+  // Membership & entitlements. Everything except BY_USER / SUBSCRIBE is mocked
+  // until the backend ships it — see src/mocks/mockApi.js and MOCK-APIS.md.
+  MEMBERSHIP: {
+    FAMILIES: '/membership/families',
+    PLANS: '/membership/plans',
+    ENTITLEMENTS: '/membership/entitlements',
+    MY_MEMBERSHIPS: '/membership/my-memberships',
+    MY_ENTITLEMENTS: '/membership/my-entitlements',
+    MY_BENEFITS: '/membership/my-benefits',
+    MY_AI_CREDITS: '/membership/my-ai-credits',
+    ONBOARDING_STATUS: '/user/onboarding-status',
+    INCUBATOR_ELIGIBILITY: '/incubator/eligibility',
+    GRANT_BONUS_CREDITS: '/admin/membership/grant-bonus-credits',
+  },
+  DESIGN: {
+    CATEGORIES: '/design-categories',
+  },
+  // Image Generator — live on APIM, not yet in swagger.
+  // Blob SAS tokens (swagger tag "File"): imageSasRequest { userId, blobName, containerName, storageType, contentType }
+  // → imageSasResponse { blobUri, sasToken, blobName, expiresOn }.
+  FILES: {
+    WRITE_SAS: '/write-sas-token', // upload a photo straight to Blob Storage
+    READ_SAS: '/read-sas-token',   // read a private blob (e.g. a generated image)
+  },
+  IMAGES: {
+    GENERATE: '/images/generate',
+    HISTORY: '/images/history', // ?userId=
+    QUOTA: '/images/quota',     // ?userId=
+  },
   USERS: {
     PROFILE: '/users/profile',
     PROFILE_PHOTO: '/users/profile-photo',
@@ -174,6 +205,37 @@ export const BACKEND_ENDPOINTS = {
     ATTENDANCE: '/workshops/attendance',
     CERTIFICATE: '/workshops/certificate',
   },
+};
+
+// Blob containers in the storage account → imageSasRequest.containerName.
+export const STORAGE_TYPES = {
+  UPLOAD: import.meta.env.VITE_STORAGE_UPLOAD || 'uploaded',       // user photos
+  GENERATED: import.meta.env.VITE_STORAGE_GENERATED || 'aigenerated', // AI results
+};
+// imageSasRequest.storageType. ASSUMPTION: the swagger does not list its values —
+// confirm with the backend (override with VITE_STORAGE_TYPE).
+export const STORAGE_KIND = import.meta.env.VITE_STORAGE_TYPE || 'blob';
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // checked before asking for a write SAS
+
+// Business areas accepted by POST /ai-visualization/submit.
+export const BUSINESS_AREAS = ['OutdoorLiving', 'Heritage', 'DIY', 'SeniorLiving', 'Incubator'];
+
+// Used only when the membership API gives no AI_MAX_REFERENCE_IMAGES entitlement.
+export const DEFAULT_MAX_REFERENCE_IMAGES = 4;
+
+// Mock API switch. 'planned' (default) = mock only endpoints that are not deployed
+// yet; 'off' = always call the real API. See src/mocks/mockApi.js.
+export const MOCK_MODE = (import.meta.env.VITE_MOCK_API || 'planned').toLowerCase();
+
+// Request encryption (public key from GET /auth/encryption-key).
+//  AUTH:  'auto' (default) = encrypted /auth/login, falling back to /auth/logincheck only
+//         when the encrypted endpoint itself fails (5xx/404); 'strict' = never fall back;
+//         'off' = plain /auth/logincheck.
+//  IMAGE: 'on' = POST /images/generate sends a hybrid-encrypted body (see authCrypto.js);
+//         'off' (default) until the backend accepts it — today it ignores { cipherText }.
+export const ENCRYPTION = {
+  AUTH: (import.meta.env.VITE_AUTH_ENCRYPTION || 'auto').toLowerCase(),
+  IMAGE: (import.meta.env.VITE_IMAGE_ENCRYPTION || 'off').toLowerCase(),
 };
 
 // AI Design Studio category → visualizationTypeId (SubmitVisualizationDto).

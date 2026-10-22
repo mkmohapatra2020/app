@@ -37,9 +37,13 @@ const pages = {
   Checkout: lazy(() => import('./pages/shop/CheckoutPage.jsx')),
   Contact: lazy(() => import('./pages/contact/ContactPage.jsx')),
   Admin: lazy(() => import('./pages/admin/AdminPage.jsx')),
+  Membership: lazy(() => import('./pages/membership/MembershipPage.jsx')),
+  Benefits: lazy(() => import('./pages/membership/BenefitsPage.jsx')),
+  ImageGen: lazy(() => import('./pages/imageGenerator/ImageGeneratorPage.jsx')),
   NotFound: lazy(() => import('./pages/NotFoundPage.jsx')),
 };
 const loadFooter = () => import('./components/layout/Footer.jsx');
+const WelcomeModal = lazy(() => import('./features/membership/WelcomeModal.jsx'));
 
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
@@ -59,6 +63,7 @@ function Layout() {
         </Suspense>
       </ErrorBoundary>
       <LazySection name="footer" anchor="contact" minHeight={420} load={loadFooter} />
+      <ErrorBoundary inline name="welcome"><Suspense fallback={null}><WelcomeModal /></Suspense></ErrorBoundary>
     </>
   );
 }
@@ -93,7 +98,7 @@ export default function App() {
                 <Route path="heritage" element={<P.Heritage />} />
                 <Route path="elderly-diy" element={<P.ElderDiy />} />
                 <Route path="incubator" element={<P.Incubator />} />
-                <Route path="design-studio" element={<P.Studio />} />
+                <Route path="design-studio" element={auth(<P.Studio />)} />
                 <Route path="projects/:id" element={<P.Project />} />
                 <Route path="shop" element={<P.Shop />} />
                 <Route path="shop/:id" element={<P.Product />} />
@@ -101,6 +106,9 @@ export default function App() {
                 <Route path="checkout" element={auth(<P.Checkout />)} />
                 <Route path="contact" element={<P.Contact />} />
                 <Route path="admin" element={auth(<P.Admin />, true)} />
+                <Route path="membership" element={<P.Membership />} />
+                <Route path="membership/benefits" element={auth(<P.Benefits />)} />
+                <Route path="image-generator" element={auth(<P.ImageGen />)} />
                 <Route path="*" element={<P.NotFound />} />
               </Route>
             </Routes>

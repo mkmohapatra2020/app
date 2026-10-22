@@ -3,12 +3,14 @@ import Img from '../components/common/Img.jsx';
 import BeforeAfter from '../components/common/BeforeAfter.jsx';
 import { hero, showcase } from '../data/site.js';
 import { afterLoad } from '../utils/idle.js';
+import useSession from '../hooks/useSession.js';
 
 const PAIRS = showcase.filter((s) => s.before);
 import { bookWorkshop, useEnquiry } from '../features/enquiry/enquiry.js';
 
 // Hero banner with a slow cross-fading photo reel (family, workshop, elder, hands-on).
 export default function Hero() {
+  const { isAuthenticated } = useSession();
   const [i, setI] = useState(0);
   // Only the first photo loads with the page; the rest arrive after 'load'.
   const [allSlides, setAllSlides] = useState(false);
@@ -59,9 +61,9 @@ export default function Hero() {
           </div>
           <div className="hero-ba-foot">
             <p className="hero-ba-hint">Drag to compare · <a href="#outdoor">See all projects</a></p>
-            <button type="button" className="hero-ba-try" onClick={() => window.dispatchEvent(new CustomEvent('wl:open-try-now', { detail: { mode: 'photo' } }))}>
+            {isAuthenticated && <button type="button" className="hero-ba-try" onClick={() => window.dispatchEvent(new CustomEvent('wl:open-try-now', { detail: { mode: 'photo' } }))}>
               <span aria-hidden="true">✦</span> Try now on your space
-            </button>
+            </button>}
           </div>
         </aside>
       </div>

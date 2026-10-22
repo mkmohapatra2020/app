@@ -347,6 +347,8 @@ export function toVisualization(payload) {
     projectName: str(pick(p, 'projectName')),
     businessArea: str(pick(p, 'businessArea')),
     typeId: num(pick(p, 'visualizationTypeId')),
+    planSnapshot: str(pick(p, 'membershipPlanSnapshot')), // plan at submit time — never replace with the current plan
+    creditsConsumed: num(pick(p, 'creditsConsumed')),
     suggestions: list(pick(p, 'suggestions', 'recommendations', 'tips')).map((s) => (typeof s === 'string' ? s : str(pick(s, 'text', 'title', 'description')))),
   };
 }

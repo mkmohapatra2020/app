@@ -1,7 +1,7 @@
 /**
  * Image service — AI image generation and photo edits.
  *  dev (npm run dev): Vite proxy → Azure directly.
- *  production (Netlify): upload → background job → poll for the result.
+ *  production (Azure Static Web Apps api/): upload → background job → poll for the result.
  * All methods resolve to an ApiResponse whose `data` is an image Blob.
  */
 import { httpClient } from './httpClient.js';
@@ -65,7 +65,7 @@ class ImageService {
     return this.runJob({ id, prompt, size, mode: 'edit' }, signal);
   }
 
-  /** Start a Netlify background job, then poll until the image is ready. */
+  /** Start a background image job (api/ functions), then poll until the image is ready. */
   async runJob({ id = crypto.randomUUID(), ...job }, signal) {
     const start = await httpClient.post(url(E.START_JOB), { id, ...job }, { signal });
     if (!start.success) return start;

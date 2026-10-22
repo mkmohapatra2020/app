@@ -6,11 +6,12 @@
  *                                            userPrompt, systemPrompt, referenceImages[] } → { requestId, status }
  *  3. GET  /ai-visualization/{id}/status   → { status }
  *  4. GET  /ai-visualization/{id}          → aiVisualizationRequest
- *  5. POST /ai-visualization/read-sas-token { blobName } → { blobUri, sasToken }  (private result blobs)
+ *  5. POST /read-sas-token { userId, blobName, containerName, storageType } (via blobService, cached)  (private result blobs)
  *     GET  /ai-visualization/my-requests?customerId=
  */
 import { api, mapRes } from './backendClient.js';
-import { API_CONFIG, BACKEND_ENDPOINTS, VISUALIZATION_TYPES } from './apiConfig.js';
+import { API_CONFIG, BACKEND_ENDPOINTS, BUSINESS_AREAS, STORAGE_TYPES, VISUALIZATION_TYPES } from './apiConfig.js';
+import { blobService } from './blobService.js';
 import { toSasUrl, toUploadRef, toVisualization, unwrapList } from './adapters.js';
 import { base64ToBlob } from './imageService.js';
 import { httpClient } from './httpClient.js';
@@ -41,17 +42,21 @@ class VisualizationService {
   async upload({ image, fileName, signal }) {
     const type = image.type || 'image/jpeg';
     const name = fileName || `wl-${Date.now()}.${type.includes('png') ? 'png' : type.includes('webp') ? 'webp' : 'jpg'}`;
-    const body = { fileName: name, contentType: type, contentBase64: await toBase64(image) };
+    const body = { userId: customerId(), fileName: name, contentType: type, contentBase64: await toBase64(image) };
     return api.post(A.UPLOAD, body, { signal, timeout: 90000 }).then((r) => mapRes(r, toUploadRef));
   }
 
-  submit({ typeId, projectName, prompt, systemPrompt = SYSTEM_PROMPT, referenceImages = [], signal }) {
+  // submitVisualizationDto. Server-owned fields (credits, plan snapshot, queue id…) are never sent.
+  submit({ typeId, projectName, prompt, systemPrompt = SYSTEM_PROMPT, businessArea = 'OutdoorLiving', referenceImages = [], signal }) {
+    if (!BUSINESS_AREAS.includes(businessArea)) return Promise.resolve({ success: false, status: 400, error: 'Please choose a valid design category.' });
+    if (!String(prompt || '').trim()) return Promise.resolve({ success: false, status: 400, error: 'Please describe what you would like designed.' });
     const body = {
       customerId: customerId(),
       visualizationTypeId: typeId ?? VISUALIZATION_TYPES.outdoor,
       projectName: projectName || 'Weekend-Live design',
       userPrompt: prompt,
       systemPrompt,
+      businessArea,
       referenceImages,
     };
     return api.post(A.SUBMIT, body, { signal }).then((r) => mapRes(r, toVisualization));
@@ -59,12 +64,12 @@ class VisualizationService {
 
   status({ id, signal }) { return api.get(A.STATUS, { arg: id, signal }).then((r) => mapRes(r, toVisualization)); }
   get({ id, signal }) { return api.get(A.BY_ID, { arg: id, signal }).then((r) => mapRes(r, toVisualization)); }
-  readSas({ blobName, signal }) { return api.post(A.READ_SAS, { blobName }, { signal }).then((r) => mapRes(r, toSasUrl)); }
+  readSas({ blobName, signal }) { return blobService.readUrl({ blobName, container: STORAGE_TYPES.GENERATED, signal }); }
 
   myRequests({ signal } = {}) {
     const id = customerId();
     if (!id) return Promise.resolve({ success: true, status: 200, data: [] });
-    return api.get(A.MY_REQUESTS, { signal, query: { customerId: id } })
+    return api.get(A.MY_HISTORY, { signal, query: { customerId: id } })
       .then((r) => mapRes(r, (d) => unwrapList(d, 'requests', 'visualizations').map(toVisualization).filter((v) => v.id)));
   }
 
@@ -80,13 +85,13 @@ class VisualizationService {
    * Azure route) if the visitor isn't signed in or any step is unavailable.
    *   onStage('queued' | 'generating' | 'completed' | 'failed', requestId?)
    */
-  async visualize({ image, prompt, typeId, projectName, references = [], onStage, signal }) {
+  async visualize({ image, prompt, typeId, projectName, businessArea, references = [], onStage, signal }) {
     if (!customerId()) return { success: false, status: 401, error: 'Sign in to save designs to your account.' };
     const uploads = await Promise.all([image, ...references].filter(Boolean).map((img) => this.upload({ image: img, signal })));
     const failed = uploads.find((u) => !u.success || !u.data.url);
     if (failed) return failed.success ? { success: false, status: failed.status, error: 'Upload did not return a blob URL.' } : failed;
 
-    const sub = await this.submit({ typeId, projectName, prompt, referenceImages: uploads.map((u) => u.data.url), signal });
+    const sub = await this.submit({ typeId, projectName, prompt, businessArea, referenceImages: uploads.map((u) => u.data.url), signal });
     if (!sub.success || !sub.data.id) return sub.success ? { success: false, status: sub.status, error: 'Submit did not return a request id.' } : sub;
     const id = sub.data.id;
     let current = sub.data;

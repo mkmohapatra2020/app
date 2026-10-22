@@ -11,7 +11,9 @@ import { passportService } from '../../services/passportService.js';
 import { visualizationService } from '../../services/visualizationService.js';
 import { programService } from '../../services/programService.js';
 import { authService } from '../../services/authService.js';
-import { membership as localTiers } from '../../data/site.js';
+import { MembershipDashboard, PlanFamilies } from '../../features/membership/MembershipUI.jsx';
+import { useMyEntitlements } from '../../features/membership/useMembership.js';
+import { joinMembership, useEnquiry } from '../../features/enquiry/enquiry.js';
 import { passportStamps } from '../../data/features.js';
 import { useToast } from '../../context/ToastContext.jsx';
 
@@ -96,41 +98,13 @@ function ProfileTab() {
 }
 
 function MembershipTab() {
-  const m = useResource('membership', (a) => userService.getMembership(a), { fallback: null, accept: (d) => !!d });
-  const sub = useApi((a) => userService.subscribe(a));
-  const { toast } = useToast();
-  const plans = m.data?.plans?.length ? m.data.plans : localTiers.map((t) => ({ tier: t.tier, perks: t.perks, featured: t.featured }));
-  const current = (m.data?.current || '').toLowerCase();
-
-  const choose = async (tier) => {
-    const res = await sub.execute({ tier });
-    if (res.success) { toast(`You're now a ${tier} member!`); invalidate('membership'); m.reload(); } else toast(res.error, 'error');
-  };
-
+  const enquiry = useEnquiry();
+  const mine = useMyEntitlements();
   return (
     <div>
-      {m.data?.current && (
-        <div className="card member-now">
-          <span className="eyebrow">Current plan</span>
-          <h2>{m.data.current}</h2>
-          <p className="muted">{m.data.status && <>Status: {m.data.status}. </>}{m.data.validUntil && <>Valid until {new Date(m.data.validUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}.</>}</p>
-        </div>
-      )}
-      <div className="tier-grid">
-        {plans.map((p) => {
-          const isCurrent = current && p.tier.toLowerCase() === current;
-          return (
-            <article key={p.tier} className={`tier${p.featured || p.tier === 'Gold' ? ' featured' : ''}`}>
-              <h3>{p.tier}</h3>
-              {Number.isFinite(p.price) && <p className="tier-price">₹{p.price.toLocaleString('en-IN')}<small>/month</small></p>}
-              <ul className="ticks">{p.perks.map((x) => <li key={x}>{x}</li>)}</ul>
-              <button type="button" className={`btn ${isCurrent ? 'btn-quiet' : 'btn-primary'}`} disabled={isCurrent || sub.loading} onClick={() => choose(p.tier)}>
-                {isCurrent ? 'Current plan' : sub.loading ? 'Please wait…' : current ? `Switch to ${p.tier}` : `Choose ${p.tier}`}
-              </button>
-            </article>
-          );
-        })}
-      </div>
+      <MembershipDashboard />
+      <h2 className="mem-sub">Plans</h2>
+      <PlanFamilies compact owned={mine.data?.plans || []} onChoose={(p, all) => joinMembership(enquiry, p.name, all.map((x) => x.name))} />
     </div>
   );
 }
@@ -176,6 +150,16 @@ function ProgramsTab() {
   );
 }
 
+// Backend statuses: Submitted | Queued | Processing/Generating | Completed | Failed | Cancelled.
+const STATUS_NAMES = ['Submitted', 'Queued', 'Processing', 'Generating', 'Completed', 'Failed', 'Cancelled'];
+function statusLabel(v) {
+  const raw = STATUS_NAMES.find((n) => n.toLowerCase() === String(v.rawStatus).toLowerCase());
+  if (raw) return raw === 'Processing' ? 'Generating' : raw;
+  return v.stage === 'completed' ? 'Completed' : v.stage === 'failed' ? 'Failed' : v.stage === 'queued' ? 'Queued' : v.stage === 'submitted' ? 'Submitted' : 'Generating';
+}
+const areaLabel = (a) => String(a).replace(/([a-z])([A-Z])/g, '$1 $2');
+const fmtDay = (d) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
 function DesignsTab() {
   const list = useResource('my-designs', (a) => visualizationService.myRequests(a), { fallback: [] });
   const [open, setOpen] = useState(null);
@@ -191,8 +175,13 @@ function DesignsTab() {
         {list.data.map((v) => (
           <button type="button" key={v.id} className={`design-card${open?.id === v.id ? ' sel' : ''}`} onClick={() => view(v)}>
             <RemoteImage src={v.image || v.original} fallback="show-roofgarden" alt="" />
-            <span className={`status status-${v.status || 'pending'}`}>{v.status === 'done' ? 'Ready' : v.status === 'error' ? 'Failed' : v.stage === 'queued' ? 'Queued' : 'Generating'}</span>
-            <span className="design-date">{v.createdAt ? new Date(v.createdAt).toLocaleDateString('en-IN') : `Request ${v.id}`}</span>
+            <span className={`status vis-status vis-${statusLabel(v).toLowerCase()}`}>{statusLabel(v)}</span>
+            <span className="design-meta">
+              <strong>{v.projectName || 'AI design'}</strong>
+              {v.businessArea && <small>{areaLabel(v.businessArea)}</small>}
+              {(v.planSnapshot || v.creditsConsumed > 0) && <small>{[v.planSnapshot && `Plan: ${v.planSnapshot}`, v.creditsConsumed > 0 && `${v.creditsConsumed} credit${v.creditsConsumed === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}</small>}
+              <small className="design-date">{v.createdAt ? `Submitted ${fmtDay(v.createdAt)}` : `Request ${v.id}`}{v.completedAt ? ` · Completed ${fmtDay(v.completedAt)}` : ''}</small>
+            </span>
           </button>
         ))}
       </div>

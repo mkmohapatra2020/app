@@ -18,7 +18,7 @@ export default function OutdoorVisualizer() {
   const [photo, setPhoto] = useState(null);
   const [space, setSpace] = useState(SPACES[0]);
   const [zones, setZones] = useState(ZONES.map(([id]) => id));
-  const job = useImageJob({ preferBackend: true });
+  const job = useImageJob();
   const { loading, elapsed, error } = job;
   const result = job.status === 'done' ? job.resultUrl : null;
   const [aiTips, setAiTips] = useState([]);

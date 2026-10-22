@@ -1,7 +1,7 @@
 /**
  * Photo edits with a fallback chain:
  *   1. Weekend-Live backend AI visualisation (signed-in users; saved to "My AI designs")
- *   2. Our own Azure image route (Netlify functions / dev proxy)
+ *   2. Our own Azure image route (Azure Static Web Apps functions / dev proxy)
  * After a backend outage we skip it for a while so visitors don't wait twice.
  */
 import { customerId, visualizationService } from './visualizationService.js';
@@ -15,10 +15,10 @@ let backendDownUntil = 0;
  * @param {{ image: Blob, prompt: string, size?: string, category?: string, typeId?: number,
  *           projectName?: string, references?: Blob[], onStage?: Function, signal?: AbortSignal }} a
  */
-export async function editPhoto({ image, prompt, size, category, typeId, projectName, references, onStage, signal }) {
+export async function editPhoto({ image, prompt, size, category, typeId, businessArea, projectName, references, onStage, signal }) {
   if (customerId() && Date.now() > backendDownUntil) {
     const r = await visualizationService.visualize({
-      image, prompt, references, onStage, signal, projectName,
+      image, prompt, references, onStage, signal, projectName, businessArea,
       typeId: typeId ?? VISUALIZATION_TYPES[category] ?? VISUALIZATION_TYPES.outdoor,
     });
     if (r.success || r.aborted) return { ...r, via: 'backend' };

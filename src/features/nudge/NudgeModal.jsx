@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Img from '../../components/common/Img.jsx';
 import { campaigns } from '../../data/site.js';
 import { formatDate } from '../../utils/contact.js';
-import { bookWorkshop, joinMembership, useEnquiry } from '../enquiry/enquiry.js';
+import { bookWorkshop, useEnquiry } from '../enquiry/enquiry.js';
 import { scrollToTarget as scrollTo } from '../../utils/scrollTo.js';
 
 const FIRST_DELAY = 25000;   // first nudge after 25 s
@@ -20,7 +21,7 @@ const store = {
 };
 
 
-function buildNudges(enquiry) {
+function buildNudges(enquiry, navigate) {
   const next = campaigns.filter((c) => new Date(c.date) >= new Date(new Date().toDateString())).sort((a, b) => a.date.localeCompare(b.date))[0];
   return [
     next && {
@@ -56,7 +57,7 @@ function buildNudges(enquiry) {
       kicker: 'Weekend-Live Club',
       title: 'Get priority booking for every workshop',
       text: 'Gold members get workshop discounts, priority booking and special events all year.',
-      cta: 'Become a member', act: () => joinMembership(enquiry, 'Gold'),
+      cta: 'Become a member', act: () => navigate('/membership'),
     },
   ].filter(Boolean);
 }
@@ -69,11 +70,12 @@ export default function NudgeModal() {
   const [nudge, setNudge] = useState(null);
   const [leaving, setLeaving] = useState(false);
   const hideTimer = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const snoozedUntil = store.get(`${KEY}-off`, 0);
     if (Date.now() < snoozedUntil) return undefined;
-    const nudges = buildNudges(enquiry);
+    const nudges = buildNudges(enquiry, navigate);
     let timer;
 
     const busy = () => document.hidden

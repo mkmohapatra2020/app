@@ -8,13 +8,19 @@ import useSession from '../../hooks/useSession.js';
 import { visualizationService } from '../../services/visualizationService.js';
 import { preparePhoto } from '../../utils/photo.js';
 import { studio as S } from '../../data/flagship.js';
+import { designService } from '../../services/designService.js';
+import { DEFAULT_MAX_REFERENCE_IMAGES } from '../../services/apiConfig.js';
+import { numericEntitlement } from '../../utils/entitlements.js';
+import { AiCreditsCard } from '../../features/membership/MembershipUI.jsx';
+import { useAiCredits, useMyEntitlements } from '../../features/membership/useMembership.js';
 import { generalEnquiry, useEnquiry } from '../../features/enquiry/enquiry.js';
 import { removeRequest, submitDesign, useStudioRequests } from '../../features/studio/studioStore.js';
 
-const MAX = 4;
+const MAX_SITE = 4;
 const TABS = [['new', 'New design'], ['requests', 'My design requests'], ['gallery', 'Gallery']];
 const ORDER = S.timeline.map(([id]) => id);
-const catById = (id) => S.categories.find((c) => c.id === id);
+// Categories come from GET /design-categories (mocked until deployed).
+const useCategories = () => useResource('design-categories', (a) => designService.categories(a), { fallback: [] });
 
 // /design-studio — upload → choose category → submit → track → gallery.
 export default function DesignStudioPage() {
@@ -43,15 +49,15 @@ export default function DesignStudioPage() {
   );
 }
 
-function PhotoPicker({ step, title, hint, photos, setPhotos, icon }) {
+function PhotoPicker({ step, title, hint, photos, setPhotos, icon, max = MAX_SITE }) {
   const [err, setErr] = useState('');
   const add = async (e) => {
-    const files = [...(e.target.files || [])].slice(0, MAX - photos.length);
+    const files = [...(e.target.files || [])].slice(0, Math.max(0, max - photos.length));
     e.target.value = '';
     setErr('');
     const out = [];
     for (const f of files) { try { out.push(await preparePhoto(f)); } catch (x) { setErr(x.message); } }
-    setPhotos((p) => [...p, ...out].slice(0, MAX));
+    setPhotos((p) => [...p, ...out].slice(0, max));
   };
   const remove = (i) => setPhotos((p) => { URL.revokeObjectURL(p[i].url); return p.filter((_, j) => j !== i); });
   return (
@@ -65,11 +71,11 @@ function PhotoPicker({ step, title, hint, photos, setPhotos, icon }) {
             <button type="button" aria-label={`Remove photo ${i + 1}`} onClick={() => remove(i)}>×</button>
           </figure>
         ))}
-        {photos.length < MAX && (
+        {photos.length < max && (
           <label className="studio-add">
             <input type="file" accept="image/*" multiple onChange={add} />
             <span aria-hidden="true">{icon}</span>
-            <b>Add photos</b><small>{photos.length}/{MAX}</small>
+            <b>Add photos</b><small>{photos.length}/{max}</small>
           </label>
         )}
       </div>
@@ -83,13 +89,27 @@ function NewDesign({ onSubmitted }) {
   const [refs, setRefs] = useState([]);
   const [cat, setCat] = useState('');
   const [notes, setNotes] = useState('');
-  const category = catById(cat);
-  const ready = category && (site.length || refs.length);
-  const missing = !category ? 'Choose a category' : !(site.length || refs.length) ? 'Add at least one photo' : '';
+  const [sending, setSending] = useState(false);
+  const cats = useCategories();
+  const categories = cats.data || [];
+  const category = categories.find((c) => c.id === cat);
+  // Reference-image limit and credits come from the membership API.
+  const ents = useMyEntitlements();
+  const credits = useAiCredits();
+  const maxRefs = numericEntitlement(ents.data?.entitlements, 'AI_MAX_REFERENCE_IMAGES') || DEFAULT_MAX_REFERENCE_IMAGES;
+  const noCredits = credits.data && credits.data.remaining <= 0;
+  const creditsMissing = !credits.loading && !credits.data;
+  useEffect(() => { if (refs.length > maxRefs) setRefs((r) => r.slice(0, maxRefs)); }, [maxRefs, refs.length]);
+  const ready = category && (site.length || refs.length) && !noCredits && !creditsMissing && !sending;
+  const missing = creditsMissing ? 'Your AI credits could not be loaded — generation is paused'
+    : noCredits ? 'You have no AI design credits remaining. Upgrade your membership or wait for your next credit allocation'
+      : !category ? 'Choose a category' : !(site.length || refs.length) ? 'Add at least one photo' : '';
 
   const submit = (e) => {
     e.preventDefault();
     if (!ready) return;
+    setSending(true);
+    setTimeout(() => setSending(false), 1500); // blocks double clicks
     submitDesign({ category, sitePhotos: site, refPhotos: refs, notes: notes.trim() });
     // Ownership of the object URLs passes to the request.
     setSite([]); setRefs([]); setCat(''); setNotes('');
@@ -100,11 +120,13 @@ function NewDesign({ onSubmitted }) {
     <form className="studio-form" onSubmit={submit}>
       <div className="studio-main">
         <PhotoPicker step={1} icon="📷" title="Upload existing site photos" hint="Your terrace, garden, room or the piece to restore. Daylight, wide-angle photos work best." photos={site} setPhotos={setSite} />
-        <PhotoPicker step={2} icon="🖼️" title="Upload reference images" hint="Optional — designs, materials or styles you like. Screenshots are fine." photos={refs} setPhotos={setRefs} />
+        <PhotoPicker step={2} icon="🖼️" title="Upload reference images" hint={`Optional — designs, materials or styles you like. Your membership allows up to ${maxRefs}.`} photos={refs} setPhotos={setRefs} max={maxRefs} />
         <fieldset className="studio-step">
           <legend><span className="studio-num">3</span>Select category</legend>
+          {cats.loading && <div className="skeleton kpi" />}
+          {!cats.loading && !categories.length && <p className="enq-error" role="alert">Design categories could not be loaded right now. Please try again shortly.</p>}
           <div className="studio-cats" role="radiogroup" aria-label="Design category">
-            {S.categories.map((c) => (
+            {categories.map((c) => (
               <button key={c.id} type="button" role="radio" aria-checked={cat === c.id} className={`studio-cat${cat === c.id ? ' sel' : ''}`} onClick={() => setCat(c.id)}>
                 <span aria-hidden="true">{c.icon}</span><strong>{c.label}</strong><small>{c.hint}</small>
               </button>
@@ -123,6 +145,8 @@ function NewDesign({ onSubmitted }) {
           <div><dt>References</dt><dd>{refs.length || '—'}</dd></div>
           <div><dt>Category</dt><dd>{category ? `${category.icon} ${category.label}` : '—'}</dd></div>
         </dl>
+        <AiCreditsCard credits={credits} />
+        <p className="muted studio-cost">Submitting a design uses AI credits from your membership.</p>
         <button type="submit" className="btn btn-primary btn-block" disabled={!ready}>Submit design request</button>
         {missing && <p className="muted studio-missing">{missing} to continue.</p>}
         <ol className="studio-mini-steps" aria-label="What happens next">{S.timeline.map(([id, label]) => <li key={id}>{label}</li>)}</ol>
@@ -217,7 +241,8 @@ function Gallery({ requests, saved, onNew }) {
   ], [requests, saved]);
   useEffect(() => { if (open && !items.some((i) => i.id === open.id)) setOpen(null); }, [items, open]);
   const shown = filter === 'all' ? items : items.filter((i) => i.cat === filter);
-  const cats = [['all', 'All'], ...S.categories.filter((c) => items.some((i) => i.cat === c.id)).map((c) => [c.id, c.label]), ...(items.some((i) => i.cat === 'saved') ? [['saved', 'Saved']] : [])];
+  const categoryList = useCategories().data || [];
+  const cats = [['all', 'All'], ...categoryList.filter((c) => items.some((i) => i.cat === c.id)).map((c) => [c.id, c.label]), ...(items.some((i) => i.cat === 'saved') ? [['saved', 'Saved']] : [])];
 
   if (!items.length) return <EmptyState icon="✨" title="Your gallery is empty">Completed designs appear here. <button type="button" className="link-btn" onClick={onNew}>Create your first design</button></EmptyState>;
   return (

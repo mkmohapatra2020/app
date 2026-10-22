@@ -91,7 +91,7 @@ export default function ElderDiyPage() {
           <div>
             <h2 id="elder-cta-title">Signing up a parent or grandparent?</h2>
             <p>That’s how most people join. Tell us about them and we will call to plan a first session they will enjoy. Family members are always welcome to come along.</p>
-            <p className="elder-phone">Prefer to talk? Call <a href={contact.phoneHref}>{contact.phone}</a></p>
+            <p className="elder-phone">Prefer to write? Email <a href={`mailto:${contact.email}`}>{contact.email}</a></p>
           </div>
           <button type="button" className="btn btn-primary btn-xl" onClick={() => join()}>Join Elder DIY Program</button>
         </section>

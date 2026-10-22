@@ -24,7 +24,7 @@ const TryNowDialog = forwardRef(function TryNowDialog(_, ref) {
   const dialogRef = useRef(null);
   const firstFieldRef = useRef(null);
   const resultRef = useRef(null);
-  const job = useImageJob({ preferBackend: true });
+  const job = useImageJob();
 
   const [categoryId, setCategoryId] = useState(catalog[0].id);
   const category = catalog.find((c) => c.id === categoryId);
@@ -208,6 +208,9 @@ const TryNowDialog = forwardRef(function TryNowDialog(_, ref) {
 
         <div className="try-actions">
           <button type="button" className="btn try-cancel" onClick={close}>{loading ? 'Cancel' : 'Close'}</button>
+          {!loading && job.canRetry && (job.status === 'error' || job.status === 'done') && (
+            <button type="button" className="btn btn-outline try-retry" onClick={() => job.retry()}>↻ Try again</button>
+          )}
           <button type="submit" className="btn btn-primary try-go" disabled={loading || invalid.length > 0 || (mode === 'photo' && !photo)}>
             {loading && <span className="try-btn-spinner" aria-hidden="true" />}
             {loading ? 'Generating…' : mode === 'photo' ? 'Generate on my photo' : 'Generate'}

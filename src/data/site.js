@@ -14,7 +14,7 @@ export const contact = {
   phone: '+91 89172 50407',
   phoneHref: 'tel:+918917250407',
   whatsapp: '918917250407', // assumed to be the same number as the phone
-  email: 'hello@weekend-live.com',
+  email: 'connect@weekend-live.com',
   address: ['Lingipur, Sisupalgarh', 'Bhubaneswar, Odisha'],
   // Add your profile links here; empty ones are hidden.
   social: {
@@ -40,6 +40,8 @@ export const moreNav = [
   ['/elderly-diy', 'Elderly DIY Programs'],
   ['/incubator', 'DIY Incubator'],
   ['/design-studio', 'AI Design Studio'],
+  ['/image-generator', 'AI Image Generator'],
+  ['/membership', 'Membership'],
   ['/#together', 'Build Together'],
   ['/#about', 'About us'],
   ['/events', 'Events'],
@@ -228,11 +230,8 @@ export const stories = [
   { quote: 'Weekend-Live made our home safe for our parents.', who: 'Family, Khordha', sample: true },
 ];
 
-export const membership = [
-  { tier: 'Bronze', perks: ['Monthly DIY Tips'] },
-  { tier: 'Silver', perks: ['Monthly DIY Tips', 'Workshop Discounts'] },
-  { tier: 'Gold', perks: ['Monthly DIY Tips', 'Workshop Discounts', 'Priority Booking', 'Special Events'], featured: true },
-];
+// Membership plans, families and benefits come only from the membership API
+// (src/services/membershipService.js) — never hardcode them here.
 
 export const footerLinks = [
   ['/workshops', 'DIY Workshops'],

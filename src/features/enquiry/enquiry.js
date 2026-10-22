@@ -1,5 +1,4 @@
 import { createContext, useContext } from 'react';
-import { membership } from '../../data/site.js';
 import { fallbackCampaigns } from '../../data/fallbacks.js';
 import { formatDate } from '../../utils/contact.js';
 import { peek, invalidate } from '../../hooks/useResource.js';
@@ -63,8 +62,9 @@ export function bookWorkshop(enquiry, campaignId) {
 }
 
 /** Membership → POST /membership/subscribe (signed in), else WhatsApp. */
-export function joinMembership(enquiry, tier) {
-  const tiers = membership.map((m) => m.tier);
+/** Subscribe → POST /membership/subscribe. Plan names come from the membership API. */
+export function joinMembership(enquiry, tier, allTiers = []) {
+  const tiers = allTiers.length ? allTiers : (tier ? [tier] : []);
   enquiry.current?.open({
     title: 'Join the Weekend-Live Club',
     requiresAuth: true,
@@ -73,7 +73,7 @@ export function joinMembership(enquiry, tier) {
     successTitle: 'Welcome to the Club!',
     successText: 'Your membership is active. You can see it any time in My account.',
     fields: [{ name: 'tier', label: 'Membership', options: tier ? [tier, ...tiers.filter((t) => t !== tier)] : tiers }, ...person],
-    submit: async (v) => { const r = await userService.subscribe({ tier: v.tier }); if (r.success) invalidate('membership'); return r; },
+    submit: async (v) => { const r = await userService.subscribe({ tier: v.tier }); if (r.success) { invalidate('membership'); invalidate('mem:my:'); } return r; },
     build: (v) => `Hello Weekend-Live! I'd like to become a ${v.tier} member of the Weekend-Live Club.\nName: ${v.name}\nPhone: ${v.phone}`,
   });
 }

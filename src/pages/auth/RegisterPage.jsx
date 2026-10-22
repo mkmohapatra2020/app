@@ -11,6 +11,9 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', city: 'Bhubaneswar', password: '', confirm: '', agree: false });
   const [errors, setErrors] = useState({});
   const reg = useApi((a) => authService.register(a));
+  const verify = useApi((a) => authService.verifyRegistration(a));
+  const [pending, setPending] = useState(null); // { userId, destination, channel, expiresAt } once the OTP is sent
+  const [otp, setOtp] = useState('');
   const navigate = useNavigate();
   const { state } = useLocation();
   const { toast } = useToast();
@@ -28,9 +31,30 @@ export default function RegisterPage() {
     if (Object.keys(errs).length) return;
     const res = await reg.execute(form);
     if (!res.success) return;
-    if (res.data.token) { toast('Account created — welcome to Weekend-Live!'); navigate(state?.from || '/profile', { replace: true }); }
+    if (res.data.userId) { setPending(res.data); setOtp(''); }
     else { toast('Account created. Please sign in.'); navigate('/login', { state }); }
   };
+  const submitOtp = async (e) => {
+    e.preventDefault();
+    if (!/^\d{4,8}$/.test(otp.trim())) return;
+    const res = await verify.execute({ userId: pending.userId, otp });
+    // Verified accounts sign in normally — no membership is assumed here.
+    if (res.success) { toast('Account verified. Please sign in.'); navigate('/login', { state }); }
+  };
+
+  if (pending) {
+    return (
+      <AuthLayout title="Check your messages" subtitle={`We sent a verification code${pending.channel ? ` by ${pending.channel}` : ''}${pending.destination ? ` to ${pending.destination}` : ''}.`} image="hero-workshop"
+        footer={<button type="button" className="link-btn" onClick={() => { setPending(null); verify.reset(); }}>← Change my details</button>}>
+        <form onSubmit={submitOtp} noValidate className="auth-form">
+          <TextInput label="Verification code" inputMode="numeric" autoComplete="one-time-code" maxLength={8} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+            hint={pending.expiresAt ? `Expires at ${new Date(pending.expiresAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}` : undefined} />
+          <FormAlert>{verify.error}</FormAlert>
+          <SubmitButton loading={verify.loading} loadingText="Verifying…" className="btn-block" disabled={!/^\d{4,8}$/.test(otp)}>Verify and continue</SubmitButton>
+        </form>
+      </AuthLayout>
+    );
+  }
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
 
   return (

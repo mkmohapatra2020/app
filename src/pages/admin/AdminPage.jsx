@@ -5,6 +5,8 @@ import useResource from '../../hooks/useResource.js';
 import useApi from '../../hooks/useApi.js';
 import { adminService } from '../../services/adminService.js';
 import { notificationService } from '../../services/notificationService.js';
+import { membershipService } from '../../services/membershipService.js';
+import { refreshMembership } from '../../features/membership/useMembership.js';
 import { useToast } from '../../context/ToastContext.jsx';
 
 const fmt = (v, money) => (money ? `₹${Math.round(v).toLocaleString('en-IN')}` : Number.isInteger(v) ? v.toLocaleString('en-IN') : v.toFixed(1));
@@ -49,7 +51,10 @@ export default function AdminPage() {
         <BarChart title="Revenue" subtitle="By period" data={revenue.data?.series || []} money loading={revenue.loading} />
         <BarChart title="Campaign occupancy" subtitle="Share of seats booked" data={(occ.data || []).map((r) => ({ ...r, value: r.value <= 1 && r.value > 0 ? r.value * 100 : r.value }))} percent horizontal loading={occ.loading} />
       </div>
-      <NotificationTool />
+      <div className="admin-tools">
+        <NotificationTool />
+        <GrantCreditsTool />
+      </div>
     </PageShell>
   );
 }
@@ -126,6 +131,35 @@ function NotificationTool() {
       <TextArea label="Message" rows={3} maxLength={v.channel === 'sms' ? 320 : 2000} value={v.message} onChange={set('message')} hint={v.channel === 'sms' ? `${v.message.length}/320` : undefined} />
       <FormAlert>{send.error}</FormAlert>
       <SubmitButton loading={send.loading} loadingText="Sending…" disabled={!v.message.trim() || (v.channel !== 'push' && !v.to.trim())}>Send</SubmitButton>
+    </form>
+  );
+}
+
+// Admin only (route is wrapped in RequireAuth admin). Never shown to normal users.
+function GrantCreditsTool() {
+  const [v, setV] = useState({ userId: '', credits: '', reason: '' });
+  const grant = useApi((a) => membershipService.grantBonusCredits(a));
+  const { toast } = useToast();
+  const set = (k) => (e) => setV({ ...v, [k]: e.target.value });
+  const userOk = Number.isInteger(Number(v.userId)) && Number(v.userId) > 0;
+  const creditsOk = Number.isInteger(Number(v.credits)) && Number(v.credits) > 0;
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!userOk || !creditsOk) return;
+    const res = await grant.execute(v);
+    if (res.success) { toast(`Granted ${v.credits} bonus credit${Number(v.credits) === 1 ? '' : 's'} to user ${v.userId}`); refreshMembership(); setV({ userId: '', credits: '', reason: '' }); }
+  };
+  return (
+    <form className="card form-card" onSubmit={submit} noValidate>
+      <h2>Grant bonus AI credits</h2>
+      <p className="muted">Adds credits to a member's AI Design Studio balance (e.g. promotions or goodwill).</p>
+      <div className="f-row">
+        <TextInput label="User ID" inputMode="numeric" value={v.userId} onChange={set('userId')} error={v.userId && !userOk ? 'Enter a numeric user ID.' : ''} />
+        <TextInput label="Credits" type="number" min="1" step="1" value={v.credits} onChange={set('credits')} error={v.credits && !creditsOk ? 'Enter a whole number above 0.' : ''} />
+      </div>
+      <TextInput label="Reason" value={v.reason} onChange={set('reason')} optional maxLength={200} hint="e.g. Promotion" />
+      <FormAlert>{grant.error}</FormAlert>
+      <SubmitButton loading={grant.loading} loadingText="Granting…" disabled={!userOk || !creditsOk}>Grant credits</SubmitButton>
     </form>
   );
 }

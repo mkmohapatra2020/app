@@ -41,6 +41,7 @@
   .try-actions .btn{border:0;cursor:pointer;font-family:inherit;}
   .try-actions .btn:disabled{opacity:.55;cursor:not-allowed;}
   .try-cancel{background:transparent;color:var(--ink-soft);border:1px solid var(--line) !important;}
+  .try-retry{background:transparent;color:var(--accent-text);border:1px solid var(--teal-deep) !important;}
   @media (max-width:420px){.try-body{padding:20px;}.try-actions .btn{flex:1;justify-content:center;}}
   @media (prefers-reduced-motion: reduce){.try-now,.try-dialog[open],.try-spinner{animation:none;}}
 
@@ -167,3 +168,37 @@
 
   @media (max-width:560px){.try-body{--try-pad:20px;}.try-head{padding:22px var(--try-pad) 20px;}}
   @media (prefers-reduced-motion: reduce){.try-head,.try-head::before,.try-head::after{animation:none;}}
+
+  /* ---------- compact sizing: fits at 100% zoom on laptop screens ---------- */
+  .try-dialog{width:min(660px,calc(100vw - 32px));max-height:calc(100dvh - 40px);}
+  .try-dialog .try-body{--try-pad:24px;gap:12px;}
+  .try-dialog .try-head{padding:20px var(--try-pad) 18px;margin-bottom:2px;}
+  .try-dialog .try-head h2{font-size:clamp(1.3rem,2.4vw,1.6rem);}
+  .try-dialog .try-head .try-sub{font-size:.85rem;}
+  .try-dialog .try-modes .try-mode{min-height:40px;font-size:.88rem;}
+  .try-dialog .upload-drop.try-upload{padding:12px 16px;gap:12px;}
+  .try-dialog .try-upload .upload-icon{font-size:1.5rem;}
+  .try-dialog .try-field legend, .try-dialog .try-select > span, .try-dialog .try-dim > span:first-child{font-size:.84rem;margin-bottom:5px;}
+  .try-dialog .try-chips{gap:6px;}
+  .try-dialog .try-chips .chip{padding:6px 13px;font-size:.86rem;}
+  .try-dialog .try-dim-input input{padding:8px 4px 8px 11px;font-size:.9rem;}
+  .try-dialog .try-select select{padding:8px 32px 8px 11px;font-size:.9rem;}
+  .try-dialog .try-actions{padding-top:12px;}
+
+  /* short viewports (e.g. 1366×768, or 125% Windows scaling) */
+  @media (min-width:561px) and (max-height:820px){
+    .try-dialog{max-height:calc(100dvh - 24px);}
+    .try-dialog .try-body{--try-pad:20px;gap:9px;}
+    .try-dialog .try-head{padding:14px var(--try-pad) 12px;}
+    .try-dialog .try-head h2{font-size:1.25rem;}
+    .try-dialog .try-head .try-sub{font-size:.8rem;margin-top:2px;}
+    .try-dialog .try-head .try-close{width:32px;height:32px;font-size:1.2rem;}
+    .try-dialog .try-modes .try-mode{min-height:36px;}
+    .try-dialog .upload-drop.try-upload{padding:9px 14px;}
+    .try-dialog .try-upload small{display:none;}
+    .try-dialog .try-chips .chip{padding:5px 12px;font-size:.84rem;}
+    .try-dialog .try-dim-input input{padding:7px 4px 7px 10px;}
+    .try-dialog .try-select select{padding:7px 30px 7px 10px;}
+    .try-dialog .try-actions{padding-top:10px;margin-top:0;}
+    .try-dialog .try-actions .btn{padding-top:9px;padding-bottom:9px;}
+  }

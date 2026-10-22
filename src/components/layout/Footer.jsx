@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { contact, footerLinks, tagline } from '../../data/site.js';
-import { whatsappUrl } from '../../utils/contact.js';
 
 export default function Footer() {
   const socials = Object.entries(contact.social).filter(([, url]) => url);
@@ -24,9 +23,7 @@ export default function Footer() {
           <div>
             <h3>Contact</h3>
             <ul className="footer-contact">
-              <li><a href={contact.phoneHref}>📞 {contact.phone}</a></li>
               <li><a href={`mailto:${contact.email}`}>✉️ {contact.email}</a></li>
-              <li><a href={whatsappUrl('Hello Weekend-Live!')} target="_blank" rel="noopener">💬 WhatsApp</a></li>
               {socials.map(([name, url]) => <li key={name}><a href={url} target="_blank" rel="noopener">{name}</a></li>)}
             </ul>
           </div>

@@ -64,9 +64,9 @@ export default function ContactPage() {
           )}
         </div>
         <aside className="card contact-card">
-          <h3>Visit or call</h3>
+          <h3>Visit or write</h3>
           <address>{contact.address.map((l) => <span key={l}>{l}<br /></span>)}</address>
-          <p><a href={contact.phoneHref}>📞 {contact.phone}</a><br /><a href={`mailto:${contact.email}`}>✉️ {contact.email}</a><br /><a href={whatsappUrl('Hello Weekend-Live!')} target="_blank" rel="noopener">💬 WhatsApp us</a></p>
+          <p><a href={`mailto:${contact.email}`}>✉️ {contact.email}</a></p>
         </aside>
       </div>
     </PageShell>
