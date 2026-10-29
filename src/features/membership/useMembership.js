@@ -10,9 +10,6 @@ if (typeof window !== 'undefined') window.addEventListener(SESSION_EVENT, () => 
 // Shared, cached membership data. Keys are namespaced so invalidate('mem:') resets all.
 const any = (d) => d != null;
 
-export const usePlans = () => useResource('mem:plans', (a) => M.plans(a), { fallback: [] });
-export const useFamilies = () => useResource('mem:families', (a) => M.families(a), { fallback: [] });
-export const useMatrix = () => useResource('mem:matrix', (a) => M.entitlementMatrix(a), { fallback: { rows: [], values: {} }, accept: any });
 
 // Signed-in only: key is null for guests so nothing is requested.
 const CHANGED = 'wl:membership-changed';
@@ -29,8 +26,9 @@ function useMine(name, fn, fallback) {
 }
 export const useMyMemberships = () => useMine('memberships', (a) => M.myMemberships(a), []);
 export const useMyEntitlements = () => useMine('entitlements', (a) => M.myEntitlements(a), { plans: [], entitlements: [] });
-export const useMyBenefits = () => useMine('benefits', (a) => M.myBenefits(a), []);
-export const useIncubatorEligibility = () => useMine('incubator', (a) => M.incubatorEligibility(a), false);
+export const useMyBenefits = () => useMine('benefits', (a) => M.myBenefits(a), null);
+export const useMembershipOverview = () => useMine('overview', (a) => M.overview(a), null);
+export const useMyCredits = () => useMine('my-credits', (a) => M.myCredits(a), null);
 
 /** AI credits; refreshes when the visitor returns to the tab. */
 export function useAiCredits() {

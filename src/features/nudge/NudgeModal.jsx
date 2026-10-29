@@ -36,14 +36,14 @@ function buildNudges(enquiry, navigate) {
       kicker: 'Free AI preview',
       title: 'See your terrace transformed',
       text: 'Upload a photo and get a pergola, deck and garden concept for your own space in about a minute.',
-      cta: 'Try the visualizer', act: () => scrollTo('#visualizer'),
+      cta: 'Try the visualizer', act: () => navigate('/outdoor#visualizer'),
     },
     {
       id: 'safety', image: 'senior-hub', icon: '🛡️', tone: 'teal',
       kicker: '2-minute check',
       title: "How safe is your parents' home?",
-      text: 'Answer 12 quick questions to get a Senior Safety Score and a list of simple fixes.',
-      cta: 'Get my safety score', act: () => scrollTo('#safety-score'),
+      text: 'Answer a few quick yes/no questions to get a Senior Safety Score and a list of simple fixes.',
+      cta: 'Get my safety score', act: () => navigate('/seniors#safety-score'),
     },
     {
       id: 'trynow', image: 'pillar-outdoor', icon: '✦', tone: 'gold',

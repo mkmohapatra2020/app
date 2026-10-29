@@ -1,14 +1,18 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { USE_SAMPLE_DATA } from '../../data/site.js';
+import SectionMenu from '../layout/SectionMenu.jsx';
 
 // Consistent page header + container for every non-home screen.
-export default function PageShell({ title, eyebrow, intro, crumbs = [], actions, children, narrow = false, className = '' }) {
+// The header's right side holds the current section's menu (SectionMenu), when there is one.
+// bare: children render full-width (for home sections that bring their own .wrap).
+export default function PageShell({ title, eyebrow, intro, crumbs = [], actions, children, narrow = false, bare = false, className = '' }) {
   useEffect(() => { if (title) document.title = `${title} · Weekend-Live`; return () => { document.title = 'Weekend-Live — DIY Workshops, Outdoor Living & Senior-Friendly Homes in Bhubaneswar'; }; }, [title]);
   return (
     <div className={`page ${className}`}>
       <header className="page-head">
-        <div className={`wrap ${narrow ? 'wrap-narrow' : ''}`}>
+        <div className={`wrap page-head-grid ${narrow ? 'wrap-narrow' : ''}`}>
+          <div className="page-head-text">
           {crumbs.length > 0 && (
             <nav className="crumbs" aria-label="Breadcrumb">
               <Link to="/">Home</Link>
@@ -18,9 +22,11 @@ export default function PageShell({ title, eyebrow, intro, crumbs = [], actions,
           {eyebrow && <span className="eyebrow">{eyebrow}</span>}
           <div className="page-title-row"><h1>{title}</h1>{actions}</div>
           {intro && <p className="page-intro">{intro}</p>}
+          </div>
+          <SectionMenu variant="header" />
         </div>
       </header>
-      <div className={`wrap page-body ${narrow ? 'wrap-narrow' : ''}`}>{children}</div>
+      {bare ? children : <div className={`wrap page-body ${narrow ? 'wrap-narrow' : ''}`}>{children}</div>}
     </div>
   );
 }

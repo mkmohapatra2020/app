@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import Img from '../components/common/Img.jsx';
 import BeforeAfter from '../components/common/BeforeAfter.jsx';
@@ -40,7 +41,7 @@ export default function Hero() {
         <p className="lede">{hero.lede}</p>
         <div className="hero-ctas">
           <button type="button" className="btn btn-primary" onClick={() => bookWorkshop(enquiry)}>Join DIY Workshop</button>
-          <a className="btn btn-ghost" href="#outdoor">Explore Outdoor Living</a>
+          <Link className="btn btn-ghost" to="/outdoor">Explore Outdoor Living</Link>
         </div>
         <div className="hero-dots" role="tablist" aria-label="Hero photos">
           {hero.slides.map((s, n) => (
@@ -60,7 +61,7 @@ export default function Hero() {
             ))}
           </div>
           <div className="hero-ba-foot">
-            <p className="hero-ba-hint">Drag to compare · <a href="#outdoor">See all projects</a></p>
+            <p className="hero-ba-hint">Drag to compare · <Link to="/outdoor">See all projects</Link></p>
             {isAuthenticated && <button type="button" className="hero-ba-try" onClick={() => window.dispatchEvent(new CustomEvent('wl:open-try-now', { detail: { mode: 'photo' } }))}>
               <span aria-hidden="true">✦</span> Try now on your space
             </button>}

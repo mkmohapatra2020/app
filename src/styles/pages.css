@@ -375,3 +375,4 @@
     .nav-signin svg{display:none;}
     .try-now{padding:8px 14px;}
   }
+.f-alert-info{background:rgba(31,110,122,.12);color:var(--teal,#1f6e7a);}

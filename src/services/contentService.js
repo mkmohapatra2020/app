@@ -9,7 +9,7 @@ class ContentService {
   testimonials({ signal } = {}) { return api.get(E.TESTIMONIALS, { signal }).then((r) => mapRes(r, (d) => unwrapList(d, 'testimonials', 'reviews').map(toTestimonial).filter((t) => t.quote))); }
   addReview({ text, rating, name, city, signal }) { return api.post(E.TESTIMONIALS, { text, review: text, comment: text, rating: Number(rating), name, city }, { signal }); }
   articles({ signal, query } = {}) { return api.get(E.ARTICLES, { signal, query }).then((r) => mapRes(r, (d) => unwrapList(d, 'articles').map(toArticle).filter((a) => a.title))); }
-  article({ slug, signal }) { return api.get(E.ARTICLE, { arg: slug, signal, auth: false }).then((r) => mapRes(r, (d) => toArticle(unwrap(d)))); }
+  article({ slug, signal }) { return api.get(E.ARTICLE, { arg: slug, signal }).then((r) => mapRes(r, (d) => toArticle(unwrap(d)))); }
   search({ q, signal }) { return api.get(E.ARTICLE_SEARCH, { query: { q, query: q }, signal }).then((r) => mapRes(r, (d) => unwrapList(d, 'articles').map(toArticle).filter((a) => a.title))); }
   heritage({ signal } = {}) { return api.get(E.HERITAGE, { signal }).then((r) => mapRes(r, (d) => unwrapList(d, 'projects').map(toHeritage).filter((h) => h.title))); }
   crafts({ signal } = {}) { return api.get(E.CRAFTS, { signal }).then((r) => mapRes(r, (d) => unwrapList(d, 'crafts', 'techniques').map(toCraft).filter((c) => c.title))); }

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Section from '../components/common/Section.jsx';
 import Img from '../components/common/Img.jsx';
 import { pillars } from '../data/site.js';
@@ -14,7 +15,7 @@ export default function Pillars() {
               <h3>{p.title}</h3>
               <p>{p.text}</p>
               <ul className="ticks">{p.points.map((pt) => <li key={pt}>{pt}</li>)}</ul>
-              <a className="btn btn-outline" href={p.href}>Explore <span aria-hidden="true">→</span></a>
+              <Link className="btn btn-outline" to={p.href}>Explore <span aria-hidden="true">→</span></Link>
             </div>
           </article>
         ))}

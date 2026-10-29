@@ -67,10 +67,16 @@ class VisualizationService {
   readSas({ blobName, signal }) { return blobService.readUrl({ blobName, container: STORAGE_TYPES.GENERATED, signal }); }
 
   myRequests({ signal } = {}) {
-    const id = customerId();
-    if (!id) return Promise.resolve({ success: true, status: 200, data: [] });
-    return api.get(A.MY_HISTORY, { signal, query: { customerId: id } })
-      .then((r) => mapRes(r, (d) => unwrapList(d, 'requests', 'visualizations').map(toVisualization).filter((v) => v.id)));
+    // Customer comes from the login token (Authorization: Bearer …); no customerId query.
+    if (!customerId()) return Promise.resolve({ success: true, status: 200, data: [] });
+    return api.get(A.MY_HISTORY, { auth: true, signal })
+      .then((r) => mapRes(r, (d) => unwrapList(d, 'requests', 'visualizations').map(toVisualization).filter((v) => v.id)))
+      .then(async (r) => {
+        if (!r.success) return r;
+        // Private Blob URLs (results[].blobUrl, references[].blobUrl) need a read SAS to display.
+        const show = (url) => blobService.displayUrl(url, { signal });
+        return { ...r, data: await Promise.all(r.data.map(async (v) => ({ ...v, image: await show(v.image), original: await show(v.original) }))) };
+      });
   }
 
   /** A usable URL for a finished request (direct URL, or SAS for a private blob). */

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import PageShell, { EmptyState } from '../../components/common/PageShell.jsx';
 import { TextInput, TextArea, Select, FormAlert, SubmitButton } from '../../components/common/Form.jsx';
 import useResource from '../../hooks/useResource.js';
@@ -27,7 +28,7 @@ export default function AdminPage() {
 
   return (
     <PageShell title="Admin dashboard" eyebrow="Weekend-Live admin" crumbs={[[null, 'Admin']]}
-      actions={<button type="button" className="btn btn-outline btn-small" onClick={() => [dash, stats, revenue, occ, heritage, incubator, elderly, aiCost].forEach((r) => r.reload())}>↻ Refresh</button>}>
+      actions={<div className="row-btns"><Link className="btn btn-primary btn-small" to="/admin/ai-visualizations">AI review queue</Link><button type="button" className="btn btn-outline btn-small" onClick={() => [dash, stats, revenue, occ, heritage, incubator, elderly, aiCost].forEach((r) => r.reload())}>↻ Refresh</button></div>}>
       {anyError && <p className="f-alert f-alert-error">{anyError}</p>}
       <section aria-label="Key figures">
         {dash.loading || stats.loading ? <div className="kpi-grid">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton kpi" />)}</div>

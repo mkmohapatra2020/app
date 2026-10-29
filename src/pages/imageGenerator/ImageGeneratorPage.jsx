@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import PageShell, { EmptyState, SkeletonGrid } from '../../components/common/PageShell.jsx';
 import useApi from '../../hooks/useApi.js';
 import useResource from '../../hooks/useResource.js';
@@ -10,14 +11,24 @@ const fmtDay = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { day: 'numer
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // /image-generator — text-to-image on the Weekend-Live image API.
+// ?for=school → "School Project Work": step-by-step project illustrations for kids.
+const SCHOOL = {
+  title: 'School Project Work', eyebrow: 'Kids · AI project helper',
+  intro: 'Describe your school DIY project and get an illustrated, step-by-step build sheet. An adult should handle any cutting, drilling or hot glue.',
+  prompt: 'Step-by-step illustrated build sheet for a school DIY project for a 12-year-old: a cardboard and ice-cream-stick model of a solar-powered house. Numbered steps, labelled materials list, safety notes for adult-only steps.',
+  style: 'minimalist',
+};
+
 export default function ImageGeneratorPage() {
+  const [params] = useSearchParams();
+  const school = params.get('for') === 'school';
   const quota = useResource('images:quota', (a) => G.quota(a), { fallback: null, accept: (d) => d != null, ttl: 0 });
   const history = useResource('images:history', (a) => G.history(a), { fallback: { total: 0, items: [] }, accept: (d) => d != null, ttl: 0 });
   return (
-    <PageShell className="imggen" title="AI Image Generator" eyebrow="Design ideas in seconds" crumbs={[[null, 'AI Image Generator']]}
-      intro="Describe a pergola, deck, garden corner or DIY piece and get a picture to share with your family or our team.">
+    <PageShell className="imggen" title={school ? SCHOOL.title : 'AI Image Generator'} eyebrow={school ? SCHOOL.eyebrow : 'Design ideas in seconds'} crumbs={[[null, school ? SCHOOL.title : 'AI Image Generator']]}
+      intro={school ? SCHOOL.intro : 'Describe a pergola, deck, garden corner or DIY piece and get a picture to share with your family or our team.'}>
       <div className="imggen-grid">
-        <ImageGenerator quota={quota} onGenerated={() => history.reload()} />
+        <ImageGenerator key={school ? 'school' : 'default'} preset={school ? SCHOOL : null} quota={quota} onGenerated={() => history.reload()} />
         <QuotaCard quota={quota} />
       </div>
       <ImageHistory history={history} />
@@ -25,9 +36,9 @@ export default function ImageGeneratorPage() {
   );
 }
 
-function ImageGenerator({ quota, onGenerated }) {
-  const [prompt, setPrompt] = useState('');
-  const [style, setStyle] = useState(IMAGE_STYLES[0]);
+function ImageGenerator({ quota, onGenerated, preset }) {
+  const [prompt, setPrompt] = useState(preset?.prompt || '');
+  const [style, setStyle] = useState(preset?.style || IMAGE_STYLES[0]);
   const [size, setSize] = useState(IMAGE_SIZES[0]);
   const [hint, setHint] = useState('');
   // Optional reference photo: uploaded once via write SAS, reused while unchanged.

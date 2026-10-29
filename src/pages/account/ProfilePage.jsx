@@ -11,9 +11,7 @@ import { passportService } from '../../services/passportService.js';
 import { visualizationService } from '../../services/visualizationService.js';
 import { programService } from '../../services/programService.js';
 import { authService } from '../../services/authService.js';
-import { MembershipDashboard, PlanFamilies } from '../../features/membership/MembershipUI.jsx';
-import { useMyEntitlements } from '../../features/membership/useMembership.js';
-import { joinMembership, useEnquiry } from '../../features/enquiry/enquiry.js';
+import { JoinMembership, MembershipDashboard } from '../../features/membership/MembershipUI.jsx';
 import { passportStamps } from '../../data/features.js';
 import { useToast } from '../../context/ToastContext.jsx';
 
@@ -98,13 +96,10 @@ function ProfileTab() {
 }
 
 function MembershipTab() {
-  const enquiry = useEnquiry();
-  const mine = useMyEntitlements();
   return (
     <div>
       <MembershipDashboard />
-      <h2 className="mem-sub">Plans</h2>
-      <PlanFamilies compact owned={mine.data?.plans || []} onChoose={(p, all) => joinMembership(enquiry, p.name, all.map((x) => x.name))} />
+      <JoinMembership />
     </div>
   );
 }
@@ -124,7 +119,7 @@ function BadgesTab() {
       </div>
       {badges.loading ? <SkeletonGrid count={4} /> : earned.length ? (
         <div className="stamp-grid">{earned.map((b) => <div key={b.id || b.name} className="stamp got"><span className="stamp-icon" aria-hidden="true">{b.icon}</span><strong>{b.name}</strong>{b.earnedAt && <span className="stamp-hint">Earned {new Date(b.earnedAt).toLocaleDateString('en-IN')}</span>}</div>)}</div>
-      ) : <EmptyState icon="🏅" title="No badges yet">Join a workshop and enter the stamp code on the <Link to="/#passport">passport</Link> to earn your first badge.</EmptyState>}
+      ) : <EmptyState icon="🏅" title="No badges yet">Join a workshop and enter the stamp code on the <Link to="/kids">passport</Link> to earn your first badge.</EmptyState>}
     </div>
   );
 }
@@ -168,7 +163,7 @@ function DesignsTab() {
   const shown = open && (detail.data && detail.data.id === open.id ? { ...open, ...detail.data } : open);
 
   if (list.loading) return <SkeletonGrid count={3} />;
-  if (!list.data?.length) return <EmptyState icon="🖼️" title="No AI designs yet">Try the <Link to="/design-studio">AI Design Studio</Link>, <b>Change My Space</b> from the Try now button or the <Link to="/#visualizer">Outdoor Space Visualizer</Link> — your designs will be saved here.</EmptyState>;
+  if (!list.data?.length) return <EmptyState icon="🖼️" title="No AI designs yet">Try the <Link to="/design-studio">AI Design Studio</Link>, <b>Change My Space</b> from the Try now button or the <Link to="/outdoor#visualizer">Outdoor Space Visualizer</Link> — your designs will be saved here.</EmptyState>;
   return (
     <div className="designs">
       <div className="design-grid">

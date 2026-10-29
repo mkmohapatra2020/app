@@ -6,7 +6,7 @@ import { toAssessmentResult, toQuestions } from './adapters.js';
 const E = BACKEND_ENDPOINTS.ASSESSMENT;
 
 class AssessmentService {
-  questions({ signal } = {}) { return api.get(E.QUESTIONS, { signal, auth: false }).then((r) => mapRes(r, toQuestions)); }
+  questions({ signal } = {}) { return api.get(E.QUESTIONS, { signal }).then((r) => mapRes(r, toQuestions)); }
   submit({ answers, score, signal }) {
     const list = Object.entries(answers).map(([questionId, a]) => ({ questionId, answer: a === 'yes', value: a }));
     return api.post(E.SUBMIT, { answers: list, score }, { signal }).then((r) => mapRes(r, toAssessmentResult));

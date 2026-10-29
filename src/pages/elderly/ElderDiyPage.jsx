@@ -6,6 +6,7 @@ import useResource from '../../hooks/useResource.js';
 import { programService } from '../../services/programService.js';
 import { elderDiy as E, withLocalDefaults } from '../../data/flagship.js';
 import { contact } from '../../data/site.js';
+import SectionMenu from '../../components/layout/SectionMenu.jsx';
 import { joinElderProgram, useEnquiry } from '../../features/enquiry/enquiry.js';
 
 const FILTERS = [[0, 'All activities'], [1, 'Very easy'], [2, 'Easy'], [3, 'Moderate']];
@@ -25,6 +26,7 @@ export default function ElderDiyPage() {
 
   return (
     <div className={`page elder${big ? ' elder-big' : ''}`}>
+      <SectionMenu />
       <header className="elder-hero">
         <div className="wrap">
           <nav className="crumbs" aria-label="Breadcrumb"><Link to="/">Home</Link> / Elderly DIY Programs</nav>
@@ -95,7 +97,7 @@ export default function ElderDiyPage() {
           </div>
           <button type="button" className="btn btn-primary btn-xl" onClick={() => join()}>Join Elder DIY Program</button>
         </section>
-        <p className="elder-more">Looking for safety upgrades at home instead? See our <Link to="/#seniors">senior-friendly home improvements</Link>.</p>
+        <p className="elder-more">Looking for safety upgrades at home instead? See our <Link to="/seniors">senior-friendly home improvements</Link>.</p>
       </div>
     </div>
   );

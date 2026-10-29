@@ -2,19 +2,25 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import TryNow from '../../features/tryNow/TryNow.jsx';
 import ThemeSwitcher, { ThemeRow } from '../../theme/ThemeSwitcher.jsx';
-import { nav, moreNav } from '../../data/site.js';
-import { bookWorkshop, useEnquiry } from '../../features/enquiry/enquiry.js';
+import { mainNav, nav } from '../../data/site.js';
 import useSession from '../../hooks/useSession.js';
 import { useCart } from '../../context/CartContext.jsx';
 import { authService } from '../../services/authService.js';
+import { activeSection, bestItem, rememberSection, usePreferredSection } from './navState.js';
 
 const isHash = (to) => to.startsWith('/#');
+const DESKTOP = 980;
+const caret = <svg className="nav-caret" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 
-// Sticky header: shrinks on scroll, shows reading progress, highlights the
-// current page / home section with a sliding pill, animates the phone menu.
+// Every link of a header section (its landing page + dropdown items).
+const linksOf = (m) => [m.to, ...(m.groups || []).flatMap((g) => g.items.map(([to]) => to))];
+
+// Sticky header: five core sections with dropdowns, no global CTA (each section
+// carries its own actions). Shrinks on scroll, shows reading progress, highlights
+// the current section with a sliding pill, and becomes a drawer on phones.
 export default function Nav() {
   const [open, setOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [menu, setMenu] = useState(''); // key of the open dropdown
   const [userOpen, setUserOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [section, setSection] = useState('');
@@ -22,19 +28,19 @@ export default function Nav() {
   const navRef = useRef(null);
   const listRef = useRef(null);
   const progressRef = useRef(null);
-  const enquiry = useEnquiry();
   const { user, isAuthenticated, isAdmin } = useSession();
   const cart = useCart();
   const location = useLocation();
   const navigate = useNavigate();
   const onHome = location.pathname === '/';
+  const prefSection = usePreferredSection();
 
-  const closeAll = () => { setOpen(false); setMoreOpen(false); setUserOpen(false); };
-  useEffect(closeAll, [location.pathname, location.hash]);
+  const closeAll = () => { setOpen(false); setMenu(''); setUserOpen(false); };
+  useEffect(closeAll, [location.pathname, location.hash, location.search]);
 
   useEffect(() => {
     const onDocClick = (e) => { if (navRef.current && !navRef.current.contains(e.target)) closeAll(); };
-    const onResize = () => { if (window.innerWidth > 980) setOpen(false); };
+    const onResize = () => { if (window.innerWidth > DESKTOP) setOpen(false); };
     const onKey = (e) => { if (e.key === 'Escape') closeAll(); };
     let ticking = false;
     const onScroll = () => {
@@ -62,18 +68,16 @@ export default function Nav() {
   // On the home page, which section is in the middle of the screen?
   useEffect(() => {
     if (!onHome) { setSection(''); return undefined; }
+    const anchors = [...new Set(nav.map(([to]) => to).filter(isHash))];
     let raf = 0;
     const check = () => {
       raf = 0;
       if (window.scrollY < 200) { setSection(''); return; }
       const mid = window.innerHeight * 0.45;
-      // The section whose top is closest above the middle line wins
-      // (menu order differs from page order, so compare positions).
       let current = '';
       let best = -Infinity;
-      for (const [to] of [...nav, ...moreNav].filter(([t]) => isHash(t))) {
-        const el = document.querySelector(to.slice(1));
-        const top = el?.getBoundingClientRect().top;
+      for (const to of anchors) {
+        const top = document.querySelector(to.slice(1))?.getBoundingClientRect().top;
         if (top !== undefined && top <= mid && top > best) { best = top; current = to; }
       }
       setSection(current);
@@ -85,30 +89,50 @@ export default function Nav() {
     return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); cancelAnimationFrame(raf); };
   }, [onHome]);
 
-  const activeTo = onHome ? section : nav.find(([to]) => !isHash(to) && location.pathname.startsWith(to))?.[0] || '';
+  // Active header section: home-page anchor in view, or the current route.
+  const activeMenu = onHome ? mainNav.find((m) => section && linksOf(m).includes(section)) : activeSection(location, prefSection);
+  const activeKey = activeMenu?.key || '';
+  // The dropdown item for this exact page (path + ?query + #hash), highlighted in its menu.
+  const currentItem = !onHome && activeMenu ? bestItem(activeMenu, location) : null;
 
-  // Sliding indicator under the active link (desktop).
+  // Sliding indicator under the active section (desktop).
   useLayoutEffect(() => {
     const place = () => {
-      const a = listRef.current?.querySelector(`a[data-to="${activeTo}"]`);
-      if (!a || window.innerWidth <= 980) { setPill(null); return; }
-      setPill({ left: a.offsetLeft, width: a.offsetWidth });
+      const el = listRef.current?.querySelector(`[data-key="${activeKey}"]`);
+      if (!el || window.innerWidth <= DESKTOP) { setPill(null); return; }
+      // Measure from the menu bar: dropdown buttons sit inside a positioned <li>.
+      const li = el.closest('li');
+      setPill({ left: (li?.offsetLeft || 0) + (li && li !== el.offsetParent ? 0 : el.offsetLeft), width: el.offsetWidth });
     };
     place();
     window.addEventListener('resize', place);
     return () => window.removeEventListener('resize', place);
-  }, [activeTo, scrolled]);
+  }, [activeKey, scrolled]);
 
-  const link = ([to, label], i) => (
-    <li key={to} style={{ '--i': i }}>
-      {isHash(to)
-        ? <Link to={to} data-to={to} className={activeTo === to ? 'is-active' : ''} aria-current={activeTo === to ? 'location' : undefined}>{label}</Link>
-        : <NavLink to={to} data-to={to} className={({ isActive }) => (isActive ? 'is-active' : '')}>{label}</NavLink>}
-    </li>
-  );
 
   const logout = () => { authService.logout(); closeAll(); navigate('/'); };
   const initials = (user?.name || user?.email || '?').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+
+  // Dropdown item: icon tile + label + one-line description. --d staggers the entrance.
+  const itemLink = (m) => ([to, label, sub, icon], i) => {
+    const current = activeKey === m.key && currentItem?.to === to;
+    return (
+    <li key={`${to}-${label}`} style={{ '--d': i }}>
+      <Link to={to} className={`nav-item${current ? ' is-current' : ''}`} aria-current={current ? 'page' : undefined} onClick={() => rememberSection(m.key)}>
+        {icon && <span className="nav-item-icon" aria-hidden="true">{icon}</span>}
+        <span className="nav-item-text"><span className="nav-item-label">{label}</span>{sub && <small className="nav-item-sub">{sub}</small>}</span>
+        <span className="nav-item-arrow" aria-hidden="true">→</span>
+      </Link>
+    </li>
+    );
+  };
+  const featureCard = (m, f) => (
+    <Link to={f.to} onClick={() => rememberSection(m.key)} className="nav-feature" style={{ '--img': `url(/images/${f.image}-640.webp)` }}>
+      <span className="nav-feature-title">{f.title}</span>
+      <span className="nav-feature-text">{f.text}</span>
+      <span className="nav-feature-cta">{f.cta} →</span>
+    </Link>
+  );
 
   return (
     <nav className={`nav${open ? ' nav-open' : ''}${scrolled ? ' nav-scrolled' : ''}`} ref={navRef} aria-label="Main">
@@ -120,22 +144,47 @@ export default function Nav() {
           aria-controls="primary-navigation" onClick={() => setOpen((o) => !o)}
         ><span></span><span></span><span></span></button>
         <ul className="nav-links" id="primary-navigation" ref={listRef}>
-          {nav.map(link)}
-          <li className="nav-more" style={{ '--i': nav.length }}>
-            <button type="button" className="nav-more-btn" aria-expanded={moreOpen} aria-haspopup="true" onClick={() => setMoreOpen((o) => !o)}>More<svg className="nav-caret" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></button>
-            <ul className={`nav-dropdown${moreOpen ? ' open' : ''}`}>{moreNav.map(([to, label]) => <li key={to}><Link to={to}>{label}</Link></li>)}</ul>
-          </li>
-          <li className="nav-mobile-only" style={{ '--i': nav.length + 1 }}>
+          {mainNav.map((m, i) => (m.groups ? (
+            <li key={m.key} className={`nav-menu${menu === m.key ? ' is-open' : ''}`} style={{ '--i': i }}>
+              <button type="button" data-key={m.key} className={`nav-menu-btn${activeKey === m.key ? ' is-active' : ''}`} aria-expanded={menu === m.key} aria-controls={`menu-${m.key}`}
+                onClick={() => {
+                  // Desktop: the section name opens its page, where its sub-menu is shown (SectionMenu).
+                  // Phones: it expands the accordion, which starts with an "All …" link.
+                  if (window.innerWidth > DESKTOP) { rememberSection(m.key); setMenu(''); navigate(m.to); } else setMenu((k) => (k === m.key ? '' : m.key));
+                }}>
+                {m.icon && <span className="nav-menu-icon" aria-hidden="true">{m.icon}</span>}{m.label}{caret}
+              </button>
+              <div id={`menu-${m.key}`} className={`nav-dropdown nav-mega nav-mega-${m.groups.length}${m.feature ? ' has-feature' : ''}${menu === m.key ? ' open' : ''}`}>
+                <Link to={m.to} className="nav-mega-all" onClick={() => rememberSection(m.key)}>All {m.label} <span aria-hidden="true">→</span></Link>
+                <div className="nav-mega-groups">
+                  {m.groups.map((g, gi) => (
+                    <div key={g.title || gi} className="nav-mega-group">
+                      {g.title && <p className="nav-mega-title">{g.title}</p>}
+                      <ul>{g.items.map(itemLink(m))}</ul>
+                    </div>
+                  ))}
+                </div>
+                {m.feature && featureCard(m, m.feature)}
+              </div>
+            </li>
+          ) : (
+            <li key={m.key} style={{ '--i': i }}>
+              <NavLink to={m.to} data-key={m.key} onClick={() => rememberSection(m.key)} className={({ isActive }) => `nav-studio${isActive || activeKey === m.key ? ' is-active' : ''}`}>{m.icon && <span className="nav-menu-icon" aria-hidden="true">{m.icon}</span>}{m.label}</NavLink>
+            </li>
+          )))}
+          <li className="nav-mobile-only" style={{ '--i': mainNav.length }}>
             {isAuthenticated
               ? <><Link to="/profile">My profile</Link>{isAdmin && <Link to="/admin">Admin dashboard</Link>}<button type="button" className="nav-text-btn" onClick={logout}>Sign out</button></>
               : <><Link to="/login">Sign in</Link><Link to="/register">Create account</Link></>}
           </li>
-          <li className="nav-mobile-only" style={{ '--i': nav.length + 2 }}><ThemeRow /></li>
-          <li className="nav-mobile-cta" style={{ '--i': nav.length + 3 }}><button type="button" onClick={() => bookWorkshop(enquiry)}>Book Workshop</button></li>
+          <li className="nav-mobile-only" style={{ '--i': mainNav.length + 2 }}><Link to="/contact">Contact</Link><Link to="/#about">About us</Link></li>
+          <li className="nav-mobile-only" style={{ '--i': mainNav.length + 3 }}><ThemeRow /></li>
           {pill && <li className="nav-pill" aria-hidden="true" style={{ transform: `translateX(${pill.left}px)`, width: pill.width }} />}
         </ul>
         <div className="nav-actions">
-          <TryNow />
+          <TryNow showButton={false} />
+          <Link to="/contact" className="nav-aux">Contact</Link>
+          <Link to="/#about" className="nav-aux">About us</Link>
           <ThemeSwitcher />
           <Link to="/cart" className="nav-icon-btn" aria-label={`Cart, ${cart.count} item${cart.count === 1 ? '' : 's'}`}>
             <span aria-hidden="true">🛒</span>{cart.count > 0 && <b className="nav-badge">{cart.count}</b>}
@@ -143,7 +192,7 @@ export default function Nav() {
           <div className="nav-user">
             {isAuthenticated ? (
               <>
-                <button type="button" className="nav-avatar" aria-haspopup="true" aria-expanded={userOpen} aria-label="Account menu" onClick={() => setUserOpen((o) => !o)}>
+                <button type="button" className="nav-avatar" aria-haspopup="true" aria-expanded={userOpen} aria-label="Account menu" onClick={() => { setUserOpen((o) => !o); setMenu(''); }}>
                   {user?.photo ? <img src={user.photo} alt="" /> : <span>{initials}</span>}
                 </button>
                 <ul className={`nav-dropdown nav-dropdown-right${userOpen ? ' open' : ''}`}>
@@ -151,6 +200,7 @@ export default function Nav() {
                   <li><Link to="/profile">My profile</Link></li>
                   <li><Link to="/my-designs">My AI designs</Link></li>
                   {isAdmin && <li><Link to="/admin">Admin dashboard</Link></li>}
+                  {isAdmin && <li><Link to="/admin/ai-visualizations">AI review queue</Link></li>}
                   <li><button type="button" onClick={logout}>Sign out</button></li>
                 </ul>
               </>
@@ -161,7 +211,6 @@ export default function Nav() {
               </Link>
             )}
           </div>
-          <button type="button" className="nav-cta" onClick={() => bookWorkshop(enquiry)}><span>Book Workshop</span></button>
         </div>
       </div>
       <div className="nav-progress" ref={progressRef} aria-hidden="true" />

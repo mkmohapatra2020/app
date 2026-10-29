@@ -7,6 +7,7 @@ import { incubatorService } from '../../services/incubatorService.js';
 import { SampleTag } from '../../components/common/Section.jsx';
 import { incubator as I, withLocalDefaults } from '../../data/flagship.js';
 import { SHOW_SAMPLE_TAGS } from '../../data/site.js';
+import SectionMenu from '../../components/layout/SectionMenu.jsx';
 import { formatDate } from '../../utils/contact.js';
 import { generalEnquiry, submitIdea, useEnquiry } from '../../features/enquiry/enquiry.js';
 
@@ -26,6 +27,7 @@ export default function IncubatorPage() {
 
   return (
     <div className="page inc">
+      <SectionMenu />
       <header className="inc-hero">
         <Img name="hero-workshop" alt="" className="inc-hero-bg" eager sizes="100vw" />
         <div className="wrap">

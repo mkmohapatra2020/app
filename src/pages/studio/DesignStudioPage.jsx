@@ -1,267 +1,104 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import PageShell, { EmptyState } from '../../components/common/PageShell.jsx';
-import BeforeAfter from '../../components/common/BeforeAfter.jsx';
-import RemoteImage from '../../components/common/RemoteImage.jsx';
+import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import PageShell, { EmptyState, SkeletonGrid } from '../../components/common/PageShell.jsx';
 import useResource from '../../hooks/useResource.js';
-import useSession from '../../hooks/useSession.js';
-import { visualizationService } from '../../services/visualizationService.js';
-import { preparePhoto } from '../../utils/photo.js';
-import { studio as S } from '../../data/flagship.js';
-import { designService } from '../../services/designService.js';
-import { DEFAULT_MAX_REFERENCE_IMAGES } from '../../services/apiConfig.js';
-import { numericEntitlement } from '../../utils/entitlements.js';
-import { AiCreditsCard } from '../../features/membership/MembershipUI.jsx';
-import { useAiCredits, useMyEntitlements } from '../../features/membership/useMembership.js';
-import { generalEnquiry, useEnquiry } from '../../features/enquiry/enquiry.js';
-import { removeRequest, submitDesign, useStudioRequests } from '../../features/studio/studioStore.js';
+import { aiWorkflowService as W } from '../../services/aiWorkflowService.js';
+import NewDesignForm from '../../features/aiVisualization/NewDesignForm.jsx';
+import RequestCard, { ResultImages, fmtWhen } from '../../features/aiVisualization/RequestCard.jsx';
+import { refreshMembership } from '../../features/membership/useMembership.js';
 
-const MAX_SITE = 4;
 const TABS = [['new', 'New design'], ['requests', 'My design requests'], ['gallery', 'Gallery']];
-const ORDER = S.timeline.map(([id]) => id);
-// Categories come from GET /design-categories (mocked until deployed).
-const useCategories = () => useResource('design-categories', (a) => designService.categories(a), { fallback: [] });
 
-// /design-studio — upload → choose category → submit → track → gallery.
+// History groups, in display order.
+const GROUPS = [
+  ['In progress', ['Submitted', 'Queued', 'Processing']],
+  ['Needs your attention', ['ChangesRequested']],
+  ['Awaiting review', ['PendingReview']],
+  ['Completed', ['Completed']],
+  ['Closed', ['Failed', 'Rejected', 'Cancelled']],
+];
+const day = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : 'Undated');
+
+// /design-studio — draft → uploads → category → details → submit → track → gallery.
 export default function DesignStudioPage() {
   const [params, setParams] = useSearchParams();
   const tab = TABS.some(([id]) => id === params.get('tab')) ? params.get('tab') : 'new';
   const setTab = (t) => setParams(t === 'new' ? {} : { tab: t }, { replace: true });
-  const requests = useStudioRequests();
-  const { isAuthenticated } = useSession();
-  const saved = useResource(isAuthenticated ? 'my-designs' : null, (a) => visualizationService.myRequests(a), { fallback: [] });
-  const active = requests.filter((r) => !['completed', 'failed'].includes(r.status)).length;
+  const history = useResource('viz:history', (a) => W.myHistory(a), { fallback: [], accept: (d) => Array.isArray(d), ttl: 0 });
+  const [fresh, setFresh] = useState([]); // just-submitted, shown before history reloads
+  const [latest, setLatest] = useState({}); // id → newest copy reported by its card
+  const [resume, setResume] = useState(null);
+
+  const list = useMemo(() => {
+    const seen = new Set();
+    // Server copy wins; just-submitted ones fill the gap until the history reloads.
+    return [...(history.data || []), ...fresh].filter((r) => (seen.has(r.id) ? false : seen.add(r.id))).map((r) => (latest[r.id] ? { ...r, ...latest[r.id] } : r));
+  }, [fresh, history.data, latest]);
+  const onStatus = (r) => setLatest((m) => ({ ...m, [r.id]: r }));
+  const active = list.filter((r) => ['Submitted', 'Queued', 'Processing', 'ChangesRequested'].includes(r.status)).length;
+
+  const onSubmitted = (req) => { setFresh((f) => [req, ...f]); setResume(null); refreshMembership(); setTab('requests'); };
+  const onResubmit = (req) => { setResume(req); setTab('new'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   return (
     <PageShell className="studio" title="AI Design Studio" eyebrow="Design before you build" crumbs={[[null, 'AI Design Studio']]}
       intro="Upload photos of your space and a few reference images, pick what you want to build, and our AI creates a concept you can refine with the Weekend-Live team.">
       <div className="tabs" role="tablist" aria-label="Design studio">
         {TABS.map(([id, label]) => (
-          <button key={id} type="button" role="tab" aria-selected={tab === id} className={`tab${tab === id ? ' sel' : ''}`} onClick={() => setTab(id)}>
-            {label}{id === 'requests' && requests.length > 0 && <span className="tab-count">{requests.length}</span>}{id === 'requests' && active > 0 && <span className="tab-live" aria-label={`${active} in progress`} />}
+          <button key={id} type="button" role="tab" aria-selected={tab === id} className={`tab${tab === id ? ' sel' : ''}`} onClick={() => { setTab(id); if (id !== 'new') history.reload(); }}>
+            {label}{id === 'requests' && list.length > 0 && <span className="tab-count">{list.length}</span>}{id === 'requests' && active > 0 && <span className="tab-live" aria-label={`${active} need attention or are in progress`} />}
           </button>
         ))}
       </div>
-      {tab === 'new' && <NewDesign onSubmitted={() => setTab('requests')} />}
-      {tab === 'requests' && <Requests requests={requests} saved={saved} isAuthenticated={isAuthenticated} onNew={() => setTab('new')} />}
-      {tab === 'gallery' && <Gallery requests={requests} saved={saved.data || []} onNew={() => setTab('new')} />}
+      {tab === 'new' && <NewDesignForm key={resume?.id || 'new'} resume={resume} onSubmitted={onSubmitted} />}
+      {tab === 'requests' && <Requests list={list} loading={history.loading && !list.length} error={history.error} onRetry={history.reload} onNew={() => setTab('new')} onResubmit={onResubmit} onStatus={onStatus} />}
+      {tab === 'gallery' && <Gallery list={list} loading={history.loading && !list.length} onNew={() => setTab('new')} onExpired={history.reload} />}
     </PageShell>
   );
 }
 
-function PhotoPicker({ step, title, hint, photos, setPhotos, icon, max = MAX_SITE }) {
-  const [err, setErr] = useState('');
-  const add = async (e) => {
-    const files = [...(e.target.files || [])].slice(0, Math.max(0, max - photos.length));
-    e.target.value = '';
-    setErr('');
-    const out = [];
-    for (const f of files) { try { out.push(await preparePhoto(f)); } catch (x) { setErr(x.message); } }
-    setPhotos((p) => [...p, ...out].slice(0, max));
-  };
-  const remove = (i) => setPhotos((p) => { URL.revokeObjectURL(p[i].url); return p.filter((_, j) => j !== i); });
-  return (
-    <fieldset className="studio-step">
-      <legend><span className="studio-num">{step}</span>{title}</legend>
-      <p className="muted">{hint}</p>
-      <div className="studio-thumbs">
-        {photos.map((p, i) => (
-          <figure key={p.url} className="studio-thumb">
-            <img src={p.url} alt={`${title} ${i + 1}`} />
-            <button type="button" aria-label={`Remove photo ${i + 1}`} onClick={() => remove(i)}>×</button>
-          </figure>
-        ))}
-        {photos.length < max && (
-          <label className="studio-add">
-            <input type="file" accept="image/*" multiple onChange={add} />
-            <span aria-hidden="true">{icon}</span>
-            <b>Add photos</b><small>{photos.length}/{max}</small>
-          </label>
-        )}
-      </div>
-      {err && <p className="enq-error" role="alert">{err}</p>}
-    </fieldset>
-  );
-}
-
-function NewDesign({ onSubmitted }) {
-  const [site, setSite] = useState([]);
-  const [refs, setRefs] = useState([]);
-  const [cat, setCat] = useState('');
-  const [notes, setNotes] = useState('');
-  const [sending, setSending] = useState(false);
-  const cats = useCategories();
-  const categories = cats.data || [];
-  const category = categories.find((c) => c.id === cat);
-  // Reference-image limit and credits come from the membership API.
-  const ents = useMyEntitlements();
-  const credits = useAiCredits();
-  const maxRefs = numericEntitlement(ents.data?.entitlements, 'AI_MAX_REFERENCE_IMAGES') || DEFAULT_MAX_REFERENCE_IMAGES;
-  const noCredits = credits.data && credits.data.remaining <= 0;
-  const creditsMissing = !credits.loading && !credits.data;
-  useEffect(() => { if (refs.length > maxRefs) setRefs((r) => r.slice(0, maxRefs)); }, [maxRefs, refs.length]);
-  const ready = category && (site.length || refs.length) && !noCredits && !creditsMissing && !sending;
-  const missing = creditsMissing ? 'Your AI credits could not be loaded — generation is paused'
-    : noCredits ? 'You have no AI design credits remaining. Upgrade your membership or wait for your next credit allocation'
-      : !category ? 'Choose a category' : !(site.length || refs.length) ? 'Add at least one photo' : '';
-
-  const submit = (e) => {
-    e.preventDefault();
-    if (!ready) return;
-    setSending(true);
-    setTimeout(() => setSending(false), 1500); // blocks double clicks
-    submitDesign({ category, sitePhotos: site, refPhotos: refs, notes: notes.trim() });
-    // Ownership of the object URLs passes to the request.
-    setSite([]); setRefs([]); setCat(''); setNotes('');
-    onSubmitted();
-  };
-
-  return (
-    <form className="studio-form" onSubmit={submit}>
-      <div className="studio-main">
-        <PhotoPicker step={1} icon="📷" title="Upload existing site photos" hint="Your terrace, garden, room or the piece to restore. Daylight, wide-angle photos work best." photos={site} setPhotos={setSite} />
-        <PhotoPicker step={2} icon="🖼️" title="Upload reference images" hint={`Optional — designs, materials or styles you like. Your membership allows up to ${maxRefs}.`} photos={refs} setPhotos={setRefs} max={maxRefs} />
-        <fieldset className="studio-step">
-          <legend><span className="studio-num">3</span>Select category</legend>
-          {cats.loading && <div className="skeleton kpi" />}
-          {!cats.loading && !categories.length && <p className="enq-error" role="alert">Design categories could not be loaded right now. Please try again shortly.</p>}
-          <div className="studio-cats" role="radiogroup" aria-label="Design category">
-            {categories.map((c) => (
-              <button key={c.id} type="button" role="radio" aria-checked={cat === c.id} className={`studio-cat${cat === c.id ? ' sel' : ''}`} onClick={() => setCat(c.id)}>
-                <span aria-hidden="true">{c.icon}</span><strong>{c.label}</strong><small>{c.hint}</small>
-              </button>
-            ))}
-          </div>
-        </fieldset>
-        <fieldset className="studio-step">
-          <legend><span className="studio-num">4</span>Anything else? <em className="muted">(optional)</em></legend>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} maxLength={600} placeholder="Size, budget, colours, who will use the space…" />
-        </fieldset>
-      </div>
-      <aside className="studio-summary card">
-        <h2>Your request</h2>
-        <dl>
-          <div><dt>Site photos</dt><dd>{site.length || '—'}</dd></div>
-          <div><dt>References</dt><dd>{refs.length || '—'}</dd></div>
-          <div><dt>Category</dt><dd>{category ? `${category.icon} ${category.label}` : '—'}</dd></div>
-        </dl>
-        <AiCreditsCard credits={credits} />
-        <p className="muted studio-cost">Submitting a design uses AI credits from your membership.</p>
-        <button type="submit" className="btn btn-primary btn-block" disabled={!ready}>Submit design request</button>
-        {missing && <p className="muted studio-missing">{missing} to continue.</p>}
-        <ol className="studio-mini-steps" aria-label="What happens next">{S.timeline.map(([id, label]) => <li key={id}>{label}</li>)}</ol>
-      </aside>
-    </form>
-  );
-}
-
-export function StatusTimeline({ status, times = {} }) {
-  const failed = status === 'failed';
-  const at = failed ? ORDER.indexOf('generating') : ORDER.indexOf(status);
-  return (
-    <ol className={`studio-timeline${failed ? ' is-failed' : ''}`}>
-      {S.timeline.map(([id, label, desc], i) => {
-        const state = i < at || status === 'completed' ? 'done' : i === at ? (failed ? 'fail' : 'now') : 'todo';
-        return (
-          <li key={id} className={`st-${state}`} aria-current={state === 'now' ? 'step' : undefined}>
-            <span className="st-dot" aria-hidden="true">{state === 'done' ? '✓' : state === 'fail' ? '!' : i + 1}</span>
-            <div>
-              <strong>{failed && id === 'generating' ? 'Failed' : label}</strong>
-              {times[id] && <small>{new Date(times[id]).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}</small>}
-              {state === 'now' && <p>{desc}</p>}
-            </div>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-const savedStatus = (v) => v.stage || (v.status === 'done' ? 'completed' : v.status === 'error' ? 'failed' : 'generating');
-
-function Requests({ requests, saved, isAuthenticated, onNew }) {
-  const enquiry = useEnquiry();
-  const savedList = (saved.data || []).filter((v) => v.id);
-  if (!requests.length && !savedList.length) {
-    return <EmptyState icon="🖼️" title="No design requests yet">Start a <button type="button" className="link-btn" onClick={onNew}>new design</button>{!isAuthenticated && <> — or <Link to="/login">sign in</Link> to see designs saved to your account</>}.</EmptyState>;
+function Requests({ list, loading, error, onRetry, onNew, onResubmit, onStatus }) {
+  if (loading) return <SkeletonGrid count={2} />;
+  if (!list.length) {
+    return error
+      ? <EmptyState icon="⚠️" title="Your requests could not be loaded">{error} <button type="button" className="link-btn" onClick={onRetry}>Try again</button></EmptyState>
+      : <EmptyState icon="🖼️" title="No design requests yet">Start a <button type="button" className="link-btn" onClick={onNew}>new design</button>.</EmptyState>;
   }
   return (
     <div className="studio-requests">
-      {requests.map((r) => (
-        <article key={r.id} className="card studio-req" aria-live="polite">
-          <header className="studio-req-head">
-            <div><span className="pill">{r.category.icon} {r.category.label}</span><h3>Request {r.id.slice(4).toUpperCase()}</h3>
-              <small className="muted">{r.sitePhotos.length} site photo{r.sitePhotos.length === 1 ? '' : 's'} · {r.refPhotos.length} reference{r.refPhotos.length === 1 ? '' : 's'}</small></div>
-            <button type="button" className="btn btn-quiet btn-small" onClick={() => removeRequest(r.id)}>{['completed', 'failed'].includes(r.status) ? 'Remove' : 'Cancel'}</button>
-          </header>
-          <StatusTimeline status={r.status} times={r.times} />
-          <div className="studio-req-body">
-            {r.status === 'completed' ? (
-              <BeforeAfter beforeSrc={r.original} afterSrc={r.result} alt={`${r.category.label} concept`} aspect={r.aspect} labels={['Your photo', 'AI concept']} />
-            ) : (
-              <div className={`studio-wait${r.status === 'failed' ? ' failed' : ''}`}>
-                <img src={r.original} alt="Your uploaded photo" />
-                {r.status !== 'failed' && <span className="slide-spinner" aria-hidden="true" />}
+      {GROUPS.map(([title, statuses]) => {
+        const items = list.filter((r) => statuses.includes(r.status)).sort((a, b) => String(b.submittedAt || b.createdAt).localeCompare(String(a.submittedAt || a.createdAt)));
+        if (!items.length) return null;
+        const byDay = items.reduce((m, r) => { const k = day(r.submittedAt || r.createdAt); (m[k] ||= []).push(r); return m; }, {});
+        return (
+          <section key={title} className="wf-group" aria-labelledby={`grp-${title}`}>
+            <h2 id={`grp-${title}`} className="studio-sub">{title} <small className="muted">({items.length})</small></h2>
+            {Object.entries(byDay).map(([d, rs]) => (
+              <div key={d} className="wf-day">
+                <h3 className="wf-day-label">{d}</h3>
+                {rs.map((r) => <RequestCard key={r.id} request={r} onResubmit={onResubmit} onStatus={onStatus} />)}
               </div>
-            )}
-            {r.status === 'failed' && <p className="enq-error" role="alert">{r.error}</p>}
-            {r.status === 'completed' && (
-              <div className="row-btns">
-                <a className="btn btn-outline btn-small" href={r.result} download={`weekend-live-${r.category.id}.png`}>Download</a>
-                <button type="button" className="btn btn-small" onClick={() => generalEnquiry(enquiry, `I created a ${r.category.label} concept in the AI Design Studio and would like a site visit and quote.`)}>Get a quote for this</button>
-              </div>
-            )}
-          </div>
-        </article>
-      ))}
-      {savedList.length > 0 && (
-        <>
-          <h2 className="studio-sub">Saved to your account</h2>
-          <div className="studio-saved">
-            {savedList.map((v) => (
-              <article key={v.id} className="card studio-saved-item">
-                <RemoteImage src={v.image || v.original} fallback="show-roofgarden" alt="" />
-                <div><StatusTimeline status={savedStatus(v)} times={{}} />
-                  <strong className="studio-saved-title">{v.projectName || v.businessArea || 'AI design'}</strong><small className="muted">{v.createdAt ? new Date(v.createdAt).toLocaleDateString('en-IN') : `Request ${v.id}`}{v.rawStatus ? ` · ${v.rawStatus}` : ''}</small></div>
-              </article>
             ))}
-          </div>
-        </>
-      )}
+          </section>
+        );
+      })}
     </div>
   );
 }
 
-function Gallery({ requests, saved, onNew }) {
-  const [filter, setFilter] = useState('all');
-  const [open, setOpen] = useState(null);
-  const items = useMemo(() => [
-    ...requests.filter((r) => r.status === 'completed').map((r) => ({ id: r.id, cat: r.category.id, before: r.original, after: r.result, aspect: r.aspect, label: r.category.label })),
-    ...saved.filter((v) => v.status === 'done' && v.image).map((v) => ({ id: v.id, cat: 'saved', before: v.original, after: v.image, label: 'Saved design' })),
-  ], [requests, saved]);
-  useEffect(() => { if (open && !items.some((i) => i.id === open.id)) setOpen(null); }, [items, open]);
-  const shown = filter === 'all' ? items : items.filter((i) => i.cat === filter);
-  const categoryList = useCategories().data || [];
-  const cats = [['all', 'All'], ...categoryList.filter((c) => items.some((i) => i.cat === c.id)).map((c) => [c.id, c.label]), ...(items.some((i) => i.cat === 'saved') ? [['saved', 'Saved']] : [])];
-
-  if (!items.length) return <EmptyState icon="✨" title="Your gallery is empty">Completed designs appear here. <button type="button" className="link-btn" onClick={onNew}>Create your first design</button></EmptyState>;
+function Gallery({ list, loading, onNew, onExpired }) {
+  const done = list.filter((r) => r.status === 'Completed' && r.images?.length);
+  if (loading) return <SkeletonGrid count={3} />;
+  if (!done.length) return <EmptyState icon="✨" title="Your gallery is empty">Completed designs appear here. <button type="button" className="link-btn" onClick={onNew}>Create your first design</button></EmptyState>;
   return (
-    <div>
-      <div className="filter-row">{cats.map(([id, l]) => <button key={id} type="button" className={`chip${filter === id ? ' sel' : ''}`} aria-pressed={filter === id} onClick={() => setFilter(id)}>{l}</button>)}</div>
-      {open && (
-        <div className="card studio-open">
-          <div className="row-between"><h3>{open.label}</h3><button type="button" className="enq-close" aria-label="Close" onClick={() => setOpen(null)}>×</button></div>
-          {open.before ? <BeforeAfter beforeSrc={open.before} afterSrc={open.after} alt={open.label} aspect={open.aspect} labels={['Before', 'AI concept']} /> : <img src={open.after} alt={open.label} className="design-full" />}
-        </div>
-      )}
-      <div className="gallery-grid">
-        {shown.map((i) => (
-          <button key={i.id} type="button" className="gal-item studio-gal" onClick={() => setOpen(i)}>
-            <img src={i.after} alt="" />
-            <span className="studio-gal-cap">{i.label}</span>
-          </button>
-        ))}
-      </div>
+    <div className="wf-gallery">
+      {done.map((r) => (
+        <section key={r.id} className="card">
+          <h3>{r.projectName || 'AI design'}</h3>
+          <small className="muted">{[r.category, r.completedAt && `Completed ${fmtWhen(r.completedAt)}`].filter(Boolean).join(' · ')}</small>
+          <ResultImages images={r.images} title={r.projectName} onExpired={onExpired} />
+        </section>
+      ))}
     </div>
   );
 }

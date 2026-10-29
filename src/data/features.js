@@ -50,12 +50,23 @@ export function recommendProjects({ type, skill, budget, hours }) {
 }
 
 // ---------- 3. Senior Safety Score ----------
+// The standard home-safety checklist (always shown). Questions returned by
+// GET /elderly-assessment/questions are added after these (see SafetyScore.jsx).
+// [id, question (a "yes" is the safe answer), fix shown when the answer is "no"]
 export const safetyAreas = [
   {
     id: 'entrance', title: 'Entrance Safety', questions: [
       ['entry-step', 'The main entrance is step-free or has a ramp', 'Add a gentle ramp or a half-step at the main entrance.'],
       ['entry-rail', 'There is a handrail at every entrance step', 'Fit a sturdy handrail beside entrance steps.'],
       ['entry-light', 'The entrance is well lit at night', 'Install a motion-sensor light at the entrance.'],
+      ['entry-door', 'The front door is easy to open and lock (lever handle, no stiff latch)', 'Swap knobs for lever handles and ease stiff locks.'],
+    ],
+  },
+  {
+    id: 'stairs', title: 'Stairs', questions: [
+      ['stairs-rails', 'Stairs have sturdy handrails on both sides', 'Fit full-length handrails on both sides of every staircase.'],
+      ['stairs-edges', 'Step edges are clearly visible and non-slip', 'Add contrasting anti-slip strips to every step edge.'],
+      ['stairs-avoid', 'They can live on one floor without climbing stairs every day', 'Plan a ground-floor bedroom and bathroom, or consider a stair lift.'],
     ],
   },
   {
@@ -63,20 +74,39 @@ export const safetyAreas = [
       ['bath-rails', 'Grab rails beside the toilet and shower', 'Install grab rails beside the toilet and in the shower.'],
       ['bath-floor', 'The bathroom floor is anti-slip', 'Apply an anti-slip coating or lay textured tiles.'],
       ['bath-seat', 'There is a shower seat or bench', 'Add a fold-down shower seat.'],
+      ['bath-toilet', 'The toilet is at a comfortable height', 'Fit a raised toilet seat or a comfort-height WC.'],
+      ['bath-door', 'The bathroom door opens outwards or can be unlocked from outside', 'Re-hang the door to open outwards and fit an emergency-release lock.'],
+    ],
+  },
+  {
+    id: 'bedroom', title: 'Bedroom', questions: [
+      ['bed-height', 'The bed is a comfortable height to sit on and get up from', 'Raise or lower the bed so their knees are level with the hips when seated.'],
+      ['bed-light', 'A light switch or lamp is reachable from the bed', 'Add a bedside lamp or a switch within reach of the bed.'],
+    ],
+  },
+  {
+    id: 'kitchen', title: 'Kitchen', questions: [
+      ['kit-reach', 'Everyday items are within easy reach (no step stool needed)', 'Move daily items to shelves between waist and shoulder height.'],
+      ['kit-gas', 'The gas stove has auto shut-off or a gas leak detector', 'Install a gas leak detector or a stove with flame-failure safety.'],
     ],
   },
   {
     id: 'lighting', title: 'Lighting', questions: [
       ['light-night', 'Night lights from bedroom to bathroom', 'Add motion-sensor night lights along the bedroom–bathroom route.'],
       ['light-switch', 'Light switches are reachable at room entrances', 'Move or add switches beside doorways.'],
-      ['light-stairs', 'Stairs are brightly and evenly lit', 'Brighten stairs and mark step edges with contrast tape.'],
     ],
   },
   {
-    id: 'walkway', title: 'Walkway', questions: [
+    id: 'walkway', title: 'Walkways & Outdoors', questions: [
       ['walk-clear', 'Walkways are free of clutter and loose wires', 'Clear walkways and route cables along walls.'],
       ['walk-rugs', 'Rugs are removed or fixed with anti-slip underlay', 'Remove loose rugs or add anti-slip underlay.'],
       ['walk-even', 'Garden and outdoor paths are even, with seating', 'Level outdoor paths and add benches with armrests.'],
+    ],
+  },
+  {
+    id: 'emergency', title: 'Emergency & Mobility', questions: [
+      ['em-phone', 'An emergency contact or alarm button is easy to reach at all times', 'Set up a wearable alarm button or keep a phone with speed-dial at hand.'],
+      ['em-smoke', 'There are working smoke detectors', 'Fit smoke detectors in the kitchen and hallway and test them monthly.'],
     ],
   },
 ];

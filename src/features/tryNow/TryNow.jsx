@@ -27,7 +27,9 @@ const TryNowDialog = lazy(loadDialog);
  * Only one dialog is mounted, owned by the button rendered with `owner`.
  * The button itself is shown to signed-in visitors only.
  */
-export default function TryNow({ className = '', owner = true }) {
+// showButton=false: no header button, but the pop-up still opens from
+// wl:open-try-now events (hero "Try now on your space", nudge cards).
+export default function TryNow({ className = '', owner = true, showButton = true }) {
   const [mounted, setMounted] = useState(false);
   const pending = useRef(null);
   const dialog = useRef(null);
@@ -76,7 +78,7 @@ export default function TryNow({ className = '', owner = true }) {
 
   return (
     <>
-      {isAuthenticated && (
+      {isAuthenticated && showButton && (
         <button type="button" className={`try-now ${className}`} onClick={open} onPointerEnter={loadDialog} onFocus={loadDialog}>
           <span className="try-now-spark" aria-hidden="true">✦</span> Try now
         </button>

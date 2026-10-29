@@ -1,6 +1,6 @@
 /** AI Design Studio categories — GET /design-categories (mocked until deployed). */
 import { api, mapRes } from './backendClient.js';
-import { BACKEND_ENDPOINTS, VISUALIZATION_TYPES } from './apiConfig.js';
+import { BACKEND_ENDPOINTS } from './apiConfig.js';
 import { pick, unwrap, unwrapList } from './adapters.js';
 
 const str = (v, d = '') => (v === undefined || v === null ? d : String(v));
@@ -12,8 +12,9 @@ export const toCategory = (c) => ({
   icon: str(pick(c, 'icon'), '✨'),
   prompt: str(pick(c, 'promptTemplate', 'prompt'), str(pick(c, 'name'))),
   businessArea: str(pick(c, 'businessArea'), 'OutdoorLiving'),
-  typeId: Number(pick(c, 'visualizationTypeId')) || VISUALIZATION_TYPES.outdoor,
+  typeId: Number(pick(c, 'visualizationTypeId')) || null, // from the catalog — never hardcoded
   order: Number(pick(c, 'displayOrder')) || 99,
+  fieldSet: str(pick(c, 'fieldSet')), // 'kids' | 'family' | '' → extra campaign fields
 });
 
 class DesignService {

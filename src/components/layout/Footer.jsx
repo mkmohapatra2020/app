@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { contact, footerLinks, tagline } from '../../data/site.js';
+import { contact, footerLinks, footerMore, tagline } from '../../data/site.js';
 
 export default function Footer() {
   const socials = Object.entries(contact.social).filter(([, url]) => url);
@@ -15,6 +15,10 @@ export default function Footer() {
           <nav aria-label="Footer">
             <h3>Explore</h3>
             <ul>{footerLinks.map(([href, label]) => <li key={href}><Link to={href}>{label}</Link></li>)}</ul>
+          </nav>
+          <nav aria-label="More">
+            <h3>More</h3>
+            <ul className="footer-more">{footerMore.map(([href, label, sub]) => <li key={href}><Link to={href} title={sub}>{label}</Link></li>)}</ul>
           </nav>
           <div>
             <h3>Location</h3>

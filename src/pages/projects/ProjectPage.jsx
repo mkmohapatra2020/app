@@ -16,14 +16,14 @@ export default function ProjectPage() {
   const cmp = useResource(p.fromApi ? `project:${id}:cmp` : null, (a) => projectService.comparison({ id, ...a }), { fallback: null, accept: (d) => !!(d?.before && d?.after) });
   const enquiry = useEnquiry();
   const proj = p.data;
-  if (!proj) return <PageShell title={p.loading ? 'Loading…' : 'Project not found'} crumbs={[['/#gallery', 'Projects'], [null, 'Project']]}>{!p.loading && <Link to="/#gallery">Browse the gallery</Link>}</PageShell>;
+  if (!proj) return <PageShell title={p.loading ? 'Loading…' : 'Project not found'} crumbs={[['/outdoor#gallery', 'Projects'], [null, 'Project']]}>{!p.loading && <Link to="/outdoor#gallery">Browse the gallery</Link>}</PageShell>;
 
   const before = cmp.data?.before || proj.before;
   const after = cmp.data?.after || proj.image;
   const srcProps = (b, a) => (isRemote(b) || isRemote(a) ? { beforeSrc: b, afterSrc: a } : { before: b, after: a });
 
   return (
-    <PageShell title={proj.title} eyebrow="Project" crumbs={[['/#gallery', 'Projects'], [null, proj.title]]}>
+    <PageShell title={proj.title} eyebrow="Project" crumbs={[['/outdoor#gallery', 'Projects'], [null, proj.title]]}>
       <SourceNote fromApi={p.fromApi} />
       <div className="detail-layout">
         <div>

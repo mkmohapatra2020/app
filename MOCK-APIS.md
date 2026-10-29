@@ -13,126 +13,31 @@ The frontend is fully built against the endpoints below. They are **not deployed
 - `src/services/backendClient.js` checks `mockFor(method, path)` before every call. A matching handler answers in the browser; everything else goes to APIM.
 - **When an endpoint goes live:** delete its line from `HANDLERS` in `src/mocks/mockApi.js`. No UI change needed.
 - **Turn all mocks off:** set `VITE_MOCK_API=off` (e.g. in `.env`) and rebuild.
-- Mock state (plans owned, credits used, bonus) is kept per user in `localStorage` key `wl-mock-state`. Clear it to reset.
-- Every mock user starts with **Maker** + **Silver** and an unused welcome gift.
-- Side effect: a successful **live** `POST /ai-visualization/submit` spends 1 mock credit (`afterLiveCall`). The real backend must do this itself.
 
 ---
 
-## 1. `GET /membership/families` — public
+## Membership — live, no mocks (swagger "json swa.json", checked 2026-10-29)
 
-Home membership section, plan grouping.
+All membership calls go to APIM with the login token (`Authorization: Bearer …`). Nothing is mocked.
 
-```json
-[
-  { "familyCode": "DIY", "familyName": "DIY Memberships", "description": "…", "displayOrder": 1 },
-  { "familyCode": "SERVICE", "familyName": "Service Memberships", "description": "…", "displayOrder": 2 }
-]
-```
+| Endpoint | Swagger response | Used for |
+|---|---|---|
+| `GET /membership` | ApiResponse `{ success, message, data }` | "Your membership → Membership" card (all fields) |
+| `GET /membership/my-memberships` | object | "My memberships" card, account badges |
+| `GET /membership/my-entitlements` | MembershipEntitlementResponse | "Entitlements" card |
+| `GET /membership/my-credits` | MembershipEntitlementResponse | "Credits & limits" card, welcome pop-up (shown while `usedCredits` is 0 and `remainingCredits` > 0) |
+| `GET /membership/my-ai-credits` | object | AI credits card / balance |
+| `GET /membership/my-benefits` | object | Benefits page and card |
+| `POST /membership/subscribe` | ApiResponse | "Become a member" form (`{ tier, plan, membershipTier }`) |
+| `POST /admin/membership/grant-bonus-credits` | object | Admin → grant bonus credits `{ userId, credits, reason }` |
 
-## 2. `GET /membership/plans` — public
+MembershipEntitlementResponse = `{ membership, allocatedCredits, bonusCredits, usedCredits, remainingCredits, maxReferenceImages, priorityQueue, maxConcurrentRequests }`.
 
-Home section, `/membership`, account page.
+**Removed from the site (not in the swagger):** `GET /membership/families`, `GET /membership/plans`, `GET /membership/entitlements` (plan cards and the comparison table), `GET /user/onboarding-status`, `GET /incubator/eligibility`. If the backend adds a plan catalogue, the plan cards can come back.
 
-```json
-[
-  {
-    "planId": 2, "planCode": "MAKER", "planName": "Maker", "familyCode": "DIY",
-    "description": "For regular weekend makers.",
-    "price": 499, "currency": "INR", "billingPeriod": "month",
-    "displayOrder": 2, "isFeatured": true
-  }
-]
-```
+**Backend issue:** `GET /membership` and `GET /membership/my-entitlements` return 500 (empty body) when the token is missing or invalid — they should return 401 like the other `my-*` endpoints.
 
-`price` optional (`0` shows "Free"). New plans render automatically.
-
-## 3. `GET /membership/entitlements` — public
-
-Rows of the `/membership` comparison matrix and the perks on each plan card.
-
-```json
-{
-  "definitions": [
-    { "code": "AI_MONTHLY_CREDITS", "name": "AI design credits / month", "valueType": "number", "displayOrder": 1 }
-  ],
-  "values": [
-    { "planCode": "MAKER", "code": "AI_MONTHLY_CREDITS", "value": "15" }
-  ]
-}
-```
-
-- `value` is always a string: `"true"`/`"false"`, a number, or text. Codes ending in `_PERCENT` render with `%`.
-- `name` is the display label; if missing the UI humanises the code.
-- Codes used by the frontend logic: `AI_MAX_REFERENCE_IMAGES` (studio upload limit), `INCUBATOR_ACCESS` (mock eligibility only).
-
-## 4. `GET /membership/my-memberships` — auth
-
-Account → Membership "Active memberships" badges; Benefits page service block.
-
-```json
-{
-  "plans": [
-    {
-      "membershipId": 100, "planId": 2, "planCode": "MAKER", "planName": "Maker",
-      "familyCode": "DIY", "familyName": "DIY Memberships",
-      "membershipSource": "DirectPurchase", "status": "Active",
-      "startDate": "2026-10-01", "endDate": null
-    }
-  ]
-}
-```
-
-Multiple memberships per user. Statuses containing `cancel`, `expired` or `inactive` are hidden.
-
-## 5. `GET /membership/my-entitlements` — auth
-
-Effective (merged) entitlements across all the user's plans. Studio upload limit, Benefits page, "Your plan" flags.
-
-```json
-{
-  "plans": ["MAKER", "SILVER"],
-  "entitlements": [
-    { "code": "AI_MONTHLY_CREDITS", "value": "20" },
-    { "code": "AI_MAX_REFERENCE_IMAGES", "value": "8" },
-    { "code": "COMMUNITY_ACCESS", "value": "true" }
-  ]
-}
-```
-
-Mock merge rule: numbers → highest, booleans → any true.
-
-## 6. `GET /membership/my-benefits` — auth
-
-```json
-{ "entitlements": [ { "code": "COMMUNITY_ACCESS", "value": "true" } ] }
-```
-
-Service exists in `membershipService.myBenefits()`; the Benefits page currently uses `my-entitlements` (same data incl. AI codes).
-
-## 7. `GET /membership/my-ai-credits` — auth
-
-AI Design Credits card (account, benefits page, studio). Studio blocks submission when `remaining <= 0` **or** this call fails.
-
-```json
-{ "allocated": 21, "consumed": 0, "remaining": 21 }
-```
-
-Refreshed: on studio load, after each design finishes or fails, after an admin grant, when the tab becomes visible.
-Mock: `allocated = AI_MONTHLY_CREDITS + AI_WELCOME_CREDITS + bonus`.
-`/membership/my-credits` (alias) is not called.
-
-## 8. `GET /user/onboarding-status` — auth
-
-First-login "Welcome To Weekend-Live Design Studio" modal (shown once per browser session while `false`).
-
-```json
-{ "hasReceivedWelcomeBenefit": false, "availableWelcomeCredits": 1 }
-```
-
-Backend should flip `hasReceivedWelcomeBenefit` to `true` once the welcome credit is used (mock does this on the first successful submit). "Maybe Later" is client-side only.
-
-## 9. `GET /design-categories` — public
+## 1. `GET /design-categories` — public
 
 AI Design Studio step "Select category" and gallery filters.
 
@@ -152,31 +57,11 @@ AI Design Studio step "Select category" and gallery filters.
 - `visualizationTypeId` — sent as-is in submit (mock ids 1–6 are placeholders; **backend to confirm real ids**).
 - `promptTemplate` — design brief merged into the AI prompt.
 
-## 10. `GET /incubator/eligibility` — auth
-
-Account dashboard incubator widget (shown only when `true`).
-
-```json
-{ "eligible": true }
-```
-
-## 11. `POST /admin/membership/grant-bonus-credits` — auth, admin only
-
-Admin dashboard → "Grant bonus AI credits". Return 403 for non-admins.
-
-Request:
-```json
-{ "userId": 123, "credits": 5, "reason": "Promotion" }
-```
-Response: `{ "Success": true, "Message": "Granted 5 bonus credits to user 123." }`. 400 with `{ "error": "…" }` for invalid input.
-
----
-
 ## Live endpoints the new screens also use (no mock)
 
 | Endpoint | Screen |
 |---|---|
-| `POST /auth/logincheck` | Login (`Success:false` → shows `Message`) |
+| `POST /auth/login` (`{ cipherText }`) | Login (`Success:false` → shows `Message`) |
 | `GET /auth/encryption-key`, `POST /auth/register` (`{ cipherText }`), `POST /auth/register/verify` | Sign-up + OTP screen |
 | `POST /ai-visualization/upload` (now sends `userId`), `POST /ai-visualization/submit` (now sends `businessArea`), `GET …/{id}/status`, `GET …/{id}` | AI Design Studio |
 | `GET /ai-visualization/my-history?customerId=` | My AI designs — **returns 500** in testing; needs a backend check |
@@ -201,9 +86,7 @@ Public key: `GET /auth/encryption-key` → `{ Kty, N, E, Kid, Alg: "RSA-OAEP-256
 
 Body `{ "cipherText": base64(RSA-OAEP-SHA256(JSON { usernameOrEmail, password })) }`.
 
-- **Status 2026-10-21:** returns **500** for both a correctly encrypted body and garbage, so the endpoint fails before checking credentials.
-- Frontend (`VITE_AUTH_ENCRYPTION`, default `auto`): tries `/auth/login` first. Only if it fails with 5xx / 404 / network does it fall back to plain `/auth/logincheck`. A `Success:false` answer ("wrong password") is shown and never falls back.
-- Set `VITE_AUTH_ENCRYPTION=strict` once `/auth/login` works, so passwords are never sent in plain JSON. `off` = plain `/auth/logincheck` only.
+- **Status 2026-10-28:** works — a wrong password returns `200 { Success:false, Message }`. The frontend uses only this endpoint; `/auth/logincheck` is no longer called. If decryption fails (400/5xx) it re-fetches the key once and retries.
 
 ### Image generation — `POST /images/generate`
 
@@ -253,3 +136,49 @@ Backend to confirm or add:
 4. **Blob Storage CORS** on the storage account: allow `PUT, GET` from the site origin(s) and `localhost:5173`, headers `x-ms-blob-type, content-type`.
 5. Old `/ai-visualization/read-sas-token` and `/write-sas-token` now return 404; the frontend no longer calls them.
 6. The APIM subscription key in `.env` is now rejected (401 "invalid subscription key") on every endpoint. It was probably regenerated.
+
+---
+
+## AI visualization draft workflow (mocked — all routes returned 404 on 2026-10-27)
+
+Spec: `AI_VISUALIZATION_UI_IMPLEMENTATION_PROMPT.md`. Mock: `src/mocks/visualizationWorkflowMock.js` (delete a route there when it ships). Customer is always taken from the bearer token; the UI never sends a customer id, role or location.
+
+| Method | Path | Request | Response the UI reads |
+|---|---|---|---|
+| POST | `/ai-visualization/drafts` | `{}` | `{ requestId, status: "Draft", generationMode, remainingQuota, maxReferenceImages?, maxSitePhotos?, canChangeGenerationMode? }` |
+| POST | `/ai-visualization/{id}/site-photo/upload` | `{ fileName, contentType, assetId? }` (`assetId` = re-issue SAS for a failed upload, no new record) | `{ assetId, blobUri, sasToken, blobName, expiresOn, maxReferenceImages? }` → browser `PUT {blobUri}?{sasToken}` with `x-ms-blob-type: BlockBlob` |
+| POST | `/ai-visualization/{id}/reference-image/upload` | same | same (422 when over the limit) |
+| POST | `/ai-visualization/{id}/submit` | `{ visualizationTypeId, projectName, userPrompt, additionalDetail, maxBudget?, budgetCurrency?, generationMode, details: { campaign?, requirements, outputType } }` | `{ requestId, status, generationMode, remainingQuota }`; 402 / 403 / 404 / 409 / 422 as in the spec |
+| GET | `/ai-visualization/{id}/status` | — | `{ status, reviewNotes? }` |
+| GET | `/ai-visualization/{id}` | — | request + `images: [{ imageOrder, imageUrl, expiresOn }]` (temporary read URLs) |
+| GET | `/ai-visualization/my-history` | **no `customerId`** | array of requests (legacy `?customerId=` calls still go to the live endpoint) |
+| GET | `/design-categories` | — | `[{ visualizationTypeId, code, name, description, icon, fieldSet?: "kids"\|"family", displayOrder }]` |
+| GET | `/admin/ai-visualizations` | `status, mode, visualizationTypeId, customer, from, to, failed, page, pageSize` | `{ total, page, pageSize, items }` |
+| GET | `/admin/ai-visualizations/{id}` | — | request + `customer, locationSnapshot, computedPrompt, promptRevisions, statusHistory, quota, sitePhotos, referenceImages, rejectQuotaPolicy` |
+| POST | `/admin/ai-visualizations/{id}/approve \| submit \| request-changes \| reject \| retry` | submit: `{ userPrompt, additionalDetail, generationMode }`; request-changes: `{ reviewNotes }`; reject: `{ reason }` | updated request |
+
+Statuses: `Draft, Submitted, Queued, Processing, PendingReview, ChangesRequested, Completed, Failed, Rejected, Cancelled`. Mock rules: quota is charged once when generation starts (Auto submit / approve / admin submit), never on reject. Retry is free. A prompt containing `#fail` ends in `Failed` (for testing).
+
+**Backend to confirm:** real `visualizationTypeId` values (mock uses 101–108), the `details` object shape, how `ImageGenOpt` and the reference limit are returned, and the reject quota policy text.
+
+---
+
+## Learning / Knowledge Center (deployed, not yet on APIM — checked 2026-10-28)
+
+All 9 routes answer on the Function App (`…azurewebsites.net/api/api/learn/*`) but return **404 on APIM** (`appi-wl.azure-api.net/service/api/learn/*`). **Backend/APIM action: add the Learning operations to the APIM API.**
+
+The frontend calls APIM first. Only when APIM answers 404 (or, in local dev, the browser call is CORS-blocked) does it use `src/mocks/learnMock.js`, which serves a snapshot of the live catalog (`learnFixture.json`: 14 categories, 13 paths, 9 certifications, 55 workshops). Once APIM publishes the routes, live data is used automatically. Delete the fixture afterwards.
+
+| Method | Path | Used by |
+|---|---|---|
+| GET | `/learn/categories` | Learn › topic chips |
+| GET | `/learn/workshops?ageGroup&skillLevel&projectType&toolType&duration` | Learn › Workshops (filters sent to the API) |
+| GET | `/learn/workshops/{id}` | `/learn/workshops/:id` detail |
+| POST | `/learn/workshops/{id}/register` | Detail › Register (body `{ userId, name, email, phone, participants, notes }`) |
+| GET | `/learn/paths` | Learn › Learning paths (steps by `sequence`) |
+| GET | `/learn/certifications` | Learn › Certifications |
+| GET | `/learn/dashboard/{userId}` | Learn › My learning |
+| POST | `/learn/incubator/concepts` | Learn › Submit an idea `{ userId, title, description }` → expects `data.conceptId` |
+| POST | `/learn/media?conceptId&userId&fileName&fileType&youtubeVideoLink` | Optional file / YouTube link for the idea (binary body) |
+
+Notes: most paths have `steps: []` (only Woodworking Fundamentals has steps). `imageUrl`/`toolsUsed`/`takeHomeProject` are mostly empty, so the UI shows series icons and hides empty sections. Please confirm the concept response returns `conceptId`.

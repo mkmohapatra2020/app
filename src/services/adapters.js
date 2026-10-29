@@ -336,10 +336,10 @@ export function toVisualization(payload) {
     stage,
     rawStatus: raw,
     // The swagger model has no result-image field yet; these names are tried in order.
-    image: toImage(pick(p, 'resultImageUrl', 'outputImageUrl', 'generatedImageUrl', 'resultBlobUrl', 'outputBlobUrl', 'imageUrl', 'resultUrl', 'result.imageUrl', 'images.0')),
+    image: toImage(pick(p, 'resultImageUrl', 'outputImageUrl', 'generatedImageUrl', 'resultBlobUrl', 'outputBlobUrl', 'imageUrl', 'resultUrl', 'result.imageUrl', 'images.0', 'results.0.blobUrl', 'results.0.thumbnailUrl')),
     resultBlobName: str(pick(p, 'resultBlobName', 'outputBlobName', 'generatedBlobName', 'blobName')),
     b64: str(pick(p, 'b64_json', 'imageBase64', 'resultBase64')),
-    original: toImage(pick(p, 'originalImageUrl', 'referenceImageUrl', 'inputImageUrl', 'sourceImageUrl', 'referenceImages.0')),
+    original: toImage(pick(p, 'originalImageUrl', 'referenceImageUrl', 'inputImageUrl', 'sourceImageUrl', 'referenceImages.0', 'references.0.blobUrl')),
     error: str(pick(p, 'errorMessage', 'error', 'message')),
     createdAt: isoDate(pick(p, 'submittedDate', 'createdDate', 'createdAt', 'submittedAt', 'date')),
     completedAt: isoDate(pick(p, 'completedDate')),

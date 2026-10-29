@@ -60,14 +60,14 @@ class ImageService {
     const id = crypto.randomUUID();
     let b64;
     try { b64 = await blobToBase64(image); } catch (err) { return { success: false, status: 0, error: err.message }; }
-    const up = await httpClient.post(url(E.UPLOAD_SOURCE), { id, image: b64, type: image.type || 'image/jpeg' }, { signal });
+    const up = await httpClient.post(url(E.UPLOAD_SOURCE), { id, image: b64, type: image.type || 'image/jpeg' }, { auth: true, signal });
     if (!up.success) return up;
     return this.runJob({ id, prompt, size, mode: 'edit' }, signal);
   }
 
   /** Start a background image job (api/ functions), then poll until the image is ready. */
   async runJob({ id = crypto.randomUUID(), ...job }, signal) {
-    const start = await httpClient.post(url(E.START_JOB), { id, ...job }, { signal });
+    const start = await httpClient.post(url(E.START_JOB), { id, ...job }, { auth: true, signal });
     if (!start.success) return start;
     return this.pollJob(id, signal);
   }
@@ -76,7 +76,7 @@ class ImageService {
     const deadline = Date.now() + API_CONFIG.POLL_MAX_WAIT_MS;
     while (Date.now() < deadline) {
       try { await wait(API_CONFIG.POLL_INTERVAL_MS, signal); } catch { return { success: false, status: 0, aborted: true, error: 'Cancelled' }; }
-      const res = await httpClient.get(url(E.JOB_STATUS, id), { signal });
+      const res = await httpClient.get(url(E.JOB_STATUS, id), { auth: true, signal });
       if (res.aborted) return res;
       if (res.status === API_CONFIG.STATUS_CODES.ACCEPTED) continue;
       if (res.success && res.data instanceof Blob) return res;

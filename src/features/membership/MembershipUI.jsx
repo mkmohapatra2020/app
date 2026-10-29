@@ -1,87 +1,86 @@
 import { Link } from 'react-router-dom';
 import { EmptyState, SkeletonGrid } from '../../components/common/PageShell.jsx';
 import { entitlementLabel, formatEntitlement, isActiveBenefit } from '../../utils/entitlements.js';
-import { useFamilies, useMatrix, usePlans, useMyMemberships, useAiCredits, useIncubatorEligibility } from './useMembership.js';
+import useSession from '../../hooks/useSession.js';
+import { joinMembership, useEnquiry } from '../enquiry/enquiry.js';
+import { useMyMemberships, useAiCredits, useMembershipOverview, useMyBenefits, useMyCredits, useMyEntitlements } from './useMembership.js';
 
-const money = (p) => (p.price === undefined ? '' : p.price === 0 ? 'Free' : `₹${p.price.toLocaleString('en-IN')}`);
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 
-/**
- * Plans grouped by family, exactly as the API returns them.
- * New families/plans appear automatically. `owned` = planCodes the user has.
- */
-export function PlanFamilies({ owned = [], onChoose, busy = false, compact = false }) {
-  const families = useFamilies();
-  const plans = usePlans();
-  const matrix = useMatrix();
-  if (families.loading || plans.loading) return <SkeletonGrid count={3} />;
-  const list = plans.data || [];
-  if (!list.length) return <EmptyState icon="🪵" title="Membership plans are on their way">{plans.error ? 'Plans could not be loaded right now. Please try again shortly.' : 'Check back soon.'}</EmptyState>;
-  // Families from the API; plans whose family is unknown still show in their own group.
-  const fams = [...(families.data || [])];
-  list.forEach((p) => { if (!fams.some((f) => f.code === p.familyCode)) fams.push({ code: p.familyCode, name: p.familyCode || 'Plans' }); });
+// ---------- every field of an API record ----------
+const human = (k) => String(k).replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').replace(/^./, (c) => c.toUpperCase());
+const isPlain = (v) => v === null || typeof v !== 'object';
+const fmtValue = (v) => {
+  if (v === null || v === undefined || v === '') return '—';
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (typeof v === 'number') return v.toLocaleString('en-IN');
+  if (/^\d{4}-\d{2}-\d{2}(T[\d:.]+Z?)?$/.test(v)) return fmtDate(v);
+  return String(v);
+};
 
+/** Key/value list of everything in an API object (nested objects and lists included). */
+export function ApiFields({ data, skip = [], className = '' }) {
+  if (data == null) return null;
+  if (isPlain(data)) return <p className="mem-fields-value">{fmtValue(data)}</p>;
+  if (Array.isArray(data)) {
+    if (!data.length) return <p className="muted mem-fields-value">None</p>;
+    if (data.every(isPlain)) return <p className="mem-fields-value">{data.map(fmtValue).join(', ')}</p>;
+    // A list of flat records (e.g. entitlement code/value pairs) reads best as a table.
+    if (data.every((x) => x && !Array.isArray(x) && Object.values(x).every(isPlain))) {
+      const cols = [...new Set(data.flatMap(Object.keys))];
+      return (
+        <div className="mem-fields-table-wrap">
+          <table className="mem-fields-table">
+            <thead><tr>{cols.map((c) => <th key={c} scope="col">{human(c)}</th>)}</tr></thead>
+            <tbody>{data.map((x, i) => <tr key={i}>{cols.map((c) => <td key={c}>{fmtValue(x[c])}</td>)}</tr>)}</tbody>{/* eslint-disable-line react/no-array-index-key */}
+          </table>
+        </div>
+      );
+    }
+    return <div className="mem-fields-list">{data.map((x, i) => <ApiFields key={i} data={x} className="mem-fields-nested" />)}</div>; // eslint-disable-line react/no-array-index-key
+  }
+  const entries = Object.entries(data).filter(([k]) => !skip.includes(k));
+  if (!entries.length) return null;
   return (
-    <div className="mem-families">
-      {fams.map((f) => {
-        const group = list.filter((p) => p.familyCode === f.code);
-        if (!group.length) return null;
-        return (
-          <section key={f.code} className="mem-family" aria-labelledby={`fam-${f.code}`}>
-            <header className="mem-family-head"><h3 id={`fam-${f.code}`}>{f.name}</h3>{f.description && <p className="muted">{f.description}</p>}</header>
-            <div className="tier-grid">
-              {group.map((p) => {
-                const mine = owned.includes(p.code);
-                const perks = (matrix.data?.rows || []).filter((r) => isActiveBenefit(matrix.data.values[p.code]?.[r.code])).slice(0, compact ? 4 : 6);
-                return (
-                  <article key={p.code} className={`tier reveal${p.featured ? ' featured' : ''}`}>
-                    {mine ? <span className="tier-flag">Your plan</span> : p.featured && <span className="tier-flag">Most popular</span>}
-                    <h3>{p.name}</h3>
-                    {money(p) && <p className="tier-price">{money(p)}{p.price > 0 && p.period && <small>/{p.period}</small>}</p>}
-                    {p.description && <p className="muted mem-desc">{p.description}</p>}
-                    {perks.length > 0 && <ul className="ticks">{perks.map((r) => {
-                      const v = formatEntitlement(r.code, matrix.data.values[p.code][r.code]);
-                      return <li key={r.code}>{entitlementLabel(r.code, r.name)}{v !== '✓' && <b className="mem-val"> {v}</b>}</li>;
-                    })}</ul>}
-                    {onChoose && <button type="button" className={`btn ${p.featured ? 'btn-primary' : 'btn-outline'}`} disabled={mine || busy} onClick={() => onChoose(p, list)}>{mine ? 'Current plan' : 'Become a member'}</button>}
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
+    <dl className={`mem-fields ${className}`}>
+      {entries.map(([k, v]) => (
+        <div key={k} className={isPlain(v) || (Array.isArray(v) && v.every(isPlain)) ? '' : 'mem-fields-wide'}>
+          <dt>{human(k)}</dt>
+          <dd>{isPlain(v) ? fmtValue(v) : <ApiFields data={v} />}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** "Become a member" — POST /membership/subscribe through the enquiry form. */
+export function JoinMembership({ className = '' }) {
+  const enquiry = useEnquiry();
+  return (
+    <div className={`card mem-join ${className}`}>
+      <div>
+        <h3>Join the Weekend-Live Club</h3>
+        <p className="muted">Workshops, savings, AI design credits and first access to the best sessions.</p>
+      </div>
+      <button type="button" className="btn btn-primary" onClick={() => joinMembership(enquiry)}>Become a member</button>
     </div>
   );
 }
 
-/** Columns = plans, rows = entitlement codes — both from the API. */
-export function ComparisonMatrix() {
-  const plans = usePlans();
-  const matrix = useMatrix();
-  const families = useFamilies();
-  if (plans.loading || matrix.loading) return <SkeletonGrid count={2} />;
-  // Columns grouped by family (family order, then plan order — both from the API).
-  const famOrder = (code) => { const i = (families.data || []).findIndex((f) => f.code === code); return i < 0 ? 99 : i; };
-  const cols = [...(plans.data || [])].sort((a, b) => famOrder(a.familyCode) - famOrder(b.familyCode) || a.order - b.order);
-  const rows = matrix.data?.rows || [];
-  if (!cols.length || !rows.length) return <EmptyState icon="📋" title="Comparison coming soon">{plans.error || matrix.error ? 'The comparison could not be loaded right now.' : 'Plans and benefits will appear here.'}</EmptyState>;
-  const famName = (code) => families.data?.find((f) => f.code === code)?.name || code;
+/** GET /membership/my-benefits — benefit codes as a list, plus any other fields it returns. */
+export function MyBenefits() {
+  const b = useMyBenefits();
+  if (b.loading && !b.data) return <SkeletonGrid count={2} />;
+  const list = (b.data?.list || []).filter((e) => isActiveBenefit(e.value));
+  if (!b.data) return <EmptyState icon="🌱" title="No benefits yet">{b.error || <>Become a member to unlock benefits.</>}</EmptyState>;
   return (
-    <div className="mem-matrix-wrap" role="region" aria-label="Plan comparison" tabIndex={0}>
-      <table className="mem-matrix">
-        <thead>
-          <tr><th scope="col">Benefit</th>{cols.map((p) => <th key={p.code} scope="col"><small>{famName(p.familyCode)}</small>{p.name}{money(p) && <span className="mem-matrix-price">{money(p)}</span>}</th>)}</tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.code}>
-              <th scope="row">{entitlementLabel(r.code, r.name)}</th>
-              {cols.map((p) => { const v = formatEntitlement(r.code, matrix.data.values[p.code]?.[r.code]); return <td key={p.code} className={v === '—' ? 'is-off' : v === '✓' ? 'is-on' : ''}>{v === '—' ? <span aria-label="Not included">—</span> : v === '✓' ? <span aria-label="Included">✓</span> : v}</td>; })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="card">
+      <h2>Your benefits</h2>
+      {list.length > 0 ? (
+        <ul className="mem-benefit-list">
+          {list.map((e) => { const v = formatEntitlement(e.code, e.value); return <li key={e.code}><span aria-hidden="true">✓</span>{entitlementLabel(e.code)}{v !== '✓' && <b>{v}</b>}</li>; })}
+        </ul>
+      ) : <ApiFields data={b.data.raw} />}
     </div>
   );
 }
@@ -104,7 +103,7 @@ export function ActiveMemberships() {
             </li>
           ))}
         </ul>
-      ) : <p className="muted">{mine.error ? 'Your memberships could not be loaded right now.' : <>No active membership yet. <Link to="/membership">Compare plans</Link>.</>}</p>}
+      ) : <p className="muted">{mine.error ? 'Your memberships could not be loaded right now.' : <>No active membership yet. <Link to="/membership">Become a member</Link>.</>}</p>}
     </div>
   );
 }
@@ -129,27 +128,57 @@ export function AiCreditsCard({ credits: given }) {
   );
 }
 
-/** Incubator shortcuts, only when the API says the user is eligible. */
-export function IncubatorWidget() {
-  const e = useIncubatorEligibility();
-  if (e.loading || !e.data) return null;
-  return (
-    <div className="card mem-incubator">
-      <span className="eyebrow">DIY Incubator</span>
-      <h3>You can submit ideas to the incubator</h3>
-      <div className="row-btns"><Link className="btn btn-primary btn-small" to="/incubator#submit">Submit idea</Link><Link className="btn btn-outline btn-small" to="/incubator">View incubator projects</Link></div>
-    </div>
-  );
-}
-
 /** Membership dashboard used on the account page. */
 export function MembershipDashboard() {
   return (
     <div className="mem-dash">
       <ActiveMemberships />
       <AiCreditsCard />
-      <IncubatorWidget />
-      <p className="mem-dash-links"><Link to="/membership/benefits">See all my benefits →</Link> · <Link to="/membership">Compare plans →</Link></p>
+      <p className="mem-dash-links"><Link to="/membership/benefits">See all my benefits →</Link> · <Link to="/membership">Membership →</Link></p>
     </div>
+  );
+}
+
+/**
+ * Signed-in member's data, exactly as the membership API returns it:
+ * GET /membership, /my-memberships, /my-entitlements, /my-credits, /my-ai-credits and /my-benefits.
+ */
+export function MyMembershipDetails({ guestPrompt = true }) {
+  const { isAuthenticated } = useSession();
+  const overview = useMembershipOverview();
+  const mine = useMyMemberships();
+  const ents = useMyEntitlements();
+  const credits = useMyCredits();
+  const ai = useAiCredits();
+  const benefits = useMyBenefits();
+  if (!isAuthenticated) {
+    if (!guestPrompt) return null;
+    return (
+      <div className="card mem-details-guest">
+        <h2>Your membership</h2>
+        <p className="muted">Sign in to see your membership, benefits and AI credits.</p>
+        <Link className="btn btn-primary btn-small" to="/login" state={{ from: '/membership' }}>Sign in</Link>
+      </div>
+    );
+  }
+  const block = (title, res, body, wide = false) => (
+    <article className={`card mem-detail${wide ? ' mem-detail-wide' : ''}`}>
+      <h3>{title}</h3>
+      {res.loading && res.data == null ? <div className="skeleton kpi" /> : res.error && !res.fromApi ? <p className="f-alert f-alert-error">{res.error}</p> : body}
+    </article>
+  );
+  const memberships = mine.data || [];
+  return (
+    <section className="mem-details" aria-labelledby="mem-details-h">
+      <h2 id="mem-details-h">Your membership</h2>
+      <div className="mem-details-grid">
+        {block('Membership', overview, <>{overview.data == null ? <p className="muted">No membership details returned.</p> : <ApiFields data={overview.data} />}</>)}
+        {block('Credits & limits', credits, <>{credits.data ? <ApiFields data={credits.data.raw} /> : <p className="muted">No credit details returned.</p>}</>)}
+        {block('Entitlements', ents, <>{ents.data?.raw ? <ApiFields data={ents.data.raw} /> : <p className="muted">No entitlements returned.</p>}</>)}
+        {block('AI credits', ai, ai.data ? <ApiFields data={ai.data.raw} /> : <p className="muted">No AI credit details returned.</p>)}
+        {block('Benefits', benefits, benefits.data ? <ApiFields data={benefits.data.raw} /> : <p className="muted">No benefits returned.</p>)}
+        {block(`My memberships${memberships.length ? ` (${memberships.length})` : ''}`, mine, <>{memberships.length ? memberships.map((m) => <ApiFields key={m.id || m.planCode} data={m.raw} className="mem-fields-nested" />) : <p className="muted">No memberships yet.</p>}</>, true)}
+      </div>
+    </section>
   );
 }

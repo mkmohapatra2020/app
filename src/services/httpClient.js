@@ -8,6 +8,7 @@
  */
 import { API_CONFIG, DEFAULT_HEADERS } from './apiConfig.js';
 import { session } from './session.js';
+import { authDebug, getAccessToken, refreshSession } from '../api/tokenManager.ts';
 
 const { STATUS_CODES: S } = API_CONFIG;
 
@@ -39,12 +40,14 @@ class HttpClient {
    * @param {{ method?: string, body?: any, headers?: object, timeout?: number,
    *           signal?: AbortSignal, responseType?: 'auto'|'json'|'blob'|'text',
    *           rawBody?: boolean, auth?: boolean }} [config]
-   *  auth: attach the signed-in user's Bearer token (backend calls).
+   *  auth: attach the signed-in user's Bearer token (backend calls), refreshed first when it
+   *  expires within 30 s. On 401 the token is refreshed once (shared with every other request)
+   *  and the request — same method, body, headers and options — is retried once.
    */
   async request(url, config = {}) {
     const { method = 'GET', body, headers = {}, timeout = API_CONFIG.TIMEOUT_MS, signal, responseType = 'auto', rawBody = false, auth = false } = config;
     const finalHeaders = { ...DEFAULT_HEADERS };
-    const token = auth ? session.token() : null;
+    const token = auth ? await getAccessToken() : null;
     if (token) finalHeaders.Authorization = `Bearer ${token}`;
     Object.assign(finalHeaders, headers); // caller headers win
     let payload = body;
@@ -55,8 +58,20 @@ class HttpClient {
     const t = withTimeout(signal, timeout);
     try {
       const res = await fetch(url, { method, headers: finalHeaders, body: payload, signal: t.signal, cache: method === 'GET' ? 'no-store' : undefined });
-      // Expired / invalid token: sign out so the UI can ask the user to log in again.
-      if (res.status === S.UNAUTHORIZED && token) session.clear('expired');
+      if (res.status === S.UNAUTHORIZED && token) {
+        // Still 401 right after a successful refresh: the endpoint rejects it; the session stays.
+        if (config._authRetried) { authDebug('still 401 after refresh:', method, url.replace(/\?.*$/, '')); return await this.handleResponse(res, responseType); }
+        authDebug('401 from', method, url.replace(/\?.*$/, ''), '— refreshing');
+        // Another request may already have refreshed: retry with its token, else refresh once.
+        let fresh = session.token() !== token ? session.token() : null;
+        if (!fresh) {
+          try { fresh = await refreshSession(); } catch (err) {
+            if (err?.kind !== 'unauthorized') return { success: false, status: 0, error: err?.message || friendlyError(0) };
+          }
+        }
+        if (fresh) { t.done(); return this.request(url, { ...config, _authRetried: true }); }
+        return await this.handleResponse(res, responseType);
+      }
       return await this.handleResponse(res, responseType);
     } catch (err) {
       if (err?.name === 'AbortError' || signal?.aborted) return { success: false, status: 0, aborted: true, error: 'Cancelled' };

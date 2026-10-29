@@ -3,16 +3,25 @@ import { requestAssessment, useEnquiry } from '../enquiry/enquiry.js';
 import useResource from '../../hooks/useResource.js';
 import useApi from '../../hooks/useApi.js';
 import { assessmentService } from '../../services/assessmentService.js';
-import { fallbackSafety } from '../../data/fallbacks.js';
+import { safetyAreas } from '../../data/features.js';
 
-// Interactive senior safety check. Questions come from
-// /elderly-assessment/questions; the completed
+const norm = (t) => String(t).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+// Standard checklist + any extra questions from the API (deduplicated by id/text).
+function mergeAreas(apiAreas = []) {
+  const seen = new Set(safetyAreas.flatMap((a) => a.questions.flatMap(([id, text]) => [id, norm(text)])));
+  const extra = apiAreas.flatMap((a) => a.questions.filter(([id, text]) => !seen.has(String(id)) && !seen.has(norm(text)))
+    .map(([id, text, fix]) => [`api-${id}`, text, fix || `Ask our team about: ${String(text).replace(/\?$/, '')}.`]));
+  return extra.length ? [...safetyAreas, { id: 'more', title: 'More from our assessors', questions: extra }] : safetyAreas;
+}
+
+// Interactive senior safety check: the standard checklist plus any questions
+// from /elderly-assessment/questions; the completed
 // assessment is saved via POST /elderly-assessment, and the visit is booked
 // through /elderly-assessment/visit.
 export default function SafetyScore() {
   const enquiry = useEnquiry();
-  const q = useResource('assessment:questions', (a) => assessmentService.questions(a), { fallback: fallbackSafety });
-  const areas = q.data || [];
+  const q = useResource('assessment:questions', (a) => assessmentService.questions(a), { fallback: [] });
+  const areas = useMemo(() => mergeAreas(q.data || []), [q.data]);
   const ALL = useMemo(() => areas.flatMap((a) => a.questions.map(([id, text, fix]) => ({ id, q: text, fix, area: a.title }))), [areas]);
   const [answers, setAnswers] = useState({});
   const submit = useApi((a) => assessmentService.submit(a));

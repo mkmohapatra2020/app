@@ -40,8 +40,37 @@ export const BACKEND_ENDPOINTS = {
     SUBMIT: '/ai-visualization/submit',
     BY_ID: (id) => `/ai-visualization/${enc(id)}`,
     STATUS: (id) => `/ai-visualization/${enc(id)}/status`,
-    MY_HISTORY: '/ai-visualization/my-history', // ?customerId= (required)
+    MY_HISTORY: '/ai-visualization/my-history', // customer from the login token
     // SAS tokens moved to /read-sas-token and /write-sas-token (FILES below).
+  },
+  // Draft-based AI visualization workflow (mocked until deployed — see MOCK-APIS.md).
+  // The customer always comes from the bearer token; no customer id is sent.
+  AI_WORKFLOW: {
+    DRAFTS: '/ai-visualization/drafts',
+    SITE_PHOTO_UPLOAD: (id) => `/ai-visualization/${enc(id)}/site-photo/upload`,
+    REFERENCE_UPLOAD: (id) => `/ai-visualization/${enc(id)}/reference-image/upload`,
+    SUBMIT: (id) => `/ai-visualization/${enc(id)}/submit`,
+    STATUS: (id) => `/ai-visualization/${enc(id)}/status`,
+    BY_ID: (id) => `/ai-visualization/${enc(id)}`,
+    MY_HISTORY: '/ai-visualization/my-history',
+  },
+  ADMIN_AI_VISUALIZATION: {
+    LIST: '/admin/ai-visualizations', // ?status=&mode=&visualizationTypeId=&customer=&from=&to=&failed=&page=&pageSize=
+    BY_ID: (id) => `/admin/ai-visualizations/${enc(id)}`,
+    ACTION: ({ id, action }) => `/admin/ai-visualizations/${enc(id)}/${action}`, // approve|submit|request-changes|reject|retry
+  },
+  // Knowledge Center / Learning (swagger tag "Learning"). Deployed on the Function App
+  // but not yet published on APIM (404) — until then a snapshot answers (src/mocks/learnMock.js).
+  LEARN: {
+    CATEGORIES: '/learn/categories',
+    WORKSHOPS: '/learn/workshops', // ?ageGroup=&skillLevel=&projectType=&toolType=&duration=
+    WORKSHOP: (id) => `/learn/workshops/${enc(id)}`,
+    REGISTER: (id) => `/learn/workshops/${enc(id)}/register`,
+    PATHS: '/learn/paths',
+    CERTIFICATIONS: '/learn/certifications',
+    DASHBOARD: (userId) => `/learn/dashboard/${enc(userId)}`,
+    INCUBATOR_CONCEPTS: '/learn/incubator/concepts',
+    MEDIA: '/learn/media', // ?conceptId=&userId=&fileName=&fileType=&youtubeVideoLink= + binary body
   },
   HERITAGE_RESTORATION: {
     CREATE: '/heritage-restoration',
@@ -70,8 +99,7 @@ export const BACKEND_ENDPOINTS = {
     ENCRYPTION_KEY: '/auth/encryption-key',
     REGISTER: '/auth/register',          // { cipherText } (RSA-OAEP-256)
     REGISTER_VERIFY: '/auth/register/verify',
-    LOGIN: '/auth/login',           // encrypted { cipherText } (RSA-OAEP-256)
-    LOGIN_CHECK: '/auth/logincheck', // plain { usernameOrEmail, password } — fallback only
+    LOGIN: '/auth/login', // encrypted { cipherText } (RSA-OAEP-256)
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
     GOOGLE: '/auth/google',
@@ -159,18 +187,14 @@ export const BACKEND_ENDPOINTS = {
     BY_ID: (id) => `/projects/${enc(id)}`,
     COMPARISON: (id) => `/projects/${enc(id)}/comparison`,
   },
-  // Membership & entitlements. Everything except BY_USER / SUBSCRIBE is mocked
-  // until the backend ships it — see src/mocks/mockApi.js and MOCK-APIS.md.
+  // Membership — the swagger's endpoints only, all live (login token required). Subscribe: USERS.SUBSCRIBE.
   MEMBERSHIP: {
-    FAMILIES: '/membership/families',
-    PLANS: '/membership/plans',
-    ENTITLEMENTS: '/membership/entitlements',
+    OVERVIEW: '/membership',
     MY_MEMBERSHIPS: '/membership/my-memberships',
     MY_ENTITLEMENTS: '/membership/my-entitlements',
     MY_BENEFITS: '/membership/my-benefits',
     MY_AI_CREDITS: '/membership/my-ai-credits',
-    ONBOARDING_STATUS: '/user/onboarding-status',
-    INCUBATOR_ELIGIBILITY: '/incubator/eligibility',
+    MY_CREDITS: '/membership/my-credits',
     GRANT_BONUS_CREDITS: '/admin/membership/grant-bonus-credits',
   },
   DESIGN: {
@@ -228,13 +252,10 @@ export const DEFAULT_MAX_REFERENCE_IMAGES = 4;
 export const MOCK_MODE = (import.meta.env.VITE_MOCK_API || 'planned').toLowerCase();
 
 // Request encryption (public key from GET /auth/encryption-key).
-//  AUTH:  'auto' (default) = encrypted /auth/login, falling back to /auth/logincheck only
-//         when the encrypted endpoint itself fails (5xx/404); 'strict' = never fall back;
-//         'off' = plain /auth/logincheck.
+//  Login and registration are always encrypted (/auth/login, /auth/register).
 //  IMAGE: 'on' = POST /images/generate sends a hybrid-encrypted body (see authCrypto.js);
 //         'off' (default) until the backend accepts it — today it ignores { cipherText }.
 export const ENCRYPTION = {
-  AUTH: (import.meta.env.VITE_AUTH_ENCRYPTION || 'auto').toLowerCase(),
   IMAGE: (import.meta.env.VITE_IMAGE_ENCRYPTION || 'off').toLowerCase(),
 };
 

@@ -10,7 +10,8 @@ const dismissed = () => { try { return sessionStorage.getItem(DISMISSED) === '1'
 
 /**
  * First-login welcome gift. Shown once per browser session while
- * GET /user/onboarding-status says hasReceivedWelcomeBenefit === false.
+ * GET /membership/my-credits shows unused credits (usedCredits 0, remainingCredits > 0).
+ * (The backend has no onboarding-status endpoint.)
  */
 export default function WelcomeModal() {
   const { isAuthenticated, user } = useSession();
@@ -18,9 +19,9 @@ export default function WelcomeModal() {
   const navigate = useNavigate();
   const ref = useRef(null);
   const skip = !isAuthenticated || dismissed() || ['/login', '/register', '/design-studio'].includes(pathname);
-  const status = useResource(skip ? null : `mem:my:onboarding:${user?.id || user?.email}`, (a) => membershipService.onboardingStatus(a), { fallback: null, accept: (d) => d != null });
+  const credits = useResource(skip ? null : `mem:my:welcome:${user?.id || user?.email}`, (a) => membershipService.myCredits(a), { fallback: null, accept: (d) => d != null });
 
-  const show = !skip && status.data && !status.data.received;
+  const show = !skip && credits.data && credits.data.consumed === 0 && credits.data.remaining > 0;
   // Never stack on another pop-up (e.g. Try now): wait until no other dialog is open.
   useEffect(() => {
     if (!show) return undefined;

@@ -26,28 +26,56 @@ export const contact = {
 
 export const tagline = 'Building Skills, Creating Spaces, Connecting Generations.';
 
-// Header links. Paths starting with "/#" scroll to a home-page section.
-export const nav = [
-  ['/workshops', 'Workshops'],
-  ['/#outdoor', 'Outdoor'],
-  ['/#seniors', 'Seniors'],
-  ['/community', 'Community'],
-  ['/learn', 'Learn'],
-  ['/shop', 'Shop'],
+// Header: five core sections. Paths starting with "/#" scroll to a home-page section.
+// Each item lists its links in `groups` (rendered as a dropdown): [to, label, description, icon].
+// `feature` is the highlight card shown in the dropdown. Auxiliary links live in the footer.
+export const mainNav = [
+  {
+    key: 'workshops', label: 'DIY Workshops', to: '/workshops', icon: '🔨',
+    groups: [
+      { title: 'DIY Campaigns', items: [
+        ['/heritage#restoration', 'Heritage Restoration', 'Restore family pieces', '🏛️'],
+        ['/incubator', 'DIY Incubator', 'Turn an idea into a product', '🚀'],
+        ['/elderly-diy', 'Elderly DIY', 'Gentle programmes for seniors', '🪴'],
+        ['/kids', 'Kids DIY', 'Young builders, ages 8–15', '🧒'],
+        ['/build-together', 'Build Together', 'Family build days', '👨‍👩‍👧'],
+      ] },
+    ],
+    feature: { image: 'hero-workshop', title: 'Learn by building', text: 'Weekend sessions for families, kids and first-time builders.', to: '/workshops', cta: 'Book a session' },
+  },
+  {
+    key: 'outdoor', label: 'Outdoor', to: '/outdoor', icon: '🌿',
+    groups: [{ title: 'Outdoor living', items: [
+      ['/outdoor#visualizer', 'AI Space Visualizer', 'See your space transformed', '✨'],
+      ['/outdoor', 'Outdoor Living Showcase', 'Featured projects', '🏡'],
+      ['/outdoor#gallery', 'Structure Types', 'Pergolas, gazebos, decks', '⛺'],
+    ] }],
+    feature: { image: 'show-roofgarden', title: 'Generate on your photo', text: 'Upload your terrace and see a pergola added at your exact size.', to: '/outdoor#visualizer', cta: 'Try the visualizer' },
+  },
+  {
+    key: 'seniors', label: 'Seniors', to: '/seniors', icon: '🧓',
+    groups: [
+      { title: 'Senior living', items: [
+        ['/seniors#safety-score', 'Senior Safety Score Assessment', '2-minute home check', '🛡️'],
+      ] },
+      { title: 'Related campaigns', items: [
+        ['/elderly-diy', 'Elderly DIY', 'Social DIY for seniors', '🪴'],
+        ['/heritage#restoration', 'Heritage Restoration', 'Craft and memory', '🏛️'],
+        ['/build-together', 'Build Together', 'Three generations, one project', '👨‍👩‍👧'],
+      ] },
+    ],
+    feature: { image: 'senior-hub', title: 'Free home assessment', text: 'Our team visits and suggests simple safety upgrades.', to: '/seniors#safety-score', cta: 'Check safety score' },
+  },
+  {
+    // No sub-menu: the Kids page shows a single "School Project Work →" button (SectionMenu).
+    key: 'kids', label: 'Kids', to: '/kids', icon: '🧒',
+    action: { to: '/image-generator?for=school', label: 'School Project Work' },
+  },
+  { key: 'studio', label: 'AI Design Studio', to: '/design-studio', icon: '✨' },
 ];
-export const moreNav = [
-  ['/heritage#restoration', 'Heritage Restoration'],
-  ['/elderly-diy', 'Elderly DIY Programs'],
-  ['/incubator', 'DIY Incubator'],
-  ['/design-studio', 'AI Design Studio'],
-  ['/image-generator', 'AI Image Generator'],
-  ['/membership', 'Membership'],
-  ['/#together', 'Build Together'],
-  ['/#about', 'About us'],
-  ['/events', 'Events'],
-  ['/heritage', 'Heritage & crafts'],
-  ['/contact', 'Contact & quotes'],
-];
+
+// Flat [to, label] list of every header link (used for section highlighting).
+export const nav = mainNav.flatMap((m) => [[m.to, m.label], ...(m.groups || []).flatMap((g) => g.items.map(([to, label]) => [to, label]))]);
 
 export const hero = {
   eyebrow: tagline,
@@ -63,17 +91,17 @@ export const hero = {
 
 export const pillars = [
   {
-    id: 'diy', title: 'DIY Learning', image: 'pillar-diy', href: '#diy',
+    id: 'diy', title: 'DIY Learning', image: 'pillar-diy', href: '/workshops',
     text: 'Hands-on weekend workshops where kids, parents and grandparents learn real skills together.',
     points: ['Workshops', 'Woodworking', 'Crafts'],
   },
   {
-    id: 'outdoor', title: 'Outdoor Life', image: 'pillar-outdoor', href: '#outdoor',
+    id: 'outdoor', title: 'Outdoor Life', image: 'pillar-outdoor', href: '/outdoor',
     text: "Decks, pergolas and gazebos built for Odisha's sun, salt air and monsoon.",
     points: ['Decks', 'Pergolas', 'Gazebos'],
   },
   {
-    id: 'seniors', title: 'Senior Care', image: 'pillar-senior', href: '#seniors',
+    id: 'seniors', title: 'Senior Care', image: 'pillar-senior', href: '/seniors',
     text: 'Thoughtful home improvements that help parents and grandparents live safely and independently.',
     points: ['Accessibility', 'Safety', 'Renovations'],
   },
@@ -233,17 +261,22 @@ export const stories = [
 // Membership plans, families and benefits come only from the membership API
 // (src/services/membershipService.js) — never hardcode them here.
 
+// Footer "Explore": the five header sections.
 export const footerLinks = [
   ['/workshops', 'DIY Workshops'],
-  ['/#outdoor', 'Outdoor Living'],
-  ['/#seniors', 'Senior Home Improvements'],
-  ['/heritage', 'Heritage Projects'],
-  ['/heritage#restoration', 'Heritage Restoration'],
-  ['/elderly-diy', 'Elderly DIY Programs'],
-  ['/incubator', 'DIY Incubator'],
+  ['/outdoor', 'Outdoor Living'],
+  ['/seniors', 'Seniors'],
+  ['/kids', 'Kids'],
   ['/design-studio', 'AI Design Studio'],
-  ['/community', 'Community'],
-  ['/learn', 'DIY Knowledge Center'],
-  ['/shop', 'Shop'],
-  ['/contact', 'Request a quote'],
+];
+
+// Footer "More": auxiliary links kept out of the header.
+export const footerMore = [
+  ['/learn', 'Learn', 'Guides & DIY tutorials'],
+  ['/shop', 'Shop', 'Kits, tools, materials'],
+  ['/community', 'Community', 'Local builder groups & updates'],
+  ['/#about', 'About Us', 'Our story and mission across Odisha'],
+  ['/contact', 'Contact & Quotes', 'Inquiries, quotes, direct support'],
+  ['/membership', 'Membership', 'Plans and benefits'],
+  ['/events', 'Events', 'What is on'],
 ];

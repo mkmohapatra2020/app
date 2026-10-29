@@ -72,7 +72,8 @@ export function joinMembership(enquiry, tier, allTiers = []) {
     submitLabel: 'Subscribe',
     successTitle: 'Welcome to the Club!',
     successText: 'Your membership is active. You can see it any time in My account.',
-    fields: [{ name: 'tier', label: 'Membership', options: tier ? [tier, ...tiers.filter((t) => t !== tier)] : tiers }, ...person],
+    // No plan catalogue API yet: with no tiers given, the membership is typed in.
+    fields: [{ name: 'tier', label: 'Membership', required: true, ...(tiers.length ? { options: tier ? [tier, ...tiers.filter((t) => t !== tier)] : tiers } : {}) }, ...person],
     submit: async (v) => { const r = await userService.subscribe({ tier: v.tier }); if (r.success) { invalidate('membership'); invalidate('mem:my:'); } return r; },
     build: (v) => `Hello Weekend-Live! I'd like to become a ${v.tier} member of the Weekend-Live Club.\nName: ${v.name}\nPhone: ${v.phone}`,
   });

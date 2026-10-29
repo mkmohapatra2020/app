@@ -62,6 +62,10 @@ export default function KidsPassport() {
         <span className="eyebrow">Kids DIY passport</span>
         <h3>Collect a badge at every workshop</h3>
         <p>Earn a badge, complete the challenge at home, and unlock a new project. {isAuthenticated ? 'Badges are saved to your account.' : <>Progress is saved on this device — <Link to="/login">sign in</Link> to keep badges on every device.</>}</p>
+        <div className="row-btns">
+          <Link className="btn btn-primary" to="/workshops?q=kids">Book Kids Workshop</Link>
+          <Link className="btn btn-outline" to="/image-generator?for=school">Generate Project Steps</Link>
+        </div>
       </div>
       <div className="passport-top">
         <label className="enq-field">
