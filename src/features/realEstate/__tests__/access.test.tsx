@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { apiClient } from '../../../api/apiClient.ts';
-import { RealEstateAccessProvider, accessValue, RealEstateAccessContext, useRealEstateAccess } from '../access/RealEstateAccessProvider.tsx';
+import { OPEN_TO_ALL, RealEstateAccessProvider, accessValue, RealEstateAccessContext, useRealEstateAccess } from '../access/RealEstateAccessProvider.tsx';
 import RealEstateNavigation from '../components/RealEstateNavigation.tsx';
 import RealEstateLayout from '../components/RealEstateLayout.tsx';
 import { toAccess } from '../api/normalize.ts';
@@ -17,9 +17,10 @@ function Probe() {
   const a = useRealEstateAccess();
   return <span data-testid="status">{a.status}:{String(a.enabled)}</span>;
 }
-const app = () => (
+// Gated mode unless a test asks for the (current) open-to-all mode.
+const app = (openToAll = false) => (
   <MemoryRouter>
-    <RealEstateAccessProvider>
+    <RealEstateAccessProvider openToAll={openToAll}>
       <Probe />
     </RealEstateAccessProvider>
   </MemoryRouter>
@@ -27,7 +28,53 @@ const app = () => (
 const navLink = () => document.querySelector('[data-testid="re-nav-link"]');
 const status = () => document.querySelector('[data-testid="status"]')?.textContent;
 
-describe('Real Estate access gate', () => {
+describe('open to all signed-in users (current setting)', () => {
+  it('is the configured mode', () => {
+    expect(OPEN_TO_ALL).toBe(true);
+  });
+
+  it.each([404, 403, 500])('gives every section to a signed-in user even when /access returns HTTP %i', async (code) => {
+    signIn();
+    stubApi(() => ({ status: code, data: { error: 'nope' } }));
+    let seen: ReturnType<typeof useRealEstateAccess> | null = null;
+    function Spy() { seen = useRealEstateAccess(); return null; }
+    view = await render(<MemoryRouter><RealEstateAccessProvider openToAll><Probe /><Spy /></RealEstateAccessProvider></MemoryRouter>);
+    await flush();
+    expect(status()).toBe('ready:true');
+    expect(seen!.has('OCR')).toBe(true);
+    expect(seen!.can('Partners.Create')).toBe(true);
+  });
+
+  it('keeps the partner from /access when the backend returns one', async () => {
+    signIn();
+    stubApi(() => ok({ enabled: false, partnerId: 12 }));
+    let seen: ReturnType<typeof useRealEstateAccess> | null = null;
+    function Spy() { seen = useRealEstateAccess(); return null; }
+    view = await render(<MemoryRouter><RealEstateAccessProvider openToAll><Spy /></RealEstateAccessProvider></MemoryRouter>);
+    await flush();
+    expect(seen!.enabled).toBe(true);
+    expect(seen!.access.partnerId).toBe(12);
+  });
+
+  it('still requires sign-in', async () => {
+    stubApi(() => ok({}));
+    view = await render(app(true));
+    await flush();
+    expect(status()).toBe('signedOut:false');
+  });
+
+  it('shows the pages instead of the lock screen', async () => {
+    signIn();
+    stubApi(() => ({ status: 404 }));
+    view = await render(<MemoryRouter><RealEstateAccessProvider openToAll><RealEstateLayout title="Partners" feature="Partners"><p data-testid="content">content</p></RealEstateLayout></RealEstateAccessProvider></MemoryRouter>);
+    await flush();
+    expect(document.querySelector('[data-testid="content"]')).not.toBeNull();
+    expect(document.body.textContent).not.toContain("isn't enabled");
+    expect(document.querySelectorAll('.re-tab')).toHaveLength(7);
+  });
+});
+
+describe('Real Estate access gate (gated mode)', () => {
   it('stays disabled and makes no request when signed out', async () => {
     const calls = stubApi(() => ok({ enabled: true, features: ['Partners'] }));
     view = await render(app());

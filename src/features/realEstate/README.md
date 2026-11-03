@@ -17,21 +17,20 @@ Nothing else outside this folder changed. Login, tokens, memberships, payments, 
 - **Auth:** `requireAuth`, `AuthContext`, `ProtectedRoute`
 - **UI:** `PageShell`, `EmptyState`, `LoadingSpinner`, toasts (`useToast`), `.f-field` / `.f-input` / `.btn` styles, and the theme tokens
 
-## Access gate
+## Access
 
-After sign-in, `RealEstateAccessProvider` calls `GET /realestate/access` once per user.
+**Current setting: open to every signed-in user** (`OPEN_TO_ALL = true` in `access/RealEstateAccessProvider.tsx`). This is a product decision that overrides the specs' "feature-gated / backend-enabled only" rule:
 
-- Only `data.enabled === true` enables the module. A 404 (endpoint not deployed yet), 401, 403, 5xx or network error all leave it **disabled**.
-- `features` decides which tabs and screens show. Unknown feature names are ignored.
-- Optional `permissions` (e.g. `"Partners.Create"`) enables fine-grained actions; admins also pass. The partner form appears only when this check passes.
-- The gate is for navigation and UX only. The backend must authorise every call and scope every list to the caller's partner(s).
+- **Menu:** the "Real Estate" menu-bar item is shown to every visitor.
+- **Sign-in:** still required. Signed-out visitors are sent to sign in (`ProtectedRoute`).
+- **Signed-in users:** they get all seven sections and all create actions, whatever `GET /realestate/access` returns. If that endpoint exists, its `partnerId` is still used as the default partner.
+- **Backend:** it still authorises every call and must scope every list to the caller's partner(s). The UI setting doesn't grant data access.
 
-There is no mock for the access endpoint. Access is never assumed on the frontend.
+**Gated mode** (`OPEN_TO_ALL = false`): the original behaviour, also covered by tests.
 
-**Menu item for everyone (product decision, overriding spec rule 6).** The menu-bar item is visible to all visitors; only the pages behind it are gated:
-- Signed-out visitors are sent to sign in.
-- Signed-in users without access see "Real Estate isn't enabled for your account".
-- The backend still authorises every call.
+- **Enabling:** after sign-in, `GET /realestate/access` is called once per user. Only `data.enabled === true` enables the module. A 404, 401, 403, 5xx or network error leaves it disabled, and users see "Real Estate isn't enabled for your account".
+- **Features:** `features` decides which tabs and screens show. Unknown feature names are ignored.
+- **Permissions:** optional `permissions` (e.g. `"Partners.Create"`) enable fine-grained actions; admins also pass.
 
 ## The three ledger amounts
 

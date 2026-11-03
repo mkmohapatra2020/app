@@ -1,16 +1,25 @@
 /**
- * Real Estate feature gate. After sign-in it asks GET /realestate/access once; until a
- * response says `enabled: true`, the module is hidden. A missing endpoint (404), 401/403
- * or network error all leave it disabled — access is never assumed.
+ * Real Estate access in the UI.
  *
- * This only drives navigation and UX. Every API call is still authorised by the backend.
+ * OPEN_TO_ALL (current product decision): every signed-in user gets every section and
+ * action, whatever GET /realestate/access says. The access response is still read for the
+ * user's partnerId / permissions when the endpoint exists.
+ *
+ * Gated mode (OPEN_TO_ALL = false): the module is hidden until the access response says
+ * `enabled: true`; a missing endpoint (404), 401/403 or network error leaves it disabled.
+ *
+ * Either way this only drives navigation and UX. Signing in is still required (routes use
+ * ProtectedRoute) and every API call is still authorised by the backend.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AuthContext } from '../../../auth/AuthContext.tsx';
 import { isApiError, type ApiError } from '../../../api/errors.ts';
 import { session, SESSION_EVENT } from '../../../services/session.js';
 import { DISABLED_ACCESS, fetchRealEstateAccess } from '../api/realEstateAccessApi.ts';
-import type { RealEstateAccess, RealEstateFeature } from '../types/realEstateTypes.ts';
+import { REAL_ESTATE_FEATURES, type RealEstateAccess, type RealEstateFeature } from '../types/realEstateTypes.ts';
+
+/** Open the module to every signed-in user. Set to false to restore backend-controlled access. */
+export const OPEN_TO_ALL = true;
 
 export type AccessStatus = 'signedOut' | 'loading' | 'ready' | 'error';
 
@@ -31,6 +40,17 @@ const disabledValue = (status: AccessStatus, error: ApiError | null = null, relo
 });
 
 export const RealEstateAccessContext = createContext<RealEstateAccessValue>(disabledValue('signedOut'));
+
+/** Every section and action, for any signed-in user (keeps partnerId from the backend if known). */
+export function openValue(access: RealEstateAccess | null, reload = () => {}): RealEstateAccessValue {
+  return {
+    status: 'ready',
+    access: { enabled: true, partnerId: access?.partnerId ?? null, features: [...REAL_ESTATE_FEATURES], permissions: access?.permissions ?? [] },
+    enabled: true, error: null, reload,
+    has: () => true,
+    can: () => true,
+  };
+}
 
 /** Builds a context value from an access response (also used by tests). */
 export function accessValue(access: RealEstateAccess, isAdmin = false, reload = () => {}): RealEstateAccessValue {
@@ -58,7 +78,7 @@ function useSignedIn(): { token: string | null; userId: string; isAdmin: boolean
   return { token: auth ? auth.token : fallback, userId: String(user?.id ?? ''), isAdmin: !!user?.isAdmin };
 }
 
-export function RealEstateAccessProvider({ children }: { children: ReactNode }) {
+export function RealEstateAccessProvider({ children, openToAll = OPEN_TO_ALL }: { children: ReactNode; openToAll?: boolean }) {
   const { token, userId, isAdmin } = useSignedIn();
   const signedIn = !!token;
   const [state, setState] = useState<{ status: AccessStatus; access: RealEstateAccess; error: ApiError | null }>({ status: signedIn ? 'loading' : 'signedOut', access: DISABLED_ACCESS, error: null });
@@ -79,9 +99,11 @@ export function RealEstateAccessProvider({ children }: { children: ReactNode }) 
   }, [signedIn, userId, nonce]);
 
   const value = useMemo<RealEstateAccessValue>(() => {
+    // Open mode: no waiting and no lock screen; a missing/failed access endpoint doesn't matter.
+    if (openToAll && signedIn) return openValue(state.status === 'ready' ? state.access : null, reload);
     if (state.status !== 'ready') return disabledValue(state.status, state.error, reload);
     return accessValue(state.access, isAdmin, reload);
-  }, [state, isAdmin, reload]);
+  }, [state, isAdmin, reload, openToAll, signedIn]);
 
   return <RealEstateAccessContext.Provider value={value}>{children}</RealEstateAccessContext.Provider>;
 }
