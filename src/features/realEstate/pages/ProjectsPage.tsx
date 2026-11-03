@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext.jsx';
 import { useT } from '../../../i18n/language.ts';
 import { useRealEstateAccess } from '../access/RealEstateAccessProvider.tsx';
@@ -17,10 +17,14 @@ export default function ProjectsPage() {
   const access = useRealEstateAccess();
   const { toast } = useToast();
   const enabled = access.has('Projects');
-  const projects = useRealEstateQuery((s) => realEstateApi.projects.list(s), [], { enabled });
+  // Partner filter in the URL (?partnerId=) — deep-linkable from the partners list.
+  const [params, setParams] = useSearchParams();
+  const filter = params.get('partnerId') ?? '';
+  const setFilter = (v: string) => setParams((cur) => { const n = new URLSearchParams(cur); if (v) n.set('partnerId', v); else n.delete('partnerId'); return n; }, { replace: true });
+  const projects = useRealEstateQuery((s) => realEstateApi.projects.list(filter || null, s), [filter], { enabled });
   // Only partners the API returns for this user can be chosen.
   const partners = useRealEstateQuery((s) => realEstateApi.partners.list(s), [], { enabled });
-  const initial: ProjectForm = { partnerId: access.access.partnerId !== null ? String(access.access.partnerId) : '', name: '', phase: '', location: '', district: '', state: 'Odisha' };
+  const initial: ProjectForm = { partnerId: filter || (access.access.partnerId !== null ? String(access.access.partnerId) : ''), name: '', phase: '', location: '', district: '', state: 'Odisha' };
   const [form, setForm] = useState<ProjectForm>(initial);
   const [errors, setErrors] = useState<Errors<keyof ProjectForm>>({});
   const create = useRealEstateMutation(realEstateApi.projects.create);
@@ -45,10 +49,15 @@ export default function ProjectsPage() {
   const fieldErr = { ...serverFieldErrors(create.error, KEYS), ...errors };
 
   return (
-    <RealEstateLayout title={t('Projects & plots')} feature="Projects" crumbs={[[null, t('Projects')]]} intro={t('Layouts and phases. Open a project to manage its plots.')}>
+    <RealEstateLayout title={t('Projects and plots')} feature="Projects" crumbs={[[null, t('Projects')]]} intro={t('Layouts and phases. Open a project to manage its plots.')}>
       <div className="re-split">
         <section className="re-card" aria-labelledby="re-projects">
-          <h2 id="re-projects">{t('Projects')}</h2>
+          <div className="re-card-head">
+            <h2 id="re-projects">{t('Projects')}</h2>
+            {partnerOptions.length > 1 && (
+              <SelectInput label={t('Partner')} value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t('All partners')} options={partnerOptions} />
+            )}
+          </div>
           {projects.loading && <LoadingState />}
           {projects.error && <ErrorView error={projects.error} onRetry={projects.reload} />}
           {projects.data && projects.data.length === 0 && <EmptyView title={t('No projects yet')}>{t('Create your first project with the form.')}</EmptyView>}
@@ -56,7 +65,7 @@ export default function ProjectsPage() {
             <ul className="re-cards">
               {projects.data.map((p) => (
                 <li key={String(p.id)} className="re-mini">
-                  <h3>{p.name}{p.phase && <span className="pill">{p.phase}</span>}</h3>
+                  <h3>{p.name}{p.phase && <span className="pill">{p.phase}</span>}{p.status && <span className={`re-badge re-badge-${p.status.toLowerCase() === 'active' ? 'ok' : 'muted'}`}>{t(p.status)}</span>}</h3>
                   <p className="re-sub">{[p.location, p.district, p.state].filter(Boolean).join(', ') || '—'}</p>
                   {p.partnerName && <p className="re-sub">{t('Partner: {name}', { name: p.partnerName })}</p>}
                   {access.has('Plots') && <Link className="btn btn-outline" to={`${RE_ROOT}/projects/${encodeURIComponent(String(p.id))}/plots`}>{t('View plots')} →</Link>}

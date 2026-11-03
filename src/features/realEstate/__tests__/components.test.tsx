@@ -80,9 +80,18 @@ describe('booking form', () => {
 
 describe('ledger totals', () => {
   it('sums payments and computes outstanding without float drift', () => {
-    expect(ledgerTotals(1400000, [{ amount: 50000 }, { amount: 250000.1 }, { amount: 0.2 }])).toEqual({ agreedValue: 1400000, totalPaid: 300000.3, outstanding: 1099999.7 });
-    expect(ledgerTotals(1000, [])).toEqual({ agreedValue: 1000, totalPaid: 0, outstanding: 1000 });
-    expect(ledgerTotals(1000, [{ amount: 1200 }]).outstanding).toBe(-200);
+    const tx = (amount: number, commissionAmount: number | null = null, propertyAmount: number | null = null) => ({ amount, commissionAmount, propertyAmount });
+    expect(ledgerTotals(1400000, [tx(50000, 2500, 47500), tx(250000.1, null, 0.1), tx(0.2)])).toEqual({
+      agreedValue: 1400000, totalReceived: 300000.3, totalCommission: 2500, totalProperty: 47500.1, outstanding: 1099999.7,
+    });
+    expect(ledgerTotals(1000, [])).toEqual({ agreedValue: 1000, totalReceived: 0, totalCommission: 0, totalProperty: 0, outstanding: 1000 });
+    expect(ledgerTotals(1000, [tx(1200)]).outstanding).toBe(-200);
+  });
+
+  it('never folds commission or property amount into total received', () => {
+    const t = ledgerTotals(100000, [{ amount: 60000, commissionAmount: 5000, propertyAmount: 95000 }]);
+    expect(t.totalReceived).toBe(60000);
+    expect(t.outstanding).toBe(40000);
   });
 });
 
@@ -107,20 +116,21 @@ describe('sensitive identity numbers', () => {
 describe('OCR review', () => {
   const raw = (overrides: Record<string, unknown> = {}) => ({
     id: 3, status: 'Parsed', fileName: 'page1.jpg',
-    rows: [
-      { rowId: 'r1', rowNumber: 1, transactionDate: '2026-09-01', customerName: 'Ramesh', plotNumber: 'A-1', amount: '25000', paymentMode: 'UPI', referenceNumber: 'U1', remarks: '', confidence: 0.95, matchStatus: 'Matched', matchedBookingId: 77 },
-      { rowId: 'r2', rowNumber: 2, transactionDate: '2026-09-03', customerName: 'Sita', plotNumber: 'B-9', amount: '1O000', paymentMode: 'Cash', referenceNumber: '', remarks: '', confidence: 0.55, fieldConfidence: { amount: 0.4 },
-        matchStatus: 'UnmatchedPlot', validationErrors: [{ field: 'amount', message: 'Amount is not a number' }], corrections: { customerName: 'Sita Devi' } },
+    ledgerRows: [
+      { rowNumber: 1, transactionDate: '2026-09-01', customerName: 'Ramesh', plotNumber: 'A-1', totalAmountReceived: '25000', commissionAmount: '1250', propertyAmount: '23750', paymentMode: 'UPI', referenceNumber: 'U1', remarks: '', confidence: 0.95, matchStatus: 'Matched', matchedBookingId: 77 },
+      { rowNumber: 2, transactionDate: '2026-09-03', customerName: 'Sita', plotNumber: 'B-9', totalAmountReceived: '1O000', commissionAmount: null, propertyAmount: '9000', paymentMode: 'Cash', referenceNumber: '', remarks: '', confidence: 0.55, fieldConfidence: { totalAmountReceived: 0.4 },
+        matchStatus: 'UnmatchedPlot', corrections: { customerName: 'Sita Devi' } },
     ],
+    validationIssues: [{ code: 'AMOUNT_NOT_NUMERIC', message: 'Amount is not a number', fieldName: 'ledgerRows[1].TotalAmountReceived', severity: 'Error' }],
     ...overrides,
   });
   const batch = (o?: Record<string, unknown>): OcrBatch => toOcrBatch(raw(o));
 
   it('distinguishes extracted, corrected, error, low-confidence and edited cells', () => {
     const [r1, r2] = batch().rows;
-    expect(cellState(r1, 'amount')).toBe('extracted');
+    expect(cellState(r1, 'totalAmountReceived')).toBe('extracted');
     expect(cellState(r2, 'customerName')).toBe('corrected');
-    expect(cellState(r2, 'amount')).toBe('error');
+    expect(cellState(r2, 'totalAmountReceived')).toBe('error');
     expect(cellState(r2, 'plotNumber')).toBe('lowConfidence');
     expect(cellState(r1, 'remarks', 'paid in full')).toBe('edited');
   });
@@ -128,10 +138,14 @@ describe('OCR review', () => {
   it('cells are editable and edits reach the draft', async () => {
     const onEdit = vi.fn();
     view = await render(<MemoryRouter><OcrReviewTable rows={batch().rows} draft={{}} editable onEdit={onEdit} /></MemoryRouter>);
-    const input = $('input[aria-label="Row 2 Amount"]') as HTMLInputElement;
+    const input = $('input[aria-label="Row 2 Total received"]') as HTMLInputElement;
     expect(input.value).toBe('1O000');
+    // A missing commission stays empty — never filled from another amount.
+    expect(($('input[aria-label="Row 2 Commission (lower black amount)"]') as HTMLInputElement).value).toBe('');
     await change($('input[aria-label="Row 2 Plot number"]'), 'B-10');
-    expect(onEdit).toHaveBeenCalledWith('r2', 'plotNumber', 'B-10');
+    expect(onEdit).toHaveBeenCalledWith('1', 'plotNumber', 'B-10');
+    await change($('input[aria-label="Row 1 Property amount (red)"]'), '24000');
+    expect(onEdit).toHaveBeenCalledWith('0', 'propertyAmount', '24000');
     // Matching state is shown, and the matched booking link comes from the backend id.
     expect(document.body.textContent).toContain('Plot not found');
     expect($('a.re-match-link')?.getAttribute('href')).toBe('/real-estate/bookings/77');
@@ -144,10 +158,12 @@ describe('OCR review', () => {
 
   it('builds only real corrections', () => {
     const b = batch();
-    const draft: OcrDraft = { r1: { amount: '25000', remarks: ' first ' }, r2: { amount: '10000', customerName: 'Sita Devi' } };
+    const draft: OcrDraft = { 0: { totalAmountReceived: '25000', remarks: ' first ' }, 1: { totalAmountReceived: '10000', commissionAmount: '500', propertyAmount: '9500', customerName: 'Sita Devi' } };
     expect(buildCorrections(b.rows, draft)).toEqual([
-      { rowId: 'r1', field: 'remarks', value: 'first' },
-      { rowId: 'r2', field: 'amount', value: '10000' },
+      { fieldName: 'ledgerRows[0].Remarks', value: 'first' },
+      { fieldName: 'ledgerRows[1].TotalAmountReceived', value: '10000' },
+      { fieldName: 'ledgerRows[1].CommissionAmount', value: '500' },
+      { fieldName: 'ledgerRows[1].PropertyAmount', value: '9500' },
     ]);
   });
 
@@ -162,9 +178,9 @@ describe('OCR review', () => {
   });
 
   it('enables Import only for a clean, approved batch with no unsaved edits', async () => {
-    const clean = toOcrBatch({ ...raw({ status: 'Approved' }), rows: [raw().rows[0]] });
+    const clean = toOcrBatch({ ...raw({ status: 'Approved' }), ledgerRows: [raw().ledgerRows[0]], validationIssues: [] });
     expect(canImport(clean, {})).toBe(true);
-    expect(canImport(clean, { r1: { amount: '1' } })).toBe(false);
+    expect(canImport(clean, { 0: { totalAmountReceived: '1' } })).toBe(false);
     expect(canImport({ ...clean, status: 'Validated' }, {})).toBe(false);
     const onAction = vi.fn();
     view = await render(<OcrBatchActions batch={clean} draft={{}} pending={null} onAction={onAction} />);

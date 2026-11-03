@@ -30,12 +30,15 @@ const dynamicKeys = [
   ...PAYMENT_MODES.filter((m) => m !== 'BankTransfer'), 'Bank transfer',
   'East', 'West', 'North', 'South', 'North-East', 'North-West', 'South-East', 'South-West',
   'Sq. ft', 'Sq. yd', 'Sq. m', 'Decimal', 'Acre',
-  'Dashboard', 'Partners', 'Projects & plots', 'Customers', 'Bookings & ledger', 'Ledger import (OCR)',
   'Extracted', 'Corrected', 'Edited — not saved', 'Validation error', 'Low confidence',
   'Matched to booking', 'Customer not found', 'Plot not found', 'No matching booking', 'More than one possible booking', 'Not matched yet',
   'Extract rows (GPT-4o Vision)', 'Save corrections', 'Validate rows', 'Approve batch', 'Import approved rows', 'Reject batch',
   'Business name', 'Contact person', 'Phone', 'Partner', 'Project name', 'Location', 'District', 'State', 'Plot number', 'Area', 'Area unit',
-  'Name', 'Customer', 'Plot', 'Booking amount', 'Agreed value', 'Transaction date', 'Amount', 'Payment mode',
+  'Name', 'Customer', 'Plot', 'Booking amount', 'Agreed value', 'Transaction date', 'Total received', 'Payment mode',
+  'Overview', 'Projects and plots', 'Customers and bookings', 'Ledger transactions', 'Ledger OCR', 'Documents and images',
+  'Commission (lower black amount)', 'Property amount (red)', 'From the previous column', 'Lower amount written in black, after Payment Details', 'Amount written in red',
+  'Matching hint, not an id', 'Error', 'Warning', 'Agreement', 'Payment receipt', 'Identity proof', 'Site photo', 'Ledger page',
+  'Scanned ledger page', 'PDF', 'Excel', 'Active', 'Inactive', 'Extract rows', 'Review and approve', 'Import', 'View',
 ];
 const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 
@@ -85,12 +88,12 @@ describe('language switcher', () => {
   });
 
   it('re-renders Real Estate text live in Odia', async () => {
-    view = await render(<MemoryRouter><RealEstateStatusBadge status="Available" /><LedgerSummary totals={{ agreedValue: 100, totalPaid: 40, outstanding: 60 }} /></MemoryRouter>);
+    view = await render(<MemoryRouter><RealEstateStatusBadge status="Available" /><LedgerSummary totals={{ agreedValue: 100, totalReceived: 40, totalCommission: 2, totalProperty: 38, outstanding: 60 }} /></MemoryRouter>);
     expect(document.body.textContent).toContain('Available');
     expect(document.body.textContent).toContain('Outstanding');
-    await view.rerender(<MemoryRouter><RealEstateStatusBadge status="Available" /><LedgerSummary totals={{ agreedValue: 100, totalPaid: 40, outstanding: 60 }} /></MemoryRouter>);
+    await view.rerender(<MemoryRouter><RealEstateStatusBadge status="Available" /><LedgerSummary totals={{ agreedValue: 100, totalReceived: 40, totalCommission: 2, totalProperty: 38, outstanding: 60 }} /></MemoryRouter>);
     setLanguage('or');
-    await view.rerender(<MemoryRouter><RealEstateStatusBadge status="Available" /><LedgerSummary totals={{ agreedValue: 100, totalPaid: 40, outstanding: 60 }} /></MemoryRouter>);
+    await view.rerender(<MemoryRouter><RealEstateStatusBadge status="Available" /><LedgerSummary totals={{ agreedValue: 100, totalReceived: 40, totalCommission: 2, totalProperty: 38, outstanding: 60 }} /></MemoryRouter>);
     expect(document.body.textContent).toContain('ଉପଲବ୍ଧ');
     expect(document.body.textContent).toContain('ବକେୟା');
     // the status value sent to the API is unchanged
@@ -100,7 +103,7 @@ describe('language switcher', () => {
   it('translates validation and OCR blocker messages', () => {
     const t = (k: string, v?: Record<string, string | number>) => translate('or', k, v);
     expect(validateBooking({ customerId: '', plotId: '1', bookingAmount: '1', agreedValue: '2' }, null, t).customerId).toBe('ଗ୍ରାହକ ଆବଶ୍ୟକ।');
-    const rows = [{ id: 'r', rowNumber: 1, cells: {} as never, confidence: 1, issues: [{ field: null, message: 'x' }], match: { status: 'Matched' as const, bookingId: 1, label: '' } }];
-    expect(batchBlockers({ rows }, {}, t).reasons).toEqual(['1ଟି ଯାଞ୍ଚ ତ୍ରୁଟି']);
+    const rows = [{ id: 'r', index: 0, rowNumber: 1, cells: {} as never, confidence: 1, issues: [{ code: '', field: null, rowIndex: 0, message: 'x', severity: 'Error' as const }], match: { status: 'Matched' as const, bookingId: 1, label: '' } }];
+    expect(batchBlockers({ rows, batchIssues: [] }, {}, t).reasons).toEqual(['1ଟି ଯାଞ୍ଚ ତ୍ରୁଟି']);
   });
 });

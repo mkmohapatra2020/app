@@ -33,8 +33,10 @@ export interface Partner {
   email: string;
   address: string;
   gstNumber: string;
+  /** null when the API doesn't report it. */
+  isActive: boolean | null;
 }
-export type PartnerInput = Omit<Partner, 'id'>;
+export type PartnerInput = Omit<Partner, 'id' | 'isActive'>;
 
 export interface Project {
   id: Id;
@@ -45,6 +47,7 @@ export interface Project {
   location: string;
   district: string;
   state: string;
+  status: string;
 }
 export interface ProjectInput {
   partnerId: Id;
@@ -106,6 +109,8 @@ export interface Booking {
   bookingAmount: number;
   agreedValue: number;
   status: BookingStatus | string;
+  /** Documents, when the booking response includes them (there is no separate list endpoint). */
+  documents: RealEstateDocument[];
 }
 export interface BookingInput {
   customerId: Id;
@@ -114,41 +119,69 @@ export interface BookingInput {
   agreedValue: number;
 }
 
+/**
+ * The handwritten ledger has three independent amounts. They are never added, subtracted
+ * or derived from each other:
+ *   amount            — total received, read from the previous column
+ *   commissionAmount  — the lower amount written in black after "Payment Details"
+ *   propertyAmount    — the amount written in red
+ */
 export interface LedgerTransaction {
   id: Id;
   bookingId: Id | null;
   transactionDate: string;
   amount: number;
+  commissionAmount: number | null;
+  propertyAmount: number | null;
   paymentMode: PaymentMode | string;
   referenceNumber: string;
   remarks: string;
 }
 export interface TransactionInput {
+  /** yyyy-mm-dd from the form; sent as ISO (…T00:00:00Z). */
   transactionDate: string;
   amount: number;
+  commissionAmount: number | null;
+  propertyAmount: number | null;
   paymentMode: string;
   referenceNumber: string;
   remarks: string;
-  /** Optional payment proof (e.g. UPI screenshot) already uploaded via the upload grant. */
-  proof?: StoredBlob | null;
 }
 
+/** Each total sums one amount column only. Outstanding = agreed value − total received. */
 export interface LedgerTotals {
   agreedValue: number;
-  totalPaid: number;
+  totalReceived: number;
+  totalCommission: number;
+  totalProperty: number;
   outstanding: number;
 }
 
-export interface DashboardSummary {
-  partnerName: string;
-  projectCount: number;
-  availablePlots: number;
-  bookedPlots: number;
-  soldPlots: number;
-  activeBookings: number;
-  outstandingBalance: number;
-  recentTransactions: (LedgerTransaction & { customerName: string; plotNumber: string })[];
-  ocrBatchesAwaitingReview: number;
+export interface RealEstateDocument {
+  id: Id;
+  bookingId: Id | null;
+  documentType: string;
+  documentUrl: string;
+  fileName: string;
+  uploadedDate: string;
+}
+export const DOCUMENT_TYPES = ['Agreement', 'PaymentReceipt', 'IdentityProof', 'SitePhoto', 'LedgerPage', 'Other'] as const;
+export interface DocumentInput {
+  bookingId: Id;
+  documentType: string;
+  blob: StoredBlob;
+}
+
+/** Optional aggregate endpoint. Every value is null unless the backend reports it. */
+export interface OverviewTotals {
+  totalPlots: number | null;
+  customers: number | null;
+  bookings: number | null;
+  totalReceived: number | null;
+  totalCommission: number | null;
+  totalProperty: number | null;
+  ocrAwaitingReview: number | null;
+  ocrReadyToImport: number | null;
 }
 
 export interface Paged<T> {
@@ -187,3 +220,5 @@ export interface StoredBlob {
 }
 
 export type UploadPurpose = 'Document' | 'OcrLedger';
+/** OCR input kinds (Platform.OCR). */
+export type OcrInputType = 'ScannedLedgerPage' | 'Pdf' | 'Excel';

@@ -45,8 +45,9 @@
 .re-stat dd{margin:4px 0 0;font-size:1.45rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--heading,var(--ink));}
 .re-stat-good{border-left:4px solid var(--re-ok);}
 .re-stat-good dd{color:var(--re-ok);}
-.re-stat-due{border-left:4px solid var(--re-bad);}
-.re-stat-due dd{color:var(--re-bad);}
+/* Pending dues: orange (red is reserved for the property amount and errors). */
+.re-stat-due{border-left:4px solid var(--re-warn);}
+.re-stat-due dd{color:var(--re-warn);}
 .re-stat-warn{border-left:4px solid var(--re-warn);}
 .re-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:0;}
 .re-facts dt{font-size:.8rem;color:var(--ink-soft);}
@@ -108,11 +109,63 @@ td.re-cell-corrected input,td.re-cell-edited input{font-weight:600;}
 .re-dialog-body{margin-bottom:16px;display:grid;gap:8px;}
 .re-dialog-body p{margin:0;}
 
+/* ---------- ledger amounts: total (neutral), commission (charcoal), property (red) ---------- */
+.re-page{--re-commission:#2b2b2b;--re-property:#b3261e;}
+:root[data-theme="dark"] .re-page{--re-commission:#e6e1d8;--re-property:#f28b82;}
+.re-stats-ledger{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));}
+.re-stack{display:grid;gap:0;}
+.re-stack > .re-card:last-child{max-width:720px;}
+.re-stat-commission{border-left:4px solid var(--re-commission);}
+.re-stat-property{border-left:4px solid var(--re-property);}
+.re-stat-property dd{color:var(--re-property);}
+.re-col-commission{color:var(--re-commission);}
+.re-col-property{color:var(--re-property);}
+.re-amounts{border:1px solid var(--line);border-radius:12px;padding:12px 14px 14px;margin:0;display:grid;gap:12px;}
+.re-amounts legend{font-weight:700;padding:0 6px;}
+.re-amount{border-left:4px solid var(--line-strong,var(--line));padding-left:10px;}
+.re-amount-total{border-left-color:var(--teal,#1f6e7a);}
+.re-amount-commission{border-left-color:var(--re-commission);}
+.re-amount-property{border-left-color:var(--re-property);}
+.re-amount-property .f-label{color:var(--re-property);}
+.re-th-help{display:block;font-size:.68rem;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink-soft);max-width:180px;white-space:normal;}
+th.re-col-property{color:var(--re-property);}
+.re-confirm-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin:4px 0 0;}
+.re-confirm-summary dt{font-size:.78rem;color:var(--ink-soft);}
+.re-confirm-summary dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums;}
+.re-confirm-summary .re-amount-property dd{color:var(--re-property);}
+
+/* ---------- upload drop zone ---------- */
+.re-dropzone{position:relative;display:flex;align-items:center;gap:14px;padding:14px;border:2px dashed var(--line-strong,var(--line));border-radius:12px;background:var(--accent-soft);transition:border-color .15s,background .15s;}
+.re-dropzone.is-over{border-color:var(--teal,#1f6e7a);background:var(--re-info-bg);}
+.re-dropzone.is-busy{opacity:.7;}
+.re-drop-icon{font-size:1.8rem;}
+.re-drop-text{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0;}
+.re-file-name{font-weight:600;word-break:break-all;}
+.re-thumb{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line);flex:none;}
+.re-file-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;}
+
+/* ---------- OCR issues, raw text, documents, misc ---------- */
+.re-issues h3{font-size:1rem;margin:0 0 10px;}
+.re-issues ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;}
+.re-issues li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 10px;border-radius:10px;background:var(--re-bad-bg);}
+.re-issues li.re-issue-warning{background:var(--re-warn-bg);}
+.re-issue-code{font-size:.78rem;padding:1px 6px;border-radius:6px;background:var(--card,var(--surface));}
+.re-issue-msg{flex:1 1 200px;}
+.re-warn{display:block;color:var(--re-warn);font-size:.78rem;}
+.re-raw summary{cursor:pointer;font-weight:600;}
+.re-raw pre{white-space:pre-wrap;max-height:320px;overflow:auto;font-size:.85rem;margin:10px 0 0;}
+.re-doc-list{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:8px;}
+.re-doc-list li{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+.re-row-links{display:flex;gap:10px;white-space:nowrap;}
+.re-row-links a{font-size:.85rem;}
+
 /* Tables need the full width below laptop size (tablets included). */
 @media (max-width:1180px){.re-split{grid-template-columns:1fr;}}
 /* phones: stacked "card" rows instead of wide tables */
 @media (max-width:640px){
   .re-stats-3{grid-template-columns:1fr;}
+  .re-confirm-summary{grid-template-columns:1fr;}
+  .re-dropzone{flex-direction:column;align-items:flex-start;}
   .re-row{grid-template-columns:1fr;}
   .re-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
   .re-table tr{display:block;border-bottom:1px solid var(--line);padding:8px 0;}

@@ -4,7 +4,7 @@
  * not granted). Routes are also protected by ProtectedRoute (sign-in) in App.jsx.
  */
 import type { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import PageShell from '../../../components/common/PageShell.jsx';
 import { useT } from '../../../i18n/language.ts';
 import { useRealEstateAccess } from '../access/RealEstateAccessProvider.tsx';
@@ -14,14 +14,17 @@ import '../i18n/or.ts';
 
 export const RE_ROOT = '/real-estate';
 
-const TABS: { to: string; label: string; feature: RealEstateFeature | null }[] = [
-  { to: RE_ROOT, label: 'Dashboard', feature: null },
+/** Section navigation. `also` lists other paths that belong to the same tab. */
+export const TABS: { to: string; label: string; feature: RealEstateFeature | null; also?: string[] }[] = [
+  { to: RE_ROOT, label: 'Overview', feature: null },
   { to: `${RE_ROOT}/partners`, label: 'Partners', feature: 'Partners' },
-  { to: `${RE_ROOT}/projects`, label: 'Projects & plots', feature: 'Projects' },
-  { to: `${RE_ROOT}/customers`, label: 'Customers', feature: 'Customers' },
-  { to: `${RE_ROOT}/bookings`, label: 'Bookings & ledger', feature: 'Bookings' },
-  { to: `${RE_ROOT}/ocr`, label: 'Ledger import (OCR)', feature: 'OCR' },
+  { to: `${RE_ROOT}/projects`, label: 'Projects and plots', feature: 'Projects' },
+  { to: `${RE_ROOT}/customers`, label: 'Customers and bookings', feature: 'Customers', also: [`${RE_ROOT}/bookings`] },
+  { to: `${RE_ROOT}/ledger`, label: 'Ledger transactions', feature: 'Ledger' },
+  { to: `${RE_ROOT}/ocr`, label: 'Ledger OCR', feature: 'OCR' },
+  { to: `${RE_ROOT}/documents`, label: 'Documents and images', feature: 'Bookings' },
 ];
+const under = (path: string, base: string) => path === base || path.startsWith(`${base}/`);
 
 interface Props {
   title: string;
@@ -36,6 +39,7 @@ interface Props {
 export default function RealEstateLayout({ title, intro, feature, crumbs = [], actions, children }: Props) {
   const access = useRealEstateAccess();
   const t = useT();
+  const { pathname } = useLocation();
   let body: ReactNode = children;
 
   if (access.status === 'loading') body = <LoadingState text={t('Checking your Real Estate access…')} />;
@@ -72,7 +76,8 @@ export default function RealEstateLayout({ title, intro, feature, crumbs = [], a
       {access.enabled && (
         <nav className="re-tabs" aria-label={t('Real Estate')}>
           {TABS.filter((tab) => !tab.feature || access.has(tab.feature)).map((tab) => (
-            <NavLink key={tab.to} to={tab.to} end={tab.to === RE_ROOT} className={({ isActive }) => `re-tab${isActive ? ' is-active' : ''}`}>{t(tab.label)}</NavLink>
+            <NavLink key={tab.to} to={tab.to} end={tab.to === RE_ROOT}
+              className={({ isActive }) => `re-tab${isActive || tab.also?.some((p) => under(pathname, p)) ? ' is-active' : ''}`}>{t(tab.label)}</NavLink>
           ))}
         </nav>
       )}

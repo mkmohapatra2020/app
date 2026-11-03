@@ -4,7 +4,7 @@ import { apiClient } from '../../../api/apiClient.ts';
 import { ApiError } from '../../../api/errors.ts';
 import { realEstateApi } from '../api/realEstateApi.ts';
 import { realEstateOcrApi } from '../api/realEstateOcrApi.ts';
-import { UPLOAD_GRANT_PATH, uploadRealEstateFile, validateUploadFile } from '../api/realEstateUpload.ts';
+import { ocrInputType, UPLOAD_GRANT_PATH, uploadRealEstateFile, validateUploadFile } from '../api/realEstateUpload.ts';
 import { ok, signIn, stubApi } from './helpers.tsx';
 
 const original = apiClient.defaults.adapter;
@@ -35,7 +35,7 @@ describe('realEstateApi', () => {
     signIn();
     stubApi(() => ({ status: 401 }));
     vi.spyOn((await import('../../../api/tokenManager.ts')), 'refreshSession').mockRejectedValue(new ApiError('unauthorized', 'expired', 401));
-    await expectKind(realEstateApi.dashboard(), 'unauthorized');
+    await expectKind(realEstateApi.partners.list(), 'unauthorized');
   });
 
   it('calls the documented endpoints with only the expected fields', async () => {
@@ -44,14 +44,40 @@ describe('realEstateApi', () => {
     await realEstateApi.projects.create({ partnerId: 12, name: ' Green City ', phase: 'Phase-2', location: 'Khurda', district: 'Khurda', state: 'Odisha' });
     await realEstateApi.plots.list(5);
     await realEstateApi.customers.list(12, { page: 2, pageSize: 20 });
-    await realEstateApi.ledger.create(9, { transactionDate: '2026-10-01', amount: 25000, paymentMode: 'UPI', referenceNumber: 'UPI123', remarks: '' });
+    await realEstateApi.projects.list(12);
+    await realEstateApi.documents.create({ bookingId: 9, documentType: 'Agreement', blob: { blobName: 're/a.pdf', container: 're', contentType: 'application/pdf', size: 5, fileName: 'a.pdf' } });
     expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
-      'POST /realestate/projects', 'GET /realestate/projects/5/plots', 'GET /realestate/partners/12/customers', 'POST /realestate/bookings/9/transactions',
+      'POST /realestate/projects', 'GET /realestate/projects/5/plots', 'GET /realestate/partners/12/customers', 'GET /realestate/projects', 'POST /realestate/documents',
     ]);
     expect(calls[0].body).toEqual({ partnerId: 12, projectName: 'Green City', phase: 'Phase-2', location: 'Khurda', district: 'Khurda', state: 'Odisha' });
     expect(calls[2].params).toEqual({ page: 2, pageSize: 20 });
+    expect(calls[3].params).toEqual({ partnerId: 12 });
+    expect(calls[4].body).toEqual({ bookingId: 9, documentType: 'Agreement', blobName: 're/a.pdf', fileName: 'a.pdf', contentType: 'application/pdf' });
+  });
+
+  it('sends the three ledger amounts independently, ISO date, empty optionals as null', async () => {
+    signIn();
+    const calls = stubApi(() => ok({}));
+    await realEstateApi.ledger.create(9, { transactionDate: '2026-01-15', amount: 100000, commissionAmount: 5000, propertyAmount: 95000, paymentMode: 'Cash', referenceNumber: ' R-1 ', remarks: '' });
+    await realEstateApi.ledger.create(9, { transactionDate: '2026-01-16', amount: 25000, commissionAmount: null, propertyAmount: null, paymentMode: 'UPI', referenceNumber: '', remarks: '' });
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual(['POST /realestate/bookings/9/transactions', 'POST /realestate/bookings/9/transactions']);
+    expect(calls[0].body).toEqual({ transactionDate: '2026-01-15T00:00:00Z', amount: 100000, commissionAmount: 5000, propertyAmount: 95000, paymentMode: 'Cash', referenceNumber: 'R-1', remarks: null });
+    expect(calls[1].body).toMatchObject({ amount: 25000, commissionAmount: null, propertyAmount: null });
     // Buyer payments never go to the membership payment API.
-    expect(calls.some((c) => /membership|payment/i.test(c.url))).toBe(false);
+    expect(calls.some((c) => /membership/i.test(c.url))).toBe(false);
+  });
+
+  it('reads the three amounts back without deriving one from another', async () => {
+    signIn();
+    stubApi(() => ok([{ id: 1, amount: 100000, commissionAmount: 5000, propertyAmount: null }]));
+    const [tx] = await realEstateApi.ledger.list(9);
+    expect(tx).toMatchObject({ amount: 100000, commissionAmount: 5000, propertyAmount: null });
+  });
+
+  it('treats a missing overview endpoint as "not available" instead of inventing totals', async () => {
+    signIn();
+    stubApi(() => ({ status: 404 }));
+    expect(await realEstateApi.overview()).toBeNull();
   });
 
   it('reads PascalCase and paged responses', async () => {
@@ -86,7 +112,9 @@ describe('dedicated Real Estate uploads', () => {
     const blob = await uploadRealEstateFile(file, { purpose: 'OcrLedger', onProgress: (p) => progress.push(p) });
 
     expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([`POST ${UPLOAD_GRANT_PATH}`]);
-    expect(calls[0].body).toEqual({ fileName: 'ledger.jpg', contentType: 'image/jpeg', sizeBytes: 10, purpose: 'OcrLedger' });
+    expect(calls[0].body).toEqual({ fileName: 'ledger.jpg', contentType: 'image/jpeg' });
+    // No storage account key / credentials in anything the browser sends.
+    expect(JSON.stringify(calls)).not.toMatch(/AccountKey|accountKey|SharedAccessKey/);
     // Never the app's media endpoints.
     expect(calls.some((c) => /write-sas-token|ai-visualization|images\/generate/.test(c.url))).toBe(false);
     const xhr = FakeXhr.last!;
@@ -108,6 +136,12 @@ describe('dedicated Real Estate uploads', () => {
     expect(FakeXhr.last).toBeNull();
   });
 
+  it('maps PDF and Excel ledgers to their OCR input types', () => {
+    expect(ocrInputType('application/pdf')).toBe('Pdf');
+    expect(ocrInputType('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')).toBe('Excel');
+    expect(ocrInputType('image/png')).toBe('ScannedLedgerPage');
+  });
+
   it('validates type and size before asking for a grant', async () => {
     signIn();
     const calls = stubApi(() => ok({}));
@@ -119,17 +153,24 @@ describe('dedicated Real Estate uploads', () => {
 });
 
 describe('OCR workflow API', () => {
-  it('submits corrections as { corrections: [{ rowId, field, value }] }', async () => {
+  it('submits corrections as { corrections: [{ fieldName: "ledgerRows[n].Field", value }] }', async () => {
     signIn();
-    const calls = stubApi(() => ok({ id: 4, status: 'Parsed', rows: [] }));
-    await realEstateOcrApi.submitCorrections(4, [{ rowId: 'r1', field: 'amount', value: '25000' }]);
-    expect(calls[0]).toMatchObject({ method: 'POST', url: '/realestate/ocr/batches/4/corrections', body: { corrections: [{ rowId: 'r1', field: 'amount', value: '25000' }] } });
+    const calls = stubApi(() => ok({ id: 4, status: 'Parsed', ledgerRows: [] }));
+    await realEstateOcrApi.submitCorrections(4, [{ fieldName: 'ledgerRows[1].CommissionAmount', value: '5000' }]);
+    expect(calls[0]).toMatchObject({ method: 'POST', url: '/realestate/ocr/batches/4/corrections', body: { corrections: [{ fieldName: 'ledgerRows[1].CommissionAmount', value: '5000' }] } });
+  });
+
+  it('rejects with { reason }', async () => {
+    signIn();
+    const calls = stubApi(() => ok({ id: 4, status: 'Rejected' }));
+    await realEstateOcrApi.reject(4, ' Unable to match the ledger row to an existing booking. ');
+    expect(calls[0].body).toEqual({ reason: 'Unable to match the ledger row to an existing booking.' });
   });
 
   it('never sends OCR rows to production endpoints: import is a bare action on the batch', async () => {
     signIn();
     const calls = stubApi(() => ok({ id: 4, status: 'Imported', rows: [] }));
-    await realEstateOcrApi.create({ blobName: 'p12/abc.jpg', container: 'realestate-ocr', contentType: 'image/jpeg', size: 10, fileName: 'l.jpg' }, 12);
+    await realEstateOcrApi.create({ blobName: 'realestate/ledger-page-01.jpg', container: 'realestate-ocr', contentType: 'image/jpeg', size: 10, fileName: 'ledger-page-01.jpg' });
     await realEstateOcrApi.parse(4);
     await realEstateOcrApi.validate(4);
     await realEstateOcrApi.approve(4);
@@ -140,6 +181,6 @@ describe('OCR workflow API', () => {
     expect(calls[4].body).toEqual({});
     expect(calls.some((c) => /transactions|bookings|customers|plots/.test(c.url))).toBe(false);
     // Batch creation references the stored blob; no ids invented.
-    expect(calls[0].body).toEqual({ blobName: 'p12/abc.jpg', container: 'realestate-ocr', fileName: 'l.jpg', contentType: 'image/jpeg', partnerId: 12 });
+    expect(calls[0].body).toEqual({ fileName: 'ledger-page-01.jpg', contentType: 'image/jpeg', inputType: 'ScannedLedgerPage', blobName: 'realestate/ledger-page-01.jpg', businessModule: 'RealEstate' });
   });
 });

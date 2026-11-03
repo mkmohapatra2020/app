@@ -12,13 +12,30 @@ import { apiPost } from '../../../api/apiClient.ts';
 import { requireAuth } from '../../../api/authApi.ts';
 import { ApiError } from '../../../api/errors.ts';
 import { enT, type T } from '../../../i18n/language.ts';
-import type { StoredBlob, UploadGrant, UploadPurpose } from '../types/realEstateTypes.ts';
+import type { OcrInputType, StoredBlob, UploadGrant, UploadPurpose } from '../types/realEstateTypes.ts';
 import { toGrant } from './normalize.ts';
 import { RE_BASE } from './realEstateApi.ts';
 
 export const UPLOAD_GRANT_PATH = `${RE_BASE}/images/upload-grant`;
-export const DEFAULT_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+export const PDF_TYPE = 'application/pdf';
+export const EXCEL_TYPES = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
+export const DEFAULT_ALLOWED_TYPES = IMAGE_TYPES;
 export const DEFAULT_MAX_BYTES = 10 * 1024 * 1024;
+
+/** Accepted files: documents = images + PDF; OCR = images, PDF and Excel ledgers. */
+export const allowedTypesFor = (purpose: UploadPurpose): string[] =>
+  (purpose === 'OcrLedger' ? [...IMAGE_TYPES, PDF_TYPE, ...EXCEL_TYPES] : [...IMAGE_TYPES, PDF_TYPE]);
+
+const TYPE_NAME: Record<string, string> = {
+  'image/jpeg': 'JPG', 'image/png': 'PNG', 'image/webp': 'WebP', [PDF_TYPE]: 'PDF',
+  [EXCEL_TYPES[0]]: 'XLSX', [EXCEL_TYPES[1]]: 'XLS',
+};
+export const typeNames = (types: string[]) => [...new Set(types.map((t) => TYPE_NAME[t] ?? t.split('/')[1]?.toUpperCase() ?? t))].join(', ');
+
+/** Platform OCR input type for a file. */
+export const ocrInputType = (contentType: string): OcrInputType =>
+  (contentType === PDF_TYPE ? 'Pdf' : EXCEL_TYPES.includes(contentType) ? 'Excel' : 'ScannedLedgerPage');
 
 export class UploadError extends Error {
   constructor(message: string, readonly retryable = true) { super(message); this.name = 'UploadError'; }
@@ -27,18 +44,19 @@ export class UploadError extends Error {
 /** Human message for a file that must not be uploaded, or null when it is fine. */
 export function validateUploadFile(file: File | null | undefined, allowed = DEFAULT_ALLOWED_TYPES, maxBytes = DEFAULT_MAX_BYTES, t: T = enT): string | null {
   if (!file) return t('Choose a file to upload.');
-  if (!allowed.includes(file.type)) return t("That file type isn't supported. Use {types}.", { types: allowed.map((type) => type.split('/')[1].toUpperCase()).join(', ') });
+  if (!allowed.includes(file.type)) return t("That file type isn't supported. Use {types}.", { types: typeNames(allowed) });
   if (file.size <= 0) return t('That file is empty.');
   if (file.size > maxBytes) return t('That file is too large (max {mb} MB).', { mb: Math.round(maxBytes / 1024 / 1024) });
   return null;
 }
 
-export async function requestUploadGrant(file: File, purpose: UploadPurpose): Promise<UploadGrant> {
+/** POST /realestate/images/upload-grant { fileName, contentType } → scoped upload URL + blob name. */
+export async function requestUploadGrant(file: File): Promise<UploadGrant> {
   requireAuth();
-  const grant = toGrant(await apiPost<unknown>(UPLOAD_GRANT_PATH, { fileName: file.name, contentType: file.type, sizeBytes: file.size, purpose }));
+  const grant = toGrant(await apiPost<unknown>(UPLOAD_GRANT_PATH, { fileName: file.name, contentType: file.type }));
   let url: URL | null = null;
   try { url = new URL(grant.uploadUrl); } catch { /* handled below */ }
-  if (!url || url.protocol !== 'https:' || !grant.blobName || !grant.container) {
+  if (!url || url.protocol !== 'https:' || !grant.blobName) {
     throw new ApiError('server', "Upload isn't available right now. Please try again shortly.");
   }
   return grant;
@@ -71,11 +89,12 @@ export interface UploadOptions {
 
 /** Validates, gets a grant, uploads, and returns only backend-issued metadata. */
 export async function uploadRealEstateFile(file: File, { purpose, onProgress, signal }: UploadOptions): Promise<StoredBlob> {
-  const localError = validateUploadFile(file);
+  const allowed = allowedTypesFor(purpose);
+  const localError = validateUploadFile(file, allowed);
   if (localError) throw new UploadError(localError, false);
-  const grant = await requestUploadGrant(file, purpose);
+  const grant = await requestUploadGrant(file);
   // The backend may be stricter than the defaults.
-  const grantError = validateUploadFile(file, grant.allowedContentTypes.length ? grant.allowedContentTypes : DEFAULT_ALLOWED_TYPES, grant.maxBytes ?? DEFAULT_MAX_BYTES);
+  const grantError = validateUploadFile(file, grant.allowedContentTypes.length ? grant.allowedContentTypes : allowed, grant.maxBytes ?? DEFAULT_MAX_BYTES);
   if (grantError) throw new UploadError(grantError, false);
   await putToBlob(grant, file, onProgress, signal);
   return { blobName: grant.blobName, container: grant.container, contentType: file.type, size: file.size, fileName: file.name };

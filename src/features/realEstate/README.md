@@ -33,33 +33,52 @@ There is no mock for the access endpoint. Access is never assumed on the fronten
 - Signed-in users without access see "Real Estate isn't enabled for your account".
 - The backend still authorises every call.
 
+## The three ledger amounts
+
+The handwritten ledger has three separate amounts. The UI never adds, subtracts or derives one from another, and an absent or unreadable amount stays `null`.
+
+| Ledger source | Transaction field | OCR field | UI label | Styling |
+|---|---|---|---|---|
+| Previous column | `amount` | `totalAmountReceived` | Total received | neutral / primary |
+| Lower amount written in black, after Payment Details | `commissionAmount` | `commissionAmount` | Commission (lower black amount) | charcoal |
+| Amount written in red | `propertyAmount` | `propertyAmount` | Property amount (red) | red (red is reserved for this and for errors; pending dues are orange) |
+
+Validation requires a total above 0 and a payment mode. Commission and property amount are optional; empty values are sent as `null`, and negative values are rejected. Ledger totals sum each column on its own, and outstanding = agreed value − total received.
+
 ## Frontend routes
+
+Section navigation: Overview · Partners · Projects and plots · Customers and bookings · Ledger transactions · Ledger OCR · Documents and images.
 
 | Route | Screen | Feature |
 |---|---|---|
-| `/real-estate` | Dashboard | — |
-| `/real-estate/partners` | Partners (list, create if permitted) | Partners |
-| `/real-estate/projects` | Projects (list, create) | Projects |
-| `/real-estate/projects/:projectId/plots` | Plots (status filter, create, "Book" for Available only) | Plots |
-| `/real-estate/customers` | Customers (paged, search, create; Aadhaar/PAN masked) | Customers |
-| `/real-estate/bookings` | Bookings (paged, status filter, create with confirmation) | Bookings |
-| `/real-estate/bookings/:bookingId` | Booking details + ledger summary | Bookings |
-| `/real-estate/bookings/:bookingId/ledger` | Ledger (history, totals, record payment + proof) | Bookings + Ledger |
-| `/real-estate/ocr` | OCR batches + new upload | OCR |
-| `/real-estate/ocr/:batchId` | OCR review (extract, correct, validate, approve, import / reject) | OCR |
+| `/real-estate` | Overview: counts derived from loaded data, plus aggregates from the optional summary endpoint | — |
+| `/real-estate/partners?q=` | Partners: search, active/inactive status, links to the partner's projects and customers, create if permitted | Partners |
+| `/real-estate/projects?partnerId=` | Projects: partner filter, create | Projects |
+| `/real-estate/projects/:projectId/plots` | Plots: status filter, create, "Book" for Available plots only | Plots |
+| `/real-estate/customers?partnerId=` | Customers and bookings: paged, search, create; Aadhaar/PAN masked | Customers |
+| `/real-estate/bookings` | Bookings: paged, status filter, create with confirmation | Bookings |
+| `/real-estate/bookings/:bookingId` | Booking detail: transactions and documents | Bookings |
+| `/real-estate/bookings/:bookingId/ledger` | Booking ledger: history, totals, record a payment | Bookings + Ledger |
+| `/real-estate/ledger?bookingId=` | Ledger transactions: booking selector + ledger | Ledger |
+| `/real-estate/documents?bookingId=` | Documents and images: booking selector + upload | Bookings |
+| `/real-estate/ocr?status=` | OCR batch list (or open a batch by ID when there is no list endpoint) | OCR |
+| `/real-estate/ocr/new` | OCR upload: drop zone, preview, progress, batch creation, parse | OCR |
+| `/real-estate/ocr/:batchId` | OCR review: issues, corrections, validate / approve / import / reject | OCR |
+
+Filters and the selected booking live in the URL, so deep links and refresh keep them.
 
 ## API dependencies
 
-Paths are relative to the API base (`VITE_BACKEND_URL`, e.g. `…/service/api`). Responses may be bare or wrapped in `{ success, data }`, with camelCase or PascalCase keys. Lists may be an array or `{ items, totalCount }`.
+Paths are relative to the API base (`VITE_BACKEND_URL`, e.g. `…/service/api`). Responses may be bare or wrapped in `{ success, message, data }`, with camelCase or PascalCase keys. Lists may be an array or `{ items, totalCount }`.
 
-### From the specification
+### From the specifications
 
 | Method & path | Request body |
 |---|---|
 | `GET /realestate/access` | — |
 | `GET /realestate/partners` | — |
 | `POST /realestate/partners` | `{ businessName, contactPerson, phone, email, address, gstNumber }` |
-| `GET /realestate/projects` | — |
+| `GET /realestate/projects?partnerId={id}` | — |
 | `POST /realestate/projects` | `{ partnerId, projectName, phase, location, district, state }` |
 | `GET /realestate/projects/:projectId/plots` | — |
 | `POST /realestate/plots` | `{ projectId, plotNumber, area, areaUnit, facing, roadWidth }` |
@@ -67,46 +86,46 @@ Paths are relative to the API base (`VITE_BACKEND_URL`, e.g. `…/service/api`).
 | `POST /realestate/customers` | `{ partnerId, name, phone, email, address, aadhaarNumber, panNumber }` |
 | `POST /realestate/bookings` | `{ customerId, plotId, bookingAmount, agreedValue }`. **409** when the plot is unavailable |
 | `GET /realestate/bookings/:bookingId/transactions` | — |
-| `POST /realestate/bookings/:bookingId/transactions` | `{ transactionDate, amount, paymentMode, referenceNumber, remarks }` |
-| `POST /realestate/images/upload-grant` | `{ fileName, contentType, sizeBytes, purpose: "Document" \| "OcrLedger" }` |
-| `POST /realestate/ocr/batches` | `{ blobName, container, fileName, contentType, partnerId }` |
+| `POST /realestate/bookings/:bookingId/transactions` | `{ transactionDate: "2026-01-15T00:00:00Z", amount, commissionAmount \| null, propertyAmount \| null, paymentMode, referenceNumber \| null, remarks \| null }` |
+| `POST /realestate/documents` | `{ bookingId, documentType, blobName, fileName, contentType }` |
+| `POST /realestate/images/upload-grant` | `{ fileName, contentType }` |
+| `POST /realestate/ocr/batches` | `{ fileName, contentType, inputType: "ScannedLedgerPage" \| "Pdf" \| "Excel", blobName, businessModule: "RealEstate" }` |
 | `GET /realestate/ocr/batches/:batchId` | — |
 | `POST /realestate/ocr/batches/:batchId/parse` | `{}` |
-| `POST /realestate/ocr/batches/:batchId/corrections` | `{ corrections: [{ rowId, field, value }] }` |
+| `POST /realestate/ocr/batches/:batchId/corrections` | `{ corrections: [{ fieldName: "ledgerRows[1].CommissionAmount", value: "5000" }] }` |
 | `POST /realestate/ocr/batches/:batchId/validate` | `{}` |
-| `POST /realestate/ocr/batches/:batchId/approve` | `{}` |
-| `POST /realestate/ocr/batches/:batchId/import` | `{}` (the server imports its own validated rows) |
+| `POST /realestate/ocr/batches/:batchId/approve` | `{}`. Approval only; it never imports |
+| `POST /realestate/ocr/batches/:batchId/import` | `{}`. The server imports its own validated rows |
 | `POST /realestate/ocr/batches/:batchId/reject` | `{ reason }` |
 
-### Assumed: please confirm with the backend
+`ledgerRows[n]` uses the 0-based index of the row in the batch's `ledgerRows` array. Field names are `TransactionDate, CustomerName, PlotNumber, TotalAmountReceived, CommissionAmount, PropertyAmount, PaymentMode, ReferenceNumber, Remarks`.
 
-The specification listed screens that need these endpoints but did not define them:
+### Optional: the UI works without them
 
-| Method & path | Used by | Expected `data` |
+| Method & path | Used by | Without it |
 |---|---|---|
-| `GET /realestate/dashboard` | Dashboard | `{ partnerName, projectCount, availablePlots, bookedPlots, soldPlots, activeBookings, outstandingBalance, recentTransactions[], ocrBatchesAwaitingReview }` |
-| `GET /realestate/bookings` | Bookings list | paged bookings; query `page, pageSize, status` |
-| `GET /realestate/bookings/:bookingId` | Booking details, ledger agreed value | booking |
-| `GET /realestate/ocr/batches` | OCR batch list | paged batches; query `page, pageSize, status` |
+| `GET /realestate/overview` | Overview aggregates `{ totalPlots, customers, bookings, totalReceived, totalCommission, totalProperty, ocrAwaitingReview, ocrReadyToImport }` | Tiles show "—  Not available yet" (404 is not an error) |
+| `GET /realestate/bookings` | Bookings list, booking selectors | Selectors ask for a booking ID |
+| `GET /realestate/bookings/:bookingId` | Booking details, agreed value, `documents[]` | The ledger still shows transactions |
+| `GET /realestate/ocr/batches` | OCR batch list | "Open a batch by ID" form |
 
-Optional fields the UI sends or reads:
+### Response fields the UI reads
 
-- **Transactions:** `proofBlobName` and `proofContainer` on `POST …/transactions`, when a payment proof was uploaded.
-- **Upload grant `data`:** `{ uploadUrl, blobName, container, expiresOn, maxBytes?, allowedContentTypes?, requiredHeaders? }`.
-- **OCR batch `data`:** `{ id, status, fileName, createdAt, rowCount, error, rows[] }`. Each row has:
-  - `rowId`, `rowNumber`
-  - the canonical fields `transactionDate, customerName, plotNumber, amount, paymentMode, referenceNumber, remarks`, either flat or under `extracted`
-  - optional `corrections: {field: value}` and `fieldConfidence: {field: 0–1}`
-  - `confidence`, `validationErrors: [{ field, message }]`
-  - `matchStatus: Matched | UnmatchedCustomer | UnmatchedPlot | Unmatched | Ambiguous | Pending`, `matchedBookingId`, `matchLabel`
+- **Upload grant:** `{ uploadUrl, blobName, container?, expiresOn?, maxBytes?, allowedContentTypes?, requiredHeaders? }`.
+- **Partner:** `isActive`. **Project:** `status`.
+- **OCR batch:** `{ id, status, fileName, createdAt, updatedAt, confidence, rowCount, issueCount, rawText, error, ledgerRows[], validationIssues[] }`.
+  - **Each row:** the canonical fields, flat or under `extracted`; optional `corrections` and `fieldConfidence`; `confidence`; `matchStatus`; `matchedBookingId`; `matchLabel`.
+  - **Each issue:** `{ code, message, fieldName: "ledgerRows[n].Field", severity: "Error" | "Warning" }`. Only errors block approval.
 
 ## Safety rules enforced in the UI
 
-- **Uploads:** files are checked locally (JPG/PNG/WebP, max 10 MB, or stricter limits from the grant). The UI then gets a grant and `PUT`s to **exactly** the returned `https` URL, without sending the bearer token. It keeps only `{ blobName, container, contentType, size, fileName }`; the SAS URL is never stored. The app's media endpoints (`/write-sas-token`, `/ai-visualization/*`) are never used.
+- **Uploads:** files are checked locally before upload (max 10 MB, or stricter limits from the grant). Documents accept JPG, PNG, WebP and PDF; OCR also accepts Excel. The UI then gets a grant and `PUT`s to **exactly** the returned `https` URL, without sending the bearer token. It keeps only `{ blobName, container, contentType, size, fileName }`; the SAS URL is never stored. The app's media endpoints (`/write-sas-token`, `/ai-visualization/*`) are never used.
 - **OCR:**
   - Customer name and plot number are shown as matching hints, never as ids. Booking links come only from the server's `matchedBookingId`.
-  - **Approve** and **Import** stay disabled while any validation error, unmatched row or unsaved correction remains. Import also requires status `Approved`.
-  - Approve, import, reject and booking all ask for confirmation.
+  - **Approve** and **Import** stay disabled while any validation error, unmatched row or unsaved correction remains. Import also requires status `Approved`; approving never imports.
+  - Corrections are staged locally and sent only on **Save corrections**.
+  - Approve and import show a confirmation with rows, total received, total commission, total property amount, validation issues and unmatched rows. Reject and booking also ask for confirmation.
+  - Each issue shows its code, message and row/field; choosing it moves focus to that field.
 - **Customer data:** Aadhaar and PAN are masked in lists (`XXXX XXXX 1234`, `XXXXXX234F`) and cleared from the form after save. The module has no logging.
 - **Errors:** messages come from `ApiError` (5xx bodies are replaced by friendly text). Each state has its own view: unauthorized (sign-in link), forbidden, not found, conflict (plot no longer available), validation (field errors mapped onto the form), network (retry) and OCR extraction failure.
 - **Payments:** buyer payments use only `/realestate/bookings/:id/transactions`, never the membership payment API.

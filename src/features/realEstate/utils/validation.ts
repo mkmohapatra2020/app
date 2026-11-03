@@ -37,10 +37,11 @@ export function validateProject(v: ProjectForm, t: T = enT): Errors<keyof Projec
 }
 
 export interface PlotForm { plotNumber: string; area: string; areaUnit: string; facing: string; roadWidth: string }
+const isNonNegative = (v: unknown) => !blank(v) && Number.isFinite(amount(v)) && amount(v) >= 0;
 export function validatePlot(v: PlotForm, t: T = enT): Errors<keyof PlotForm> {
   const e = required<keyof PlotForm>(v, [['plotNumber', 'Plot number'], ['area', 'Area'], ['areaUnit', 'Area unit']], t);
   if (!e.area && !isPositive(v.area)) e.area = t('Area must be more than 0.');
-  if (!blank(v.roadWidth) && !isPositive(v.roadWidth)) e.roadWidth = t('Road width must be more than 0.');
+  if (!blank(v.roadWidth) && !isNonNegative(v.roadWidth)) e.roadWidth = t("Road width can't be negative.");
   return e;
 }
 
@@ -65,17 +66,20 @@ export function validateBooking(v: BookingForm, plot?: Pick<Plot, 'status'> | nu
   return e;
 }
 
-export interface TransactionForm { transactionDate: string; amount: string; paymentMode: string; referenceNumber: string; remarks: string }
+/** amount = total received (previous column); commission = lower black amount; property = red amount. */
+export interface TransactionForm { transactionDate: string; amount: string; commissionAmount: string; propertyAmount: string; paymentMode: string; referenceNumber: string; remarks: string }
 export function validateTransaction(v: TransactionForm, today = new Date(), t: T = enT): Errors<keyof TransactionForm> {
-  const e = required<keyof TransactionForm>(v, [['transactionDate', 'Transaction date'], ['amount', 'Amount'], ['paymentMode', 'Payment mode']], t);
-  if (!e.amount && !isPositive(v.amount)) e.amount = t('Amount must be more than 0.');
+  const e = required<keyof TransactionForm>(v, [['transactionDate', 'Transaction date'], ['amount', 'Total received'], ['paymentMode', 'Payment mode']], t);
+  if (!e.amount && !isPositive(v.amount)) e.amount = t('Total received must be more than 0.');
+  // Optional, but never negative. Empty stays empty (sent as null).
+  if (!blank(v.commissionAmount) && !isNonNegative(v.commissionAmount)) e.commissionAmount = t("Commission can't be negative.");
+  if (!blank(v.propertyAmount) && !isNonNegative(v.propertyAmount)) e.propertyAmount = t("Property amount can't be negative.");
   if (!e.paymentMode && !(PAYMENT_MODES as readonly string[]).includes(v.paymentMode)) e.paymentMode = t('Choose a payment mode.');
   if (!e.transactionDate) {
     const d = new Date(v.transactionDate);
     if (Number.isNaN(d.getTime())) e.transactionDate = t('Enter a valid date.');
     else if (d.getTime() > today.getTime() + 86_400_000) e.transactionDate = t("The date can't be in the future.");
   }
-  if (v.paymentMode && v.paymentMode !== 'Cash' && blank(v.referenceNumber)) e.referenceNumber = t('Add the UPI / cheque / bank reference.');
   return e;
 }
 

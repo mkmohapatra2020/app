@@ -3,6 +3,7 @@
  * create, and are never logged or kept after the form is cleared.
  */
 import { useState, type FormEvent } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext.jsx';
 import { useT } from '../../../i18n/language.ts';
 import { useRealEstateAccess } from '../access/RealEstateAccessProvider.tsx';
@@ -10,7 +11,7 @@ import { realEstateApi } from '../api/realEstateApi.ts';
 import { EmptyView, ErrorView, InlineError, LoadingState, serverFieldErrors } from '../components/ApiStateView.tsx';
 import { bind, Input, SelectInput } from '../components/FormFields.tsx';
 import Pager from '../components/Pager.tsx';
-import RealEstateLayout from '../components/RealEstateLayout.tsx';
+import RealEstateLayout, { RE_ROOT } from '../components/RealEstateLayout.tsx';
 import { useRealEstateMutation, useRealEstateQuery } from '../hooks/useRealEstateQuery.ts';
 import type { Customer } from '../types/realEstateTypes.ts';
 import { maskAadhaar, maskPan } from '../utils/format.ts';
@@ -39,7 +40,10 @@ export default function CustomersPage() {
   const enabled = access.has('Customers');
   const partners = useRealEstateQuery((s) => realEstateApi.partners.list(s), [], { enabled });
   const defaultPartner = access.access.partnerId !== null ? String(access.access.partnerId) : '';
-  const [partnerId, setPartnerId] = useState(defaultPartner);
+  // Partner filter in the URL (?partnerId=) — deep-linkable from the partners list.
+  const [params, setParams] = useSearchParams();
+  const partnerId = params.get('partnerId') ?? defaultPartner;
+  const setPartnerId = (v: string) => setParams((cur) => { const n = new URLSearchParams(cur); n.set('partnerId', v); return n; }, { replace: true });
   const partnerOptions = (partners.data ?? []).map((p) => ({ value: String(p.id), label: p.businessName }));
   // Use the access partner, else the first visible partner.
   const selected = partnerOptions.find((o) => o.value === partnerId)?.value ?? partnerOptions[0]?.value ?? '';
@@ -71,7 +75,8 @@ export default function CustomersPage() {
   const fieldErr = { ...serverFieldErrors(create.error, KEYS), ...errors };
 
   return (
-    <RealEstateLayout title={t('Customers')} feature="Customers" crumbs={[[null, t('Customers')]]} intro={t('Land buyers registered under a partner.')}>
+    <RealEstateLayout title={t('Customers and bookings')} feature="Customers" crumbs={[[null, t('Customers')]]} intro={t('Land buyers registered under a partner, and their plot bookings.')}
+      actions={access.has('Bookings') ? <Link className="btn btn-primary" to={`${RE_ROOT}/bookings`}>{t('Bookings')} →</Link> : undefined}>
       <div className="re-split">
         <section className="re-card" aria-labelledby="re-customers">
           <div className="re-card-head">

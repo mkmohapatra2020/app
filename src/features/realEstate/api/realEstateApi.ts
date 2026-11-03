@@ -8,8 +8,9 @@
  */
 import { apiGet, apiPost, pathId } from '../../../api/apiClient.ts';
 import { requireAuth } from '../../../api/authApi.ts';
-import type { Booking, BookingInput, Customer, CustomerInput, DashboardSummary, Id, LedgerTransaction, PageQuery, Paged, Partner, PartnerInput, Plot, PlotInput, Project, ProjectInput, TransactionInput } from '../types/realEstateTypes.ts';
-import { toBooking, toCustomer, toDashboard, toList, toPaged, toPartner, toPlot, toProject, toTransaction } from './normalize.ts';
+import { isApiError } from '../../../api/errors.ts';
+import type { Booking, BookingInput, Customer, CustomerInput, DocumentInput, Id, LedgerTransaction, OverviewTotals, PageQuery, Paged, Partner, PartnerInput, Plot, PlotInput, Project, ProjectInput, RealEstateDocument, TransactionInput } from '../types/realEstateTypes.ts';
+import { toBooking, toCustomer, toDocument, toList, toOverview, toPaged, toPartner, toPlot, toProject, toTransaction } from './normalize.ts';
 
 export const RE_BASE = '/realestate';
 
@@ -23,10 +24,23 @@ const post = async (path: string, body?: unknown): Promise<unknown> => {
 };
 const trim = (v: string) => String(v ?? '').trim();
 const pageParams = (q: PageQuery = {}) => Object.fromEntries(Object.entries({ page: q.page, pageSize: q.pageSize, search: q.search || undefined, status: q.status || undefined }).filter(([, v]) => v !== undefined));
+/** yyyy-mm-dd (date input) → "yyyy-mm-ddT00:00:00Z"; full ISO strings pass through. */
+export const isoDate = (d: string) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T00:00:00Z` : d);
 
 export const realEstateApi = {
-  /** GET /realestate/dashboard — assumed summary endpoint (see README). */
-  dashboard: async (signal?: AbortSignal): Promise<DashboardSummary> => toDashboard(await get('/dashboard', signal)),
+  /**
+   * GET /realestate/overview — optional aggregate endpoint (not in the API list yet).
+   * Returns null when it doesn't exist, so the UI shows "not available" instead of
+   * inventing totals.
+   */
+  overview: async (signal?: AbortSignal): Promise<OverviewTotals | null> => {
+    try {
+      return toOverview(await get('/overview', signal));
+    } catch (e) {
+      if (isApiError(e) && (e.kind === 'notFound' || e.kind === 'network')) return null;
+      throw e;
+    }
+  },
 
   partners: {
     /** GET /realestate/partners — only partners the caller may see. */
@@ -39,8 +53,9 @@ export const realEstateApi = {
   },
 
   projects: {
-    /** GET /realestate/projects */
-    list: async (signal?: AbortSignal): Promise<Project[]> => toList(await get('/projects', signal), toProject),
+    /** GET /realestate/projects?partnerId={id} (all visible projects when no partner). */
+    list: async (partnerId?: Id | null, signal?: AbortSignal): Promise<Project[]> =>
+      toList(await get('/projects', signal, partnerId !== undefined && partnerId !== null && partnerId !== '' ? { partnerId } : undefined), toProject),
     /** POST /realestate/projects */
     create: async (p: ProjectInput): Promise<Project> => toProject(await post('/projects', {
       partnerId: p.partnerId, projectName: trim(p.name), phase: trim(p.phase), location: trim(p.location), district: trim(p.district), state: trim(p.state),
@@ -68,7 +83,7 @@ export const realEstateApi = {
   },
 
   bookings: {
-    /** GET /realestate/bookings — assumed list endpoint (see README). */
+    /** GET /realestate/bookings — assumed list endpoint (see README); screens fall back to "enter booking ID" on 404. */
     list: async (q: PageQuery = {}, signal?: AbortSignal): Promise<Paged<Booking>> => toPaged(await get('/bookings', signal, pageParams(q)), toBooking, q.page, q.pageSize),
     /** GET /realestate/bookings/:bookingId — assumed (see README). */
     get: async (bookingId: Id, signal?: AbortSignal): Promise<Booking> => toBooking(await get(`/bookings/${pathId(bookingId, 'booking id')}`, signal)),
@@ -81,10 +96,25 @@ export const realEstateApi = {
   ledger: {
     /** GET /realestate/bookings/:bookingId/transactions */
     list: async (bookingId: Id, signal?: AbortSignal): Promise<LedgerTransaction[]> => toList(await get(`/bookings/${pathId(bookingId, 'booking id')}/transactions`, signal), toTransaction),
-    /** POST /realestate/bookings/:bookingId/transactions */
+    /**
+     * POST /realestate/bookings/:bookingId/transactions
+     * The three amounts are sent exactly as entered; empty commission/property stay null.
+     */
     create: async (bookingId: Id, t: TransactionInput): Promise<LedgerTransaction> => toTransaction(await post(`/bookings/${pathId(bookingId, 'booking id')}/transactions`, {
-      transactionDate: t.transactionDate, amount: t.amount, paymentMode: t.paymentMode, referenceNumber: trim(t.referenceNumber), remarks: trim(t.remarks),
-      ...(t.proof ? { proofBlobName: t.proof.blobName, proofContainer: t.proof.container } : {}),
+      transactionDate: isoDate(t.transactionDate),
+      amount: t.amount,
+      commissionAmount: t.commissionAmount,
+      propertyAmount: t.propertyAmount,
+      paymentMode: t.paymentMode,
+      referenceNumber: trim(t.referenceNumber) || null,
+      remarks: trim(t.remarks) || null,
+    })),
+  },
+
+  documents: {
+    /** POST /realestate/documents — records an already-uploaded file against a booking. */
+    create: async (d: DocumentInput): Promise<RealEstateDocument> => toDocument(await post('/documents', {
+      bookingId: d.bookingId, documentType: d.documentType, blobName: d.blob.blobName, fileName: d.blob.fileName, contentType: d.blob.contentType,
     })),
   },
 };

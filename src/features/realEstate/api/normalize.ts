@@ -3,8 +3,8 @@
  * and tolerates missing fields so a partial response never crashes a screen.
  */
 import { field, isObj } from '../../../api/errors.ts';
-import { REAL_ESTATE_FEATURES, type Booking, type Customer, type DashboardSummary, type Id, type LedgerTransaction, type Paged, type Partner, type Plot, type Project, type RealEstateAccess, type RealEstateFeature, type UploadGrant } from '../types/realEstateTypes.ts';
-import { OCR_FIELDS, type OcrBatch, type OcrCell, type OcrField, type OcrMatchStatus, type OcrRow, type OcrValidationIssue } from '../types/ocrTypes.ts';
+import { REAL_ESTATE_FEATURES, type Booking, type Customer, type Id, type LedgerTransaction, type OverviewTotals, type Paged, type Partner, type Plot, type Project, type RealEstateAccess, type RealEstateDocument, type RealEstateFeature, type UploadGrant } from '../types/realEstateTypes.ts';
+import { OCR_API_FIELD, OCR_FIELDS, type OcrBatch, type OcrCell, type OcrField, type OcrMatchStatus, type OcrRow, type OcrValidationIssue } from '../types/ocrTypes.ts';
 
 /** First defined value among the keys (each read as camelCase or PascalCase). */
 const pick = (o: unknown, ...keys: string[]): unknown => {
@@ -20,6 +20,13 @@ export const num = (v: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 const numOrNull = (v: unknown): number | null => (v === undefined || v === null || v === '' ? null : num(v));
+/** Nullable money: missing or unreadable stays null (never 0). */
+export const amountOrNull = (v: unknown): number | null => {
+  if (v === undefined || v === null || String(v).trim() === '') return null;
+  const n = typeof v === 'number' ? v : Number(String(v).replace(/[,\s₹]/g, ''));
+  return Number.isFinite(n) ? n : null;
+};
+const boolOrNull = (v: unknown): boolean | null => (typeof v === 'boolean' ? v : v === 'true' ? true : v === 'false' ? false : null);
 const idOrNull = (v: unknown): Id | null => (typeof v === 'number' || (typeof v === 'string' && v.trim()) ? v : null);
 const id = (o: unknown, ...keys: string[]): Id => (idOrNull(pick(o, ...keys, 'id')) ?? '') as Id;
 const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
@@ -59,6 +66,7 @@ export const toPartner = (o: unknown): Partner => ({
   email: str(pick(o, 'email')),
   address: str(pick(o, 'address')),
   gstNumber: str(pick(o, 'gstNumber', 'gst')),
+  isActive: boolOrNull(pick(o, 'isActive', 'active')),
 });
 
 export const toProject = (o: unknown): Project => ({
@@ -70,6 +78,7 @@ export const toProject = (o: unknown): Project => ({
   location: str(pick(o, 'location')),
   district: str(pick(o, 'district')),
   state: str(pick(o, 'state')),
+  status: str(pick(o, 'status')),
 });
 
 export const toPlot = (o: unknown): Plot => ({
@@ -105,32 +114,40 @@ export const toBooking = (o: unknown): Booking => ({
   bookingAmount: num(pick(o, 'bookingAmount')),
   agreedValue: num(pick(o, 'agreedValue')),
   status: str(pick(o, 'status', 'bookingStatus')) || 'Pending',
+  documents: arr(pick(o, 'documents')).map((d) => toDocument(d)),
 });
 
 export const toTransaction = (o: unknown): LedgerTransaction => ({
   id: id(o, 'transactionId'),
   bookingId: idOrNull(pick(o, 'bookingId')),
   transactionDate: str(pick(o, 'transactionDate', 'date')),
-  amount: num(pick(o, 'amount')),
+  amount: num(pick(o, 'amount', 'totalAmountReceived')),
+  commissionAmount: amountOrNull(pick(o, 'commissionAmount')),
+  propertyAmount: amountOrNull(pick(o, 'propertyAmount')),
   paymentMode: str(pick(o, 'paymentMode', 'mode')),
   referenceNumber: str(pick(o, 'referenceNumber', 'reference')),
   remarks: str(pick(o, 'remarks', 'description')),
 });
 
-export const toDashboard = (o: unknown): DashboardSummary => ({
-  partnerName: str(pick(o, 'partnerName', 'businessName')),
-  projectCount: num(pick(o, 'projectCount', 'projects')),
-  availablePlots: num(pick(o, 'availablePlots')),
-  bookedPlots: num(pick(o, 'bookedPlots')),
-  soldPlots: num(pick(o, 'soldPlots')),
-  activeBookings: num(pick(o, 'activeBookings')),
-  outstandingBalance: num(pick(o, 'outstandingBalance', 'outstanding')),
-  recentTransactions: arr(pick(o, 'recentTransactions')).map((t) => ({
-    ...toTransaction(t),
-    customerName: str(pick(t, 'customerName')),
-    plotNumber: str(pick(t, 'plotNumber')),
-  })),
-  ocrBatchesAwaitingReview: num(pick(o, 'ocrBatchesAwaitingReview', 'ocrAwaitingReview')),
+/** Optional aggregate endpoint: every value stays null unless reported. */
+export const toOverview = (o: unknown): OverviewTotals => ({
+  totalPlots: numOrNull(pick(o, 'totalPlots', 'plots')),
+  customers: numOrNull(pick(o, 'customers', 'customerCount')),
+  bookings: numOrNull(pick(o, 'bookings', 'bookingCount')),
+  totalReceived: amountOrNull(pick(o, 'totalReceived', 'totalAmountReceived')),
+  totalCommission: amountOrNull(pick(o, 'totalCommission', 'commissionAmount')),
+  totalProperty: amountOrNull(pick(o, 'totalProperty', 'propertyAmount')),
+  ocrAwaitingReview: numOrNull(pick(o, 'ocrAwaitingReview', 'ocrBatchesAwaitingReview')),
+  ocrReadyToImport: numOrNull(pick(o, 'ocrReadyToImport', 'ocrBatchesReadyToImport')),
+});
+
+export const toDocument = (o: unknown): RealEstateDocument => ({
+  id: id(o, 'documentId'),
+  bookingId: idOrNull(pick(o, 'bookingId')),
+  documentType: str(pick(o, 'documentType', 'type')),
+  documentUrl: str(pick(o, 'documentUrl', 'url')),
+  fileName: str(pick(o, 'fileName', 'blobName')),
+  uploadedDate: str(pick(o, 'uploadedDate', 'createdDate', 'createdAt')),
 });
 
 export function toGrant(o: unknown): UploadGrant {
@@ -154,9 +171,37 @@ const toConfidence = (v: unknown): number | null => {
 };
 const MATCH: OcrMatchStatus[] = ['Matched', 'UnmatchedCustomer', 'UnmatchedPlot', 'Unmatched', 'Ambiguous', 'Pending'];
 
+/** API field name (camel or Pascal, e.g. "CommissionAmount") → OcrField. */
+const fieldOf = (name: string): OcrField | null => {
+  const n = name.toLowerCase();
+  return OCR_FIELDS.find((f) => f.toLowerCase() === n || OCR_API_FIELD[f].toLowerCase() === n) ?? (n === 'amount' ? 'totalAmountReceived' : null);
+};
+
+/** "ledgerRows[1].CommissionAmount" → { rowIndex: 1, field: 'commissionAmount' }. */
+export function parseFieldPath(path: string): { rowIndex: number | null; field: OcrField | null } {
+  const m = /ledgerRows\[(\d+)\]\.?(\w+)?/i.exec(path);
+  if (m) return { rowIndex: Number(m[1]), field: m[2] ? fieldOf(m[2]) : null };
+  return { rowIndex: null, field: path ? fieldOf(path) : null };
+}
+
+export function toIssue(e: unknown, rowIndex: number | null = null): OcrValidationIssue {
+  if (typeof e === 'string') return { code: '', message: e, rowIndex, field: null, severity: 'Error' };
+  const path = parseFieldPath(str(pick(e, 'fieldName', 'field', 'path')));
+  const explicitRow = numOrNull(pick(e, 'rowIndex'));
+  const sev = str(pick(e, 'severity', 'level')).toLowerCase();
+  return {
+    code: str(pick(e, 'code', 'errorCode')),
+    message: str(pick(e, 'message', 'error', 'description')) || 'Invalid value',
+    rowIndex: path.rowIndex ?? explicitRow ?? rowIndex,
+    field: path.field,
+    severity: sev === 'warning' || sev === 'info' ? 'Warning' : 'Error',
+  };
+}
+
 /**
- * A row may be flat (`{ customerName, …, corrections: { amount } }`) or nested
- * (`{ extracted: {…}, corrected: {…}, fieldConfidence: {…} }`).
+ * A row may be flat (`{ customerName, totalAmountReceived, …, corrections: {…} }`) or nested
+ * (`{ extracted: {…}, corrected: {…}, fieldConfidence: {…} }`), camelCase or PascalCase.
+ * A missing or unreadable amount stays '' — it is never filled from another amount.
  */
 export function toOcrRow(o: unknown, index = 0): OcrRow {
   const extracted = pick(o, 'extracted', 'extractedValues') ?? o;
@@ -167,18 +212,15 @@ export function toOcrRow(o: unknown, index = 0): OcrRow {
     const c = isObj(corrected) ? pick(corrected, f) : undefined;
     cells[f] = { extracted: str(pick(extracted, f)), corrected: c === undefined ? null : str(c), confidence: isObj(conf) ? toConfidence(pick(conf, f)) : null };
   }
-  const issues: OcrValidationIssue[] = arr(pick(o, 'validationErrors', 'issues', 'errors')).map((e) => {
-    const f = str(pick(e, 'field'));
-    const known = OCR_FIELDS.find((k) => k.toLowerCase() === f.toLowerCase()) ?? null;
-    return { field: known, message: typeof e === 'string' ? e : str(pick(e, 'message', 'error')) || 'Invalid value' };
-  });
+  const rowIndex = numOrNull(pick(o, 'index', 'rowIndex')) ?? index;
   const status = str(pick(o, 'matchStatus', 'match'));
   return {
-    id: id(o, 'rowId'),
-    rowNumber: num(pick(o, 'rowNumber', 'lineNumber')) || index + 1,
+    id: idOrNull(pick(o, 'rowId', 'id')) ?? rowIndex,
+    index: rowIndex,
+    rowNumber: num(pick(o, 'rowNumber', 'lineNumber')) || rowIndex + 1,
     cells,
     confidence: toConfidence(pick(o, 'confidence')),
-    issues,
+    issues: arr(pick(o, 'validationErrors', 'validationIssues', 'issues', 'errors')).map((e) => ({ ...toIssue(e, rowIndex), rowIndex })),
     match: {
       status: MATCH.find((m) => m.toLowerCase() === status.toLowerCase()) ?? 'Pending',
       bookingId: idOrNull(pick(o, 'matchedBookingId', 'bookingId')),
@@ -188,15 +230,28 @@ export function toOcrRow(o: unknown, index = 0): OcrRow {
 }
 
 export function toOcrBatch(o: unknown): OcrBatch {
-  const rows = arr(pick(o, 'rows', 'items')).map(toOcrRow);
+  const rows = arr(pick(o, 'ledgerRows', 'rows', 'items')).map(toOcrRow);
+  // Batch-level issues that name a row ("ledgerRows[1].CommissionAmount") are attached to it.
+  const batchIssues: OcrValidationIssue[] = [];
+  for (const e of arr(pick(o, 'validationIssues', 'validationErrors', 'issues'))) {
+    const issue = toIssue(e);
+    const row = issue.rowIndex !== null ? rows.find((r) => r.index === issue.rowIndex) : undefined;
+    if (row) row.issues.push(issue); else batchIssues.push(issue);
+  }
+  const counted = rows.reduce((n, r) => n + r.issues.length, 0) + batchIssues.length;
   return {
     id: id(o, 'batchId'),
     status: str(pick(o, 'status')) || 'Uploaded',
     fileName: str(pick(o, 'fileName', 'originalFileName')),
-    createdAt: str(pick(o, 'createdAt', 'uploadedAt')),
-    partnerId: idOrNull(pick(o, 'partnerId')),
+    createdAt: str(pick(o, 'createdAt', 'createdDate', 'uploadedAt')),
+    updatedAt: str(pick(o, 'updatedAt', 'modifiedDate', 'updatedDate')),
+    confidence: toConfidence(pick(o, 'confidence', 'confidenceScore')),
     rowCount: num(pick(o, 'rowCount')) || rows.length,
+    // List responses carry counts without rows.
+    issueCount: rows.length || batchIssues.length ? counted : num(pick(o, 'issueCount')),
     rows,
+    batchIssues,
+    rawText: str(pick(o, 'rawText', 'rawOcrText', 'extractedText')),
     error: str(pick(o, 'error', 'errorMessage', 'failureReason')),
   };
 }

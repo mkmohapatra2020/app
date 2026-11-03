@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext.jsx';
 import { useT } from '../../../i18n/language.ts';
 import { useRealEstateAccess } from '../access/RealEstateAccessProvider.tsx';
 import { realEstateApi } from '../api/realEstateApi.ts';
 import { EmptyView, ErrorView, InlineError, LoadingState, serverFieldErrors } from '../components/ApiStateView.tsx';
 import { bind, Input } from '../components/FormFields.tsx';
-import RealEstateLayout from '../components/RealEstateLayout.tsx';
+import RealEstateLayout, { RE_ROOT } from '../components/RealEstateLayout.tsx';
 import { useRealEstateMutation, useRealEstateQuery } from '../hooks/useRealEstateQuery.ts';
 import { hasErrors, validatePartner, type Errors, type PartnerForm } from '../utils/validation.ts';
 
@@ -23,6 +24,12 @@ export default function PartnersPage() {
   const [errors, setErrors] = useState<Errors<keyof PartnerForm>>({});
   const create = useRealEstateMutation(realEstateApi.partners.create);
   const f = bind(form, setForm);
+  // Search text lives in the URL so it survives refresh and back-navigation.
+  const [params, setParams] = useSearchParams();
+  const q = params.get('q') ?? '';
+  const setQ = (v: string) => setParams((cur) => { const n = new URLSearchParams(cur); if (v) n.set('q', v); else n.delete('q'); return n; }, { replace: true });
+  const needle = q.trim().toLowerCase();
+  const shown = (list.data ?? []).filter((p) => !needle || [p.businessName, p.contactPerson, p.phone, p.email, p.gstNumber].some((v) => v.toLowerCase().includes(needle)));
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -45,19 +52,30 @@ export default function PartnersPage() {
           <h2 id="re-partners">{t('Your partners')}</h2>
           {list.loading && <LoadingState />}
           {list.error && <ErrorView error={list.error} onRetry={list.reload} />}
-          {list.data && list.data.length === 0 && <EmptyView title={t('No partners yet')}>{canCreate ? t('Add the first partner with the form.') : t('No partners have been shared with your account.')}</EmptyView>}
           {list.data && list.data.length > 0 && (
+            <div className="re-search" role="search">
+              <Input label={t('Search partners')} type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('Name, phone, email or GST')} />
+            </div>
+          )}
+          {list.data && list.data.length > 0 && shown.length === 0 && <EmptyView title={t('No matching partners')}>{t('Try another search.')}</EmptyView>}
+          {list.data && list.data.length === 0 && <EmptyView title={t('No partners yet')}>{canCreate ? t('Add the first partner with the form.') : t('No partners have been shared with your account.')}</EmptyView>}
+          {shown.length > 0 && (
             <div className="re-table-wrap" role="region" aria-label={t('Partners')} tabIndex={0}>
               <table className="re-table">
-                <thead><tr><th scope="col">{t('Business')}</th><th scope="col">{t('Contact')}</th><th scope="col">{t('Phone')}</th><th scope="col">{t('Email')}</th><th scope="col">{t('GST')}</th></tr></thead>
+                <thead><tr><th scope="col">{t('Business')}</th><th scope="col">{t('Contact')}</th><th scope="col">{t('Phone')}</th><th scope="col">{t('Email')}</th><th scope="col">{t('GST')}</th><th scope="col">{t('Status')}</th><th scope="col"><span className="sr-only">{t('Actions')}</span></th></tr></thead>
                 <tbody>
-                  {list.data.map((p) => (
+                  {shown.map((p) => (
                     <tr key={String(p.id)}>
                       <td data-label={t('Business')}><strong>{p.businessName}</strong>{p.address && <small className="re-sub">{p.address}</small>}</td>
                       <td data-label={t('Contact')}>{p.contactPerson || '—'}</td>
                       <td data-label={t('Phone')}>{p.phone || '—'}</td>
                       <td data-label={t('Email')}>{p.email || '—'}</td>
                       <td data-label={t('GST')}>{p.gstNumber || '—'}</td>
+                      <td data-label={t('Status')}>{p.isActive === null ? '—' : <span className={`re-badge re-badge-${p.isActive ? 'ok' : 'muted'}`}>{p.isActive ? t('Active') : t('Inactive')}</span>}</td>
+                      <td className="re-row-links">
+                        <Link to={`${RE_ROOT}/projects?partnerId=${encodeURIComponent(String(p.id))}`}>{t('Projects')}</Link>
+                        <Link to={`${RE_ROOT}/customers?partnerId=${encodeURIComponent(String(p.id))}`}>{t('Customers')}</Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

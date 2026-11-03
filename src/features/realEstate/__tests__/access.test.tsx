@@ -102,7 +102,7 @@ describe('Real Estate access gate', () => {
     );
     expect(document.querySelector('[data-testid="secret"]')).toBeNull();
     const tabs = [...document.querySelectorAll('.re-tab')].map((a) => a.textContent);
-    expect(tabs).toEqual(['Dashboard', 'Projects & plots']);
+    expect(tabs).toEqual(['Overview', 'Projects and plots']);
   });
 
   it('partner creation needs a backend grant (or admin)', () => {

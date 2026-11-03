@@ -24,7 +24,7 @@ describe('routes', () => {
   });
 
   it('defines the documented child routes without clashing with existing ones', () => {
-    expect([...REAL_ESTATE_PATHS]).toEqual(['', 'partners', 'projects', 'projects/:projectId/plots', 'customers', 'bookings', 'bookings/:bookingId', 'bookings/:bookingId/ledger', 'ocr', 'ocr/:batchId']);
+    expect([...REAL_ESTATE_PATHS]).toEqual(['', 'partners', 'projects', 'projects/:projectId/plots', 'customers', 'bookings', 'bookings/:bookingId', 'bookings/:bookingId/ledger', 'ledger', 'documents', 'ocr', 'ocr/new', 'ocr/:batchId']);
     // /projects/:id (existing) and /real-estate/projects are different trees.
     expect(EXISTING.some((p) => p.startsWith('real-estate'))).toBe(false);
   });

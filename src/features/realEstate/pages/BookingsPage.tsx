@@ -31,7 +31,7 @@ export default function BookingsPage() {
   const partners = useRealEstateQuery((s) => realEstateApi.partners.list(s), [], { enabled });
   const partnerId = access.access.partnerId ?? partners.data?.[0]?.id ?? null;
   const customers = useRealEstateQuery((s) => realEstateApi.customers.list(partnerId as string | number, { page: 1, pageSize: 200 }, s), [partnerId], { enabled: enabled && partnerId !== null && access.has('Customers') });
-  const projects = useRealEstateQuery((s) => realEstateApi.projects.list(s), [], { enabled });
+  const projects = useRealEstateQuery((s) => realEstateApi.projects.list(null, s), [], { enabled });
   const plots = useRealEstateQuery((s) => realEstateApi.plots.list(projectId, s), [projectId], { enabled: enabled && !!projectId });
   const create = useRealEstateMutation(realEstateApi.bookings.create);
 
