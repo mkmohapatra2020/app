@@ -10,6 +10,7 @@ import EnquiryDialog from './features/enquiry/EnquiryDialog.jsx';
 import { EnquiryContext } from './features/enquiry/enquiry.js';
 import { ToastProvider } from './context/ToastContext.jsx';
 import { CartProvider } from './context/CartContext.jsx';
+import { RealEstateAccessProvider } from './features/realEstate/access/RealEstateAccessProvider.tsx';
 import HomePage from './pages/HomePage.jsx';
 import useReveal from './hooks/useReveal.js';
 
@@ -48,6 +49,8 @@ const pages = {
   Kids: lazy(() => import('./pages/sections/KidsPage.jsx')),
   BuildTogether: lazy(() => import('./pages/sections/BuildTogetherPage.jsx')),
   NotFound: lazy(() => import('./pages/NotFoundPage.jsx')),
+  // Isolated Real Estate module (src/features/realEstate); gated by GET /realestate/access.
+  RealEstate: lazy(() => import('./features/realEstate/routes/realEstateRoutes.tsx')),
 };
 const loadFooter = () => import('./components/layout/Footer.jsx');
 const WelcomeModal = lazy(() => import('./features/membership/WelcomeModal.jsx'));
@@ -83,6 +86,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+      <RealEstateAccessProvider>
       <ToastProvider>
         <CartProvider>
           <EnquiryContext.Provider value={enquiry}>
@@ -123,6 +127,7 @@ export default function App() {
                 <Route path="membership" element={<P.Membership />} />
                 <Route path="membership/benefits" element={auth(<P.Benefits />)} />
                 <Route path="image-generator" element={auth(<P.ImageGen />)} />
+                <Route path="real-estate/*" element={auth(<P.RealEstate />)} />
                 <Route path="*" element={<P.NotFound />} />
               </Route>
             </Routes>
@@ -130,6 +135,7 @@ export default function App() {
           </EnquiryContext.Provider>
         </CartProvider>
       </ToastProvider>
+      </RealEstateAccessProvider>
       </AuthProvider>
     </BrowserRouter>
   );

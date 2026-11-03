@@ -1,0 +1,18 @@
+/*
+ * Odia script for the site's own fonts. Work Sans and Fraunces have no Odia letters, so
+ * these faces add Noto Sans Oriya (@fontsource/noto-sans-oriya, self-hosted) under the same
+ * family names, limited to the Odia Unicode range. Browsers download the files only when
+ * Odia text is on screen; English pages are unaffected.
+ */
+@font-face{font-family:'Work Sans';font-style:normal;font-display:swap;font-weight:100 500;
+  src:url('../../node_modules/@fontsource/noto-sans-oriya/files/noto-sans-oriya-oriya-400-normal.woff2') format('woff2'),url('../../node_modules/@fontsource/noto-sans-oriya/files/noto-sans-oriya-oriya-400-normal.woff') format('woff');
+  unicode-range:U+0951-0952,U+0964-0965,U+0B01-0B77,U+1CDA,U+1CF2,U+200C-200D,U+25CC;}
+@font-face{font-family:'Work Sans';font-style:normal;font-display:swap;font-weight:600 900;
+  src:url('../../node_modules/@fontsource/noto-sans-oriya/files/noto-sans-oriya-oriya-700-normal.woff2') format('woff2'),url('../../node_modules/@fontsource/noto-sans-oriya/files/noto-sans-oriya-oriya-700-normal.woff') format('woff');
+  unicode-range:U+0951-0952,U+0964-0965,U+0B01-0B77,U+1CDA,U+1CF2,U+200C-200D,U+25CC;}
+@font-face{font-family:'Fraunces';font-style:normal;font-display:swap;font-weight:100 500;
+  src:url('../../node_modules/@fontsource/noto-sans-oriya/files/noto-sans-oriya-oriya-400-normal.woff2') format('woff2'),url('../../node_modules/@fontsource/noto-sans-oriya/files/noto-sans-oriya-oriya-400-normal.woff') format('woff');
+  unicode-range:U+0951-0952,U+0964-0965,U+0B01-0B77,U+1CDA,U+1CF2,U+200C-200D,U+25CC;}
+@font-face{font-family:'Fraunces';font-style:normal;font-display:swap;font-weight:600 900;
+  src:url('../../node_modules/@fontsource/noto-sans-oriya/files/noto-sans-oriya-oriya-700-normal.woff2') format('woff2'),url('../../node_modules/@fontsource/noto-sans-oriya/files/noto-sans-oriya-oriya-700-normal.woff') format('woff');
+  unicode-range:U+0951-0952,U+0964-0965,U+0B01-0B77,U+1CDA,U+1CF2,U+200C-200D,U+25CC;}

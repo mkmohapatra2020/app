@@ -1,0 +1,20 @@
+/* Language switcher: builds on .theme-switch / .theme-btn / .theme-menu (themes.css). */
+.lang-btn .lang-code{line-height:1;font-size:.82rem;}
+.lang-badge{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;color:var(--heading);background:var(--accent-soft);}
+/* Odia letters come from odia-font.css (bundled Noto Sans Oriya); they need a little more line height. */
+:root[lang="or"] body{line-height:1.65;}
+/* Letter-spacing and upper-casing split Odia conjuncts apart: turn them off for Odia text. */
+:root[lang="or"] :is(.eyebrow,.re-table thead th,.nav-mega-title,.nav-theme-row > span){letter-spacing:normal;text-transform:none;}
+/* Odia labels are wider: keep the desktop menu bar on one line. */
+@media (min-width:981px){
+  :root[lang="or"] .nav-links{gap:14px;}
+  :root[lang="or"] :is(.nav-menu-btn,.nav-studio,.nav-aux){font-size:.84rem;}
+  :root[lang="or"] .theme-btn{width:42px;padding:0;}
+  :root[lang="or"] .theme-btn :is(.theme-label,.theme-caret){display:none;}
+}
+@media (min-width:981px) and (max-width:1280px){
+  :root[lang="or"] .nav-links .nav-menu-icon{display:none;}
+}
+@media (min-width:981px) and (max-width:1120px){
+  :root[lang="or"] .nav-aux[href="/#about"]{display:none;}
+}

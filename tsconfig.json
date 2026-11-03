@@ -16,5 +16,5 @@
     "noUnusedParameters": true,
     "types": ["vite/client"]
   },
-  "include": ["src/api", "src/auth", "src/pages/auth/LoginPage.tsx", "src/types"]
+  "include": ["src/api", "src/auth", "src/pages/auth/LoginPage.tsx", "src/types", "src/features/realEstate", "src/i18n"]
 }

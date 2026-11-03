@@ -1,0 +1,143 @@
+# Real Estate module (Bhumi Hisab)
+
+Plot seller CRM, buyer payment ledger, and OCR import of paper ledgers. The module is isolated in `src/features/realEstate/` and feature-gated by the backend.
+
+## How it plugs into the app
+
+| File | Change |
+|---|---|
+| `src/App.jsx` | `<RealEstateAccessProvider>` inside `<AuthProvider>`; one lazy route `real-estate/*` behind the existing `ProtectedRoute` |
+| `src/components/layout/Nav.jsx` | `<RealEstateNavigation />`: a "🏡 Real Estate" item in the main menu bar (and phone drawer), shown to **every visitor**; the language switcher; `nav-has-re` class for the compact bar (`realEstateNav.css`) |
+| `tsconfig.json` | `src/features/realEstate` added to `include` |
+| `vitest.config.js` | `esbuild.jsx: 'automatic'` (same JSX runtime as the app build, so shared `.jsx` components render in tests) |
+
+Nothing else outside this folder changed. Login, tokens, memberships, payments, notifications and shared components are reused, not modified:
+
+- **HTTP:** `apiClient` (bearer token, refresh on 401, APIM key, envelope unwrapping, `ApiError`)
+- **Auth:** `requireAuth`, `AuthContext`, `ProtectedRoute`
+- **UI:** `PageShell`, `EmptyState`, `LoadingSpinner`, toasts (`useToast`), `.f-field` / `.f-input` / `.btn` styles, and the theme tokens
+
+## Access gate
+
+After sign-in, `RealEstateAccessProvider` calls `GET /realestate/access` once per user.
+
+- Only `data.enabled === true` enables the module. A 404 (endpoint not deployed yet), 401, 403, 5xx or network error all leave it **disabled**.
+- `features` decides which tabs and screens show. Unknown feature names are ignored.
+- Optional `permissions` (e.g. `"Partners.Create"`) enables fine-grained actions; admins also pass. The partner form appears only when this check passes.
+- The gate is for navigation and UX only. The backend must authorise every call and scope every list to the caller's partner(s).
+
+There is no mock for the access endpoint. Access is never assumed on the frontend.
+
+**Menu item for everyone (product decision, overriding spec rule 6).** The menu-bar item is visible to all visitors; only the pages behind it are gated:
+- Signed-out visitors are sent to sign in.
+- Signed-in users without access see "Real Estate isn't enabled for your account".
+- The backend still authorises every call.
+
+## Frontend routes
+
+| Route | Screen | Feature |
+|---|---|---|
+| `/real-estate` | Dashboard | — |
+| `/real-estate/partners` | Partners (list, create if permitted) | Partners |
+| `/real-estate/projects` | Projects (list, create) | Projects |
+| `/real-estate/projects/:projectId/plots` | Plots (status filter, create, "Book" for Available only) | Plots |
+| `/real-estate/customers` | Customers (paged, search, create; Aadhaar/PAN masked) | Customers |
+| `/real-estate/bookings` | Bookings (paged, status filter, create with confirmation) | Bookings |
+| `/real-estate/bookings/:bookingId` | Booking details + ledger summary | Bookings |
+| `/real-estate/bookings/:bookingId/ledger` | Ledger (history, totals, record payment + proof) | Bookings + Ledger |
+| `/real-estate/ocr` | OCR batches + new upload | OCR |
+| `/real-estate/ocr/:batchId` | OCR review (extract, correct, validate, approve, import / reject) | OCR |
+
+## API dependencies
+
+Paths are relative to the API base (`VITE_BACKEND_URL`, e.g. `…/service/api`). Responses may be bare or wrapped in `{ success, data }`, with camelCase or PascalCase keys. Lists may be an array or `{ items, totalCount }`.
+
+### From the specification
+
+| Method & path | Request body |
+|---|---|
+| `GET /realestate/access` | — |
+| `GET /realestate/partners` | — |
+| `POST /realestate/partners` | `{ businessName, contactPerson, phone, email, address, gstNumber }` |
+| `GET /realestate/projects` | — |
+| `POST /realestate/projects` | `{ partnerId, projectName, phase, location, district, state }` |
+| `GET /realestate/projects/:projectId/plots` | — |
+| `POST /realestate/plots` | `{ projectId, plotNumber, area, areaUnit, facing, roadWidth }` |
+| `GET /realestate/partners/:partnerId/customers` | query `page, pageSize, search` |
+| `POST /realestate/customers` | `{ partnerId, name, phone, email, address, aadhaarNumber, panNumber }` |
+| `POST /realestate/bookings` | `{ customerId, plotId, bookingAmount, agreedValue }`. **409** when the plot is unavailable |
+| `GET /realestate/bookings/:bookingId/transactions` | — |
+| `POST /realestate/bookings/:bookingId/transactions` | `{ transactionDate, amount, paymentMode, referenceNumber, remarks }` |
+| `POST /realestate/images/upload-grant` | `{ fileName, contentType, sizeBytes, purpose: "Document" \| "OcrLedger" }` |
+| `POST /realestate/ocr/batches` | `{ blobName, container, fileName, contentType, partnerId }` |
+| `GET /realestate/ocr/batches/:batchId` | — |
+| `POST /realestate/ocr/batches/:batchId/parse` | `{}` |
+| `POST /realestate/ocr/batches/:batchId/corrections` | `{ corrections: [{ rowId, field, value }] }` |
+| `POST /realestate/ocr/batches/:batchId/validate` | `{}` |
+| `POST /realestate/ocr/batches/:batchId/approve` | `{}` |
+| `POST /realestate/ocr/batches/:batchId/import` | `{}` (the server imports its own validated rows) |
+| `POST /realestate/ocr/batches/:batchId/reject` | `{ reason }` |
+
+### Assumed: please confirm with the backend
+
+The specification listed screens that need these endpoints but did not define them:
+
+| Method & path | Used by | Expected `data` |
+|---|---|---|
+| `GET /realestate/dashboard` | Dashboard | `{ partnerName, projectCount, availablePlots, bookedPlots, soldPlots, activeBookings, outstandingBalance, recentTransactions[], ocrBatchesAwaitingReview }` |
+| `GET /realestate/bookings` | Bookings list | paged bookings; query `page, pageSize, status` |
+| `GET /realestate/bookings/:bookingId` | Booking details, ledger agreed value | booking |
+| `GET /realestate/ocr/batches` | OCR batch list | paged batches; query `page, pageSize, status` |
+
+Optional fields the UI sends or reads:
+
+- **Transactions:** `proofBlobName` and `proofContainer` on `POST …/transactions`, when a payment proof was uploaded.
+- **Upload grant `data`:** `{ uploadUrl, blobName, container, expiresOn, maxBytes?, allowedContentTypes?, requiredHeaders? }`.
+- **OCR batch `data`:** `{ id, status, fileName, createdAt, rowCount, error, rows[] }`. Each row has:
+  - `rowId`, `rowNumber`
+  - the canonical fields `transactionDate, customerName, plotNumber, amount, paymentMode, referenceNumber, remarks`, either flat or under `extracted`
+  - optional `corrections: {field: value}` and `fieldConfidence: {field: 0–1}`
+  - `confidence`, `validationErrors: [{ field, message }]`
+  - `matchStatus: Matched | UnmatchedCustomer | UnmatchedPlot | Unmatched | Ambiguous | Pending`, `matchedBookingId`, `matchLabel`
+
+## Safety rules enforced in the UI
+
+- **Uploads:** files are checked locally (JPG/PNG/WebP, max 10 MB, or stricter limits from the grant). The UI then gets a grant and `PUT`s to **exactly** the returned `https` URL, without sending the bearer token. It keeps only `{ blobName, container, contentType, size, fileName }`; the SAS URL is never stored. The app's media endpoints (`/write-sas-token`, `/ai-visualization/*`) are never used.
+- **OCR:**
+  - Customer name and plot number are shown as matching hints, never as ids. Booking links come only from the server's `matchedBookingId`.
+  - **Approve** and **Import** stay disabled while any validation error, unmatched row or unsaved correction remains. Import also requires status `Approved`.
+  - Approve, import, reject and booking all ask for confirmation.
+- **Customer data:** Aadhaar and PAN are masked in lists (`XXXX XXXX 1234`, `XXXXXX234F`) and cleared from the form after save. The module has no logging.
+- **Errors:** messages come from `ApiError` (5xx bodies are replaced by friendly text). Each state has its own view: unauthorized (sign-in link), forbidden, not found, conflict (plot no longer available), validation (field errors mapped onto the form), network (retry) and OCR extraction failure.
+- **Payments:** buyer payments use only `/realestate/bookings/:id/transactions`, never the membership payment API.
+
+## Tests
+
+`npm test` runs `src/features/realEstate/__tests__/`, which covers:
+
+- the access gate and navigation
+- existing routes left unchanged
+- 401, 403 and 409 handling
+- status badges
+- booking validation and confirmation
+- ledger totals
+- OCR editing, corrections payload and import blocking
+- dedicated upload grants
+- no direct OCR writes
+- Aadhaar/PAN masking
+
+## Language (English / ଓଡ଼ିଆ)
+
+The header has a language button next to the theme button; the phone menu has a matching row. The choice is saved in `localStorage` (`wl-lang`) and sets `<html lang>`.
+
+- **Core:** `src/i18n/language.ts`. `t('English text', { vars })` uses the English text as the key, so anything untranslated stays English. Feature dictionaries register themselves with `registerStrings`.
+- **Real Estate (fully translated):** `i18n/or.ts`. A test fails if any `t('…')` string is missing an Odia translation, or a translation drops a `{placeholder}`.
+- **Header:** `src/i18n/commonStrings.ts`. The rest of the site's page content is still English.
+- **Font:** `@fontsource/noto-sans-oriya` is bundled. `src/i18n/odia-font.css` adds its Odia letters to Work Sans and Fraunces, so it is downloaded only when Odia text is on screen.
+- **Dates:** in Odia they use built-in month names, because most browsers have no Odia date data.
+- **What never changes:** amounts stay in Indian format with Western digits (₹14,00,000.00), and values sent to the API (statuses, payment modes) stay in English.
+- **Review:** the Odia text is a draft translation; have a native speaker review it before launch.
+
+## Not yet done
+
+- WhatsApp statement export and voice notes (SRS Premium tier). These need backend endpoints.

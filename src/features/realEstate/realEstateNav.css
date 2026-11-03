@@ -1,0 +1,39 @@
+/*
+ * Room for the "Real Estate" menu-bar item (a sixth item in the bar). .nav-has-re is set
+ * on <nav> by Nav.jsx.
+ */
+@media (min-width:981px){
+  .nav-has-re .nav-links{gap:14px;}
+  .nav-has-re .theme-btn{width:42px;padding:0;}
+  .nav-has-re .theme-btn .theme-label,.nav-has-re .theme-btn .theme-caret{display:none;}
+}
+/* Narrow laptops: "About us" stays in the footer and the phone menu. */
+@media (min-width:981px) and (max-width:1120px){
+  .nav-has-re .nav-aux[href="/#about"]{display:none;}
+  .nav-has-re .nav-links{gap:10px;}
+}
+/* With the extra item: drop the section emoji on laptops (always for the wider Odia labels). */
+@media (min-width:981px) and (max-width:1440px){
+  .nav-has-re .nav-links .nav-menu-icon{display:none;}
+}
+@media (min-width:981px){
+  :root[lang="or"] .nav-has-re .nav-links .nav-menu-icon{display:none;}
+}
+/* Narrow laptops: signed-out "Sign in" becomes its person icon (text kept for screen readers). */
+@media (min-width:981px) and (max-width:1200px){
+  .nav-has-re .nav-signin{width:42px;height:42px;padding:0;justify-content:center;gap:0;}
+  .nav-has-re .nav-signin span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+}
+@media (min-width:981px) and (max-width:1600px){
+  :root[lang="or"] .nav-has-re .nav-aux[href="/#about"]{display:none;}
+}
+@media (min-width:981px) and (max-width:1120px){
+  :root[lang="or"] .nav-has-re .nav-links .nav-studio[data-key="real-estate"] .nav-menu-icon{display:none;}
+}
+@media (min-width:981px) and (max-width:1120px){
+  :root[lang="or"] .nav-has-re .nav-aux{display:none;}
+}
+/* Narrowest laptops: Contact / About us live in the footer and the phone menu. */
+@media (min-width:981px) and (max-width:1080px){
+  .nav-has-re .nav-aux{display:none;}
+}

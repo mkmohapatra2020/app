@@ -7,6 +7,9 @@ import useSession from '../../hooks/useSession.js';
 import { useCart } from '../../context/CartContext.jsx';
 import { authService } from '../../services/authService.js';
 import { activeSection, bestItem, rememberSection, usePreferredSection } from './navState.js';
+import RealEstateNavigation from '../../features/realEstate/components/RealEstateNavigation.tsx';
+import LanguageSwitcher, { LanguageRow } from '../../i18n/LanguageSwitcher.tsx';
+import { useT } from '../../i18n/language.ts';
 
 const isHash = (to) => to.startsWith('/#');
 const DESKTOP = 980;
@@ -34,6 +37,7 @@ export default function Nav() {
   const navigate = useNavigate();
   const onHome = location.pathname === '/';
   const prefSection = usePreferredSection();
+  const t = useT();
 
   const closeAll = () => { setOpen(false); setMenu(''); setUserOpen(false); };
   useEffect(closeAll, [location.pathname, location.hash, location.search]);
@@ -91,7 +95,8 @@ export default function Nav() {
 
   // Active header section: home-page anchor in view, or the current route.
   const activeMenu = onHome ? mainNav.find((m) => section && linksOf(m).includes(section)) : activeSection(location, prefSection);
-  const activeKey = activeMenu?.key || '';
+  // /real-estate/* belongs to the Real Estate item, which isn't part of mainNav.
+  const activeKey = location.pathname.startsWith('/real-estate') ? 'real-estate' : activeMenu?.key || '';
   // The dropdown item for this exact page (path + ?query + #hash), highlighted in its menu.
   const currentItem = !onHome && activeMenu ? bestItem(activeMenu, location) : null;
 
@@ -135,7 +140,7 @@ export default function Nav() {
   );
 
   return (
-    <nav className={`nav${open ? ' nav-open' : ''}${scrolled ? ' nav-scrolled' : ''}`} ref={navRef} aria-label="Main">
+    <nav className={`nav${open ? ' nav-open' : ''}${scrolled ? ' nav-scrolled' : ''} nav-has-re`} ref={navRef} aria-label="Main">
       <div className="nav-inner">
         <Link className="nav-logo" to="/"><img className="nav-logo-mark" src="/logo-mark.webp" alt="" width="145" height="96" decoding="async" />Weekend-Live</Link>
         <button
@@ -152,10 +157,10 @@ export default function Nav() {
                   // Phones: it expands the accordion, which starts with an "All …" link.
                   if (window.innerWidth > DESKTOP) { rememberSection(m.key); setMenu(''); navigate(m.to); } else setMenu((k) => (k === m.key ? '' : m.key));
                 }}>
-                {m.icon && <span className="nav-menu-icon" aria-hidden="true">{m.icon}</span>}{m.label}{caret}
+                {m.icon && <span className="nav-menu-icon" aria-hidden="true">{m.icon}</span>}{t(m.label)}{caret}
               </button>
               <div id={`menu-${m.key}`} className={`nav-dropdown nav-mega nav-mega-${m.groups.length}${m.feature ? ' has-feature' : ''}${menu === m.key ? ' open' : ''}`}>
-                <Link to={m.to} className="nav-mega-all" onClick={() => rememberSection(m.key)}>All {m.label} <span aria-hidden="true">→</span></Link>
+                <Link to={m.to} className="nav-mega-all" onClick={() => rememberSection(m.key)}>{t('All {label}', { label: t(m.label) })} <span aria-hidden="true">→</span></Link>
                 <div className="nav-mega-groups">
                   {m.groups.map((g, gi) => (
                     <div key={g.title || gi} className="nav-mega-group">
@@ -169,22 +174,25 @@ export default function Nav() {
             </li>
           ) : (
             <li key={m.key} style={{ '--i': i }}>
-              <NavLink to={m.to} data-key={m.key} onClick={() => rememberSection(m.key)} className={({ isActive }) => `nav-studio${isActive || activeKey === m.key ? ' is-active' : ''}`}>{m.icon && <span className="nav-menu-icon" aria-hidden="true">{m.icon}</span>}{m.label}</NavLink>
+              <NavLink to={m.to} data-key={m.key} onClick={() => rememberSection(m.key)} className={({ isActive }) => `nav-studio${isActive || activeKey === m.key ? ' is-active' : ''}`}>{m.icon && <span className="nav-menu-icon" aria-hidden="true">{m.icon}</span>}{t(m.label)}</NavLink>
             </li>
           )))}
+          <RealEstateNavigation index={mainNav.length} />
           <li className="nav-mobile-only" style={{ '--i': mainNav.length }}>
             {isAuthenticated
-              ? <><Link to="/profile">My profile</Link>{isAdmin && <Link to="/admin">Admin dashboard</Link>}<button type="button" className="nav-text-btn" onClick={logout}>Sign out</button></>
-              : <><Link to="/login">Sign in</Link><Link to="/register">Create account</Link></>}
+              ? <><Link to="/profile">{t('My profile')}</Link>{isAdmin && <Link to="/admin">{t('Admin dashboard')}</Link>}<button type="button" className="nav-text-btn" onClick={logout}>{t('Sign out')}</button></>
+              : <><Link to="/login">{t('Sign in')}</Link><Link to="/register">{t('Create account')}</Link></>}
           </li>
-          <li className="nav-mobile-only" style={{ '--i': mainNav.length + 2 }}><Link to="/contact">Contact</Link><Link to="/#about">About us</Link></li>
+          <li className="nav-mobile-only" style={{ '--i': mainNav.length + 2 }}><Link to="/contact">{t('Contact')}</Link><Link to="/#about">{t('About us')}</Link></li>
           <li className="nav-mobile-only" style={{ '--i': mainNav.length + 3 }}><ThemeRow /></li>
+          <li className="nav-mobile-only" style={{ '--i': mainNav.length + 4 }}><LanguageRow /></li>
           {pill && <li className="nav-pill" aria-hidden="true" style={{ transform: `translateX(${pill.left}px)`, width: pill.width }} />}
         </ul>
         <div className="nav-actions">
           <TryNow showButton={false} />
-          <Link to="/contact" className="nav-aux">Contact</Link>
-          <Link to="/#about" className="nav-aux">About us</Link>
+          <Link to="/contact" className="nav-aux">{t('Contact')}</Link>
+          <Link to="/#about" className="nav-aux">{t('About us')}</Link>
+          <LanguageSwitcher />
           <ThemeSwitcher />
           <Link to="/cart" className="nav-icon-btn" aria-label={`Cart, ${cart.count} item${cart.count === 1 ? '' : 's'}`}>
             <span aria-hidden="true">🛒</span>{cart.count > 0 && <b className="nav-badge">{cart.count}</b>}
@@ -197,17 +205,17 @@ export default function Nav() {
                 </button>
                 <ul className={`nav-dropdown nav-dropdown-right${userOpen ? ' open' : ''}`}>
                   <li className="nav-dropdown-head">{user?.name || user?.email}</li>
-                  <li><Link to="/profile">My profile</Link></li>
-                  <li><Link to="/my-designs">My AI designs</Link></li>
-                  {isAdmin && <li><Link to="/admin">Admin dashboard</Link></li>}
-                  {isAdmin && <li><Link to="/admin/ai-visualizations">AI review queue</Link></li>}
-                  <li><button type="button" onClick={logout}>Sign out</button></li>
+                  <li><Link to="/profile">{t('My profile')}</Link></li>
+                  <li><Link to="/my-designs">{t('My AI designs')}</Link></li>
+                  {isAdmin && <li><Link to="/admin">{t('Admin dashboard')}</Link></li>}
+                  {isAdmin && <li><Link to="/admin/ai-visualizations">{t('AI review queue')}</Link></li>}
+                  <li><button type="button" onClick={logout}>{t('Sign out')}</button></li>
                 </ul>
               </>
             ) : (
               <Link to="/login" className="nav-signin">
                 <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="10" cy="7" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.7" /><path d="M3.8 17c.9-3.2 3.3-4.8 6.2-4.8s5.3 1.6 6.2 4.8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
-                <span>Sign in</span>
+                <span>{t('Sign in')}</span>
               </Link>
             )}
           </div>
