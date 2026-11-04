@@ -81,11 +81,11 @@ Paths are relative to the API base (`VITE_BACKEND_URL`, e.g. `…/service/api`).
 | `POST /realestate/projects` | `{ partnerId, projectName, phase, location, district, state }` |
 | `GET /realestate/projects/:projectId/plots` | — |
 | `POST /realestate/plots` | `{ projectId, plotNumber, area, areaUnit, facing, roadWidth }` |
-| `GET /realestate/partners/:partnerId/customers` | query `page, pageSize, search` |
+| `GET /realestate/partners/:partnerId/customers` | — (whole list; search and paging happen in the browser) |
 | `POST /realestate/customers` | `{ partnerId, name, phone, email, address, aadhaarNumber, panNumber }` |
 | `POST /realestate/bookings` | `{ customerId, plotId, bookingAmount, agreedValue }`. **409** when the plot is unavailable |
 | `GET /realestate/bookings/:bookingId/transactions` | — |
-| `POST /realestate/bookings/:bookingId/transactions` | `{ transactionDate: "2026-01-15T00:00:00Z", amount, commissionAmount \| null, propertyAmount \| null, paymentMode, referenceNumber \| null, remarks \| null }` |
+| `POST /realestate/bookings/:bookingId/transactions` | `{ transactionDate: "2026-01-15T00:00:00Z", amount, commissionAmount?, propertyAmount?, paymentMode, referenceNumber?, remarks? }`, where empty optional fields are omitted |
 | `POST /realestate/documents` | `{ bookingId, documentType, blobName }` (`documentUrl` is set by the backend) |
 | `POST /realestate/images/upload-grant` | `{ fileName, contentType }` |
 | `POST /realestate/ocr/batches` | `{ fileName, contentType, inputType: 0–3, blobName, businessModule: "RealEstate" }`, where `inputType` is an int enum: 0 Image, 1 Pdf, 2 Excel, 3 ScannedLedgerPage (assumed order, to confirm) |
@@ -99,14 +99,16 @@ Paths are relative to the API base (`VITE_BACKEND_URL`, e.g. `…/service/api`).
 
 `ledgerRows[n]` uses the 0-based index of the row in the batch's `ledgerRows` array. Field names are `TransactionDate, CustomerName, PlotNumber, TotalAmountReceived, CommissionAmount, PropertyAmount, PaymentMode, ReferenceNumber, Remarks`.
 
-### Not in the live swagger: the UI works without them
+### Not in the live swagger, so never called
 
-| Method & path | Used by | Without it |
-|---|---|---|
-| `GET /realestate/overview` | Overview aggregates `{ totalPlots, customers, bookings, totalReceived, totalCommission, totalProperty, ocrAwaitingReview, ocrReadyToImport }` | Tiles show "—  Not available yet" (404 is not an error) |
-| `GET /realestate/bookings` | Bookings list, booking selectors | Selectors ask for a booking ID |
-| `GET /realestate/bookings/:bookingId` | Booking details, agreed value, `documents[]` | The ledger still shows transactions |
-| `GET /realestate/ocr/batches` | OCR batch list | "Open a batch by ID" form |
+| Missing route | What the UI does instead |
+|---|---|
+| `GET /realestate/bookings` (list) | Bookings created in this tab (`utils/recent.ts`, sessionStorage), plus "open by booking ID" |
+| `GET /realestate/bookings/:bookingId` | Details and agreed value for bookings created in this tab; otherwise only the ledger, with no agreed value or outstanding |
+| `GET /realestate/ocr/batches` (list) | Batches created or opened in this tab, plus "open by batch ID" |
+| `GET /realestate/overview` | Overview counts from the partners, projects and customers lists only |
+
+The session memory keeps only display fields (customer name, plot, amounts, status). It holds no Aadhaar, PAN or contact details, and it is cleared when the tab closes. If the backend adds these routes, the screens can switch back to them.
 
 ### Response fields the UI reads
 

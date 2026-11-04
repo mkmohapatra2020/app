@@ -50,7 +50,11 @@ export default function CustomersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
-  const list = useRealEstateQuery((s) => realEstateApi.customers.list(selected, { page, pageSize: PAGE_SIZE, search: query }, s), [selected, page, query], { enabled: enabled && !!selected });
+  // The API returns the partner's whole list (no paging/search): search and page in the browser.
+  const list = useRealEstateQuery((s) => realEstateApi.customers.list(selected, s), [selected], { enabled: enabled && !!selected });
+  const needle = query.toLowerCase();
+  const matches = (list.data ?? []).filter((c) => !needle || c.name.toLowerCase().includes(needle) || c.phone.replace(/\s/g, '').includes(needle.replace(/\s/g, '')));
+  const shown = matches.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const empty: CustomerForm = { partnerId: selected, name: '', phone: '', email: '', address: '', aadhaarNumber: '', panNumber: '' };
   const [form, setForm] = useState<CustomerForm>(empty);
@@ -93,16 +97,16 @@ export default function CustomersPage() {
           {partners.data && !partnerOptions.length && <EmptyView title={t('No partners available')}>{t('Customers belong to a partner. Ask an administrator to share one with you.')}</EmptyView>}
           {list.loading && <LoadingState />}
           {list.error && <ErrorView error={list.error} onRetry={list.reload} />}
-          {list.data && list.data.items.length === 0 && !list.loading && <EmptyView title={query ? t('No matching customers') : t('No customers yet')} />}
-          {list.data && list.data.items.length > 0 && (
+          {list.data && shown.length === 0 && !list.loading && <EmptyView title={query ? t('No matching customers') : t('No customers yet')} />}
+          {shown.length > 0 && (
             <>
               <div className="re-table-wrap" role="region" aria-label={t('Customers')} tabIndex={0}>
                 <table className="re-table">
                   <thead><tr><th scope="col">{t('Name')}</th><th scope="col">{t('Phone')}</th><th scope="col">{t('Email')}</th><th scope="col">{t('Aadhaar')}</th><th scope="col">{t('PAN')}</th></tr></thead>
-                  <tbody>{list.data.items.map((c) => <CustomerRow key={String(c.id)} c={c} />)}</tbody>
+                  <tbody>{shown.map((c) => <CustomerRow key={String(c.id)} c={c} />)}</tbody>
                 </table>
               </div>
-              <Pager page={page} pageSize={PAGE_SIZE} total={list.data.total} count={list.data.items.length} onPage={setPage} />
+              <Pager page={page} pageSize={PAGE_SIZE} total={matches.length} count={shown.length} onPage={setPage} />
             </>
           )}
         </section>

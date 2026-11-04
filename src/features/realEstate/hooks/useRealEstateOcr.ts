@@ -8,10 +8,12 @@ import { realEstateOcrApi } from '../api/realEstateOcrApi.ts';
 import type { OcrAction } from '../components/OcrBatchActions.tsx';
 import type { OcrBatch, OcrDraft, OcrField } from '../types/ocrTypes.ts';
 import { buildCorrections } from '../utils/ocr.ts';
+import { rememberBatch } from '../utils/recent.ts';
 import { useRealEstateQuery } from './useRealEstateQuery.ts';
 
 export function useRealEstateOcr(batchId: string, enabled: boolean) {
-  const q = useRealEstateQuery((s) => realEstateOcrApi.get(batchId, s), [batchId], { enabled: enabled && !!batchId });
+  // There is no batch list in the API: remember every batch opened here for the OCR page.
+  const q = useRealEstateQuery(async (s) => { const b = await realEstateOcrApi.get(batchId, s); rememberBatch(b); return b; }, [batchId], { enabled: enabled && !!batchId });
   const [draft, setDraft] = useState<OcrDraft>({});
   const [pending, setPending] = useState<OcrAction | null>(null);
   const [actionError, setActionError] = useState<{ action: OcrAction; error: ApiError } | null>(null);
@@ -46,6 +48,7 @@ export function useRealEstateOcr(batchId: string, enabled: boolean) {
       // Some actions may answer with a status only: re-read the full batch then.
       if (next.id === '' || (next.rows.length === 0 && batch.rows.length > 0)) next = await realEstateOcrApi.get(batch.id);
       q.setData(() => next);
+      rememberBatch(next);
       return next;
     } catch (e) {
       setActionError({ action, error: isApiError(e) ? e : toApiError(e) });

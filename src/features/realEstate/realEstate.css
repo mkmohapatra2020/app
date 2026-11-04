@@ -174,3 +174,6 @@ th.re-col-property{color:var(--re-property);}
   .re-ocr-table td{flex-direction:column;align-items:stretch;text-align:left;}
   .re-table .num{text-align:right;}
 }
+
+.re-subhead{font-size:1rem;margin:18px 0 8px;}
+.re-booking-pick{display:grid;gap:10px;}

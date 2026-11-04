@@ -12,6 +12,7 @@ import RealEstateStatusBadge from '../components/RealEstateStatusBadge.tsx';
 import { useRealEstateMutation } from '../hooks/useRealEstateQuery.ts';
 import type { OcrBatch } from '../types/ocrTypes.ts';
 import type { StoredBlob } from '../types/realEstateTypes.ts';
+import { rememberBatch } from '../utils/recent.ts';
 
 const INPUT_LABEL: Record<string, string> = { ScannedLedgerPage: 'Scanned ledger page', Pdf: 'PDF', Excel: 'Excel' };
 
@@ -28,12 +29,12 @@ export default function OcrUploadPage() {
   const start = async () => {
     if (!blob) return;
     const created = await create.run(blob);
-    if (created && created.id !== '') { setBatch(created); toast(t('Import batch created')); }
+    if (created && created.id !== '') { rememberBatch({ ...created, fileName: created.fileName || blob.fileName }); setBatch(created); toast(t('Import batch created')); }
   };
   const parseNow = async () => {
     if (!batch) return;
     const parsed = await parse.run(batch.id);
-    if (parsed) { toast(t('Rows extracted — please review')); navigate(batchUrl); }
+    if (parsed) { rememberBatch(parsed); toast(t('Rows extracted — please review')); navigate(batchUrl); }
   };
 
   return (

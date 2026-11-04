@@ -23,20 +23,15 @@ describe('Real Estate sample data', () => {
     expect(projects.every((p) => p.partnerId === 1)).toBe(true);
     const plots = await realEstateApi.plots.list(projects[0].id);
     expect(new Set(plots.map((p) => p.status))).toEqual(new Set(['Available', 'Booked', 'Sold', 'Blocked']));
-    const customers = await realEstateApi.customers.list(1, { page: 1, pageSize: 2 });
-    expect(customers.items).toHaveLength(2);
-    expect(customers.total).toBeGreaterThan(2);
+    const customers = await realEstateApi.customers.list(1);
+    expect(customers.length).toBeGreaterThan(2);
   });
 
   it('keeps the three ledger amounts separate', async () => {
     const tx = await realEstateApi.ledger.list(9001);
     expect(tx[0]).toMatchObject({ amount: 100000, commissionAmount: 5000, propertyAmount: 95000 });
     expect(tx[1].commissionAmount).toBeNull();
-    const b = await realEstateApi.bookings.get(9001);
-    expect(ledgerTotals(b.agreedValue, tx)).toMatchObject({ totalReceived: 350000, totalCommission: 5000, totalProperty: 335000, outstanding: 1050000 });
-    const o = await realEstateApi.overview();
-    expect(o?.totalReceived).toBeGreaterThan(0);
-    expect(o?.totalCommission).toBeGreaterThan(0);
+    expect(ledgerTotals(1400000, tx)).toMatchObject({ totalReceived: 350000, totalCommission: 5000, totalProperty: 335000, outstanding: 1050000 });
   });
 
   it('refuses booking an unavailable plot (409) and books an available one', async () => {

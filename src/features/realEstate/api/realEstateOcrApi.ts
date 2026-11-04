@@ -5,9 +5,9 @@
  */
 import { apiGet, apiPost, pathId } from '../../../api/apiClient.ts';
 import { requireAuth } from '../../../api/authApi.ts';
-import { OCR_INPUT_TYPE_CODE, type Id, type PageQuery, type Paged, type StoredBlob } from '../types/realEstateTypes.ts';
+import { OCR_INPUT_TYPE_CODE, type Id, type StoredBlob } from '../types/realEstateTypes.ts';
 import type { OcrBatch, OcrCorrection } from '../types/ocrTypes.ts';
-import { toOcrBatch, toPaged } from './normalize.ts';
+import { toOcrBatch } from './normalize.ts';
 import { RE_BASE } from './realEstateApi.ts';
 import { ocrInputType } from './realEstateUpload.ts';
 
@@ -19,13 +19,6 @@ const act = async (batchId: Id, action: string, body: object = {}): Promise<OcrB
 };
 
 export const realEstateOcrApi = {
-  /** GET /realestate/ocr/batches — assumed list endpoint (see README); the list page falls back on 404. */
-  list: async (q: PageQuery = {}, signal?: AbortSignal): Promise<Paged<OcrBatch>> => {
-    requireAuth();
-    const params = Object.fromEntries(Object.entries({ page: q.page, pageSize: q.pageSize, status: q.status || undefined }).filter(([, v]) => v !== undefined));
-    return toPaged(await apiGet<unknown>(OCR, { signal, params }), toOcrBatch, q.page, q.pageSize);
-  },
-
   /**
    * POST /realestate/ocr/batches
    * { fileName, contentType, inputType (int enum), blobName, businessModule: "RealEstate" } —

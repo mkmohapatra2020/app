@@ -187,19 +187,21 @@ Notes: most paths have `steps: []` (only Woodworking Fundamentals has steps). `i
 
 All 19 `/realestate/*` routes from the Real Estate spec are deployed, and the UI calls them through APIM with the login token. Sample data (`src/features/realEstate/mocks/realEstateMock.ts`) is **off by default**; set `VITE_REALESTATE_MOCK=on` to use it for local demos.
 
-**Not in the swagger.** The UI already handles each one:
+**Not in the swagger, so the UI never calls them:**
 
-| Missing route | UI fallback |
+| Missing route | What the UI does instead |
 |---|---|
-| `GET /realestate/bookings` (list; 404 — only `POST` exists) | booking selectors ask for a booking ID |
-| `GET /realestate/bookings/{id}` | the ledger still loads; booking details and agreed value aren't shown |
-| `GET /realestate/ocr/batches` (list) | "Open a batch by ID" form |
-| `GET /realestate/overview` | Overview tiles show "Not available yet" |
+| `GET /realestate/bookings` (list; 404 — only `POST` exists) | Lists the bookings created in this browser tab (sessionStorage), and any booking can be opened by ID |
+| `GET /realestate/bookings/{id}` | Shows details and the agreed value for bookings created in this tab. For other bookings it shows only the ledger, with no agreed value or outstanding |
+| `GET /realestate/ocr/batches` (list) | Lists the batches created or opened in this tab, plus an "Open a batch by ID" form |
+| `GET /realestate/overview` | The Overview counts partners, active projects and the user's partner's customers from the list calls; other totals aren't computed |
+
+`GET /realestate/partners/{partnerId}/customers` has no paging or search parameters, so the whole list is loaded and searched and paged in the browser. Empty optional fields (commission, property amount, reference, remarks, email…) are **left out** of request bodies rather than sent as `null`, `0` or `""`, because the swagger models them as non-nullable.
 
 **Backend questions and issues:**
 
 - **Unauthenticated calls return 500.** Without a token, `/realestate/*` returns 500 with an empty body, where it should return 401 (`/membership/my-credits` correctly returns 401).
 - **`createOcrBatchRequest.inputType` values.** It is an `int32` enum `0–3` with no names. The UI assumes `0 Image, 1 Pdf, 2 Excel, 3 ScannedLedgerPage`, following the order in the Platform OCR spec. Please confirm.
-- **Nullable amounts.** `createTransactionRequest.commissionAmount` and `propertyAmount` are `double` in the swagger. The UI sends `null` when the ledger has no value, as the UI spec requires, so please make them `double?`.
+- **Nullable amounts.** `createTransactionRequest.commissionAmount` and `propertyAmount` are `double` in the swagger. When the ledger has no value, the UI leaves the field out. If the backend defaults it to `0`, "no commission written" can't be told apart from "commission 0", so please make them `double?`.
 - **Documents.** `createDocumentRequest` is sent as `{ bookingId, documentType, blobName }`. `documentUrl` is left for the backend to set, because the UI never builds storage URLs.
 - **Response shapes.** All Real Estate responses are `ApiResponse` with an untyped `data`. The UI reads the field names listed in `src/features/realEstate/README.md` (camelCase or PascalCase).

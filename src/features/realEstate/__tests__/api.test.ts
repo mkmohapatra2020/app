@@ -43,27 +43,28 @@ describe('realEstateApi', () => {
     const calls = stubApi(() => ok({}));
     await realEstateApi.projects.create({ partnerId: 12, name: ' Green City ', phase: 'Phase-2', location: 'Khurda', district: 'Khurda', state: 'Odisha' });
     await realEstateApi.plots.list(5);
-    await realEstateApi.customers.list(12, { page: 2, pageSize: 20 });
+    await realEstateApi.customers.list(12);
     await realEstateApi.projects.list(12);
     await realEstateApi.documents.create({ bookingId: 9, documentType: 'Agreement', blob: { blobName: 're/a.pdf', container: 're', contentType: 'application/pdf', size: 5, fileName: 'a.pdf' } });
     expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
       'POST /realestate/projects', 'GET /realestate/projects/5/plots', 'GET /realestate/partners/12/customers', 'GET /realestate/projects', 'POST /realestate/documents',
     ]);
     expect(calls[0].body).toEqual({ partnerId: 12, projectName: 'Green City', phase: 'Phase-2', location: 'Khurda', district: 'Khurda', state: 'Odisha' });
-    expect(calls[2].params).toEqual({ page: 2, pageSize: 20 });
+    expect(calls[2].params).toBeNull(); // the API has no paging/search parameters
     expect(calls[3].params).toEqual({ partnerId: 12 });
     // createDocumentRequest: only swagger fields; no client-built documentUrl.
     expect(calls[4].body).toEqual({ bookingId: 9, documentType: 'Agreement', blobName: 're/a.pdf' });
   });
 
-  it('sends the three ledger amounts independently, ISO date, empty optionals as null', async () => {
+  it('sends the three ledger amounts independently, ISO date, and omits empty optional fields', async () => {
     signIn();
     const calls = stubApi(() => ok({}));
     await realEstateApi.ledger.create(9, { transactionDate: '2026-01-15', amount: 100000, commissionAmount: 5000, propertyAmount: 95000, paymentMode: 'Cash', referenceNumber: ' R-1 ', remarks: '' });
     await realEstateApi.ledger.create(9, { transactionDate: '2026-01-16', amount: 25000, commissionAmount: null, propertyAmount: null, paymentMode: 'UPI', referenceNumber: '', remarks: '' });
     expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual(['POST /realestate/bookings/9/transactions', 'POST /realestate/bookings/9/transactions']);
-    expect(calls[0].body).toEqual({ transactionDate: '2026-01-15T00:00:00Z', amount: 100000, commissionAmount: 5000, propertyAmount: 95000, paymentMode: 'Cash', referenceNumber: 'R-1', remarks: null });
-    expect(calls[1].body).toMatchObject({ amount: 25000, commissionAmount: null, propertyAmount: null });
+    expect(calls[0].body).toEqual({ transactionDate: '2026-01-15T00:00:00Z', amount: 100000, commissionAmount: 5000, propertyAmount: 95000, paymentMode: 'Cash', referenceNumber: 'R-1' });
+    // createTransactionRequest types the amounts as double: empty ones are left out — never sent as 0 or null.
+    expect(calls[1].body).toEqual({ transactionDate: '2026-01-16T00:00:00Z', amount: 25000, paymentMode: 'UPI' });
     // Buyer payments never go to the membership payment API.
     expect(calls.some((c) => /membership/i.test(c.url))).toBe(false);
   });
@@ -75,18 +76,19 @@ describe('realEstateApi', () => {
     expect(tx).toMatchObject({ amount: 100000, commissionAmount: 5000, propertyAmount: null });
   });
 
-  it('treats a missing overview endpoint as "not available" instead of inventing totals', async () => {
-    signIn();
-    stubApi(() => ({ status: 404 }));
-    expect(await realEstateApi.overview()).toBeNull();
+  it('only calls routes that exist in the live swagger', () => {
+    // No bookings list / booking by id / overview / OCR batch list in the API.
+    expect(Object.keys(realEstateApi.bookings)).toEqual(['create']);
+    expect('overview' in realEstateApi).toBe(false);
+    expect('list' in realEstateOcrApi).toBe(false);
   });
 
-  it('reads PascalCase and paged responses', async () => {
+  it('reads PascalCase responses, as a plain array or wrapped in Items', async () => {
     signIn();
     stubApi(() => ok({ Items: [{ CustomerId: 3, Name: 'Ramesh', AadhaarNumber: '234567890123' }], TotalCount: 41 }));
-    const page = await realEstateApi.customers.list(12, { page: 1, pageSize: 20 });
-    expect(page.total).toBe(41);
-    expect(page.items[0]).toMatchObject({ id: 3, name: 'Ramesh' });
+    expect((await realEstateApi.customers.list(12))[0]).toMatchObject({ id: 3, name: 'Ramesh' });
+    stubApi(() => ok([{ Id: 4, Name: 'Sita' }]));
+    expect((await realEstateApi.customers.list(12))[0]).toMatchObject({ id: 4, name: 'Sita' });
   });
 });
 

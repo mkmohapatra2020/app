@@ -2,6 +2,9 @@
  * One booking: details, ledger summary (total received / commission / property amount
  * kept separate), transaction history, record-a-payment form and documents.
  * Buyer payments use the Real Estate transactions API, never the membership payment API.
+ *
+ * The API has no "get booking" endpoint: details (and the agreed value for "outstanding")
+ * come from bookings created in this tab; otherwise only the transactions are shown.
  */
 import { Link } from 'react-router-dom';
 import { useT } from '../../../i18n/language.ts';
@@ -11,6 +14,7 @@ import { realEstateApi } from '../api/realEstateApi.ts';
 import { useRealEstateMutation, useRealEstateQuery } from '../hooks/useRealEstateQuery.ts';
 import type { TransactionInput } from '../types/realEstateTypes.ts';
 import { date, ledgerTotals, money } from '../utils/format.ts';
+import { recentBooking } from '../utils/recent.ts';
 import { EmptyView, ErrorView, LoadingState } from './ApiStateView.tsx';
 import DocumentsPanel from './DocumentsPanel.tsx';
 import LedgerTable, { LedgerSummary } from './LedgerTable.tsx';
@@ -23,10 +27,9 @@ export default function BookingLedgerView({ bookingId, view }: { bookingId: stri
   const { toast } = useToast();
   const access = useRealEstateAccess();
   const canLedger = access.has('Ledger');
-  const booking = useRealEstateQuery((s) => realEstateApi.bookings.get(bookingId, s), [bookingId], { enabled: !!bookingId });
+  const b = recentBooking(bookingId);
   const tx = useRealEstateQuery((s) => realEstateApi.ledger.list(bookingId, s), [bookingId], { enabled: canLedger && !!bookingId });
   const create = useRealEstateMutation((input: TransactionInput) => realEstateApi.ledger.create(bookingId, input));
-  const b = booking.data;
   const totals = ledgerTotals(b?.agreedValue ?? 0, tx.data ?? []);
   const base = `${RE_ROOT}/bookings/${encodeURIComponent(bookingId)}`;
 
@@ -40,9 +43,16 @@ export default function BookingLedgerView({ bookingId, view }: { bookingId: stri
 
   return (
     <>
-      {booking.loading && <LoadingState />}
-      {/* Booking details are optional context: the ledger still works if GET /bookings/:id is missing. */}
-      {booking.error && booking.error.kind !== 'notFound' && <ErrorView error={booking.error} onRetry={booking.reload} />}
+      {!b && (
+        <section className="re-card" aria-label={t('Booking details')}>
+          <div className="re-card-head">
+            <h2>{t('Booking {id}', { id: bookingId })}</h2>
+            {view === 'ledger' && <Link to={base}>{t('Booking details')} →</Link>}
+            {view === 'detail' && canLedger && <Link className="btn btn-outline btn-sm" to={`${base}/ledger`}>{t('Open ledger')}</Link>}
+          </div>
+          <p className="re-sub">{t('Booking details are shown for bookings created in this session. The ledger below comes from the API.')}</p>
+        </section>
+      )}
       {b && (
         <section className="re-card" aria-label={t('Booking details')}>
           <div className="re-card-head">
@@ -66,7 +76,7 @@ export default function BookingLedgerView({ bookingId, view }: { bookingId: stri
         <>
           {tx.loading && <LoadingState text={t('Loading ledger…')} />}
           {tx.error && <ErrorView error={tx.error} onRetry={tx.reload} />}
-          {tx.data && <LedgerSummary totals={totals} />}
+          {tx.data && <LedgerSummary totals={totals} agreedKnown={!!b?.agreedValue} />}
           {/* Ledger view: full-width history (7 columns), form below it. */}
           <div className={view === 'ledger' ? 're-stack' : undefined}>
             <section className="re-card" aria-labelledby="re-history">
@@ -83,7 +93,7 @@ export default function BookingLedgerView({ bookingId, view }: { bookingId: stri
           </div>
         </>
       )}
-      {view === 'detail' && access.has('Bookings') && <DocumentsPanel key={bookingId} bookingId={bookingId} initial={b?.documents ?? []} />}
+      {view === 'detail' && access.has('Bookings') && <DocumentsPanel key={bookingId} bookingId={bookingId} />}
     </>
   );
 }
