@@ -13,11 +13,7 @@
 import { apiGet, apiPost, pathId } from '../../../api/apiClient.ts';
 import { requireAuth } from '../../../api/authApi.ts';
 import type { Booking, BookingInput, Customer, CustomerInput, DocumentInput, Id, LedgerTransaction, Partner, PartnerInput, Plot, PlotInput, Project, ProjectInput, RealEstateDocument, TransactionInput } from '../types/realEstateTypes.ts';
-import { installRealEstateMock } from '../mocks/realEstateMock.ts';
 import { toBooking, toCustomer, toDocument, toList, toPartner, toPlot, toProject, toTransaction } from './normalize.ts';
-
-// Optional sample data for local demos (VITE_REALESTATE_MOCK=on); off by default — the real API is live.
-installRealEstateMock();
 
 export const RE_BASE = '/realestate';
 

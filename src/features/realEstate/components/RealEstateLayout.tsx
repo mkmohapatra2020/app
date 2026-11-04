@@ -9,7 +9,6 @@ import PageShell from '../../../components/common/PageShell.jsx';
 import { useT } from '../../../i18n/language.ts';
 import { useRealEstateAccess } from '../access/RealEstateAccessProvider.tsx';
 import type { RealEstateFeature } from '../types/realEstateTypes.ts';
-import { REAL_ESTATE_MOCK } from '../mocks/realEstateMock.ts';
 import { LoadingState } from './ApiStateView.tsx';
 import '../i18n/or.ts';
 
@@ -81,11 +80,6 @@ export default function RealEstateLayout({ title, intro, feature, crumbs = [], a
               className={({ isActive }) => `re-tab${isActive || tab.also?.some((p) => under(pathname, p)) ? ' is-active' : ''}`}>{t(tab.label)}</NavLink>
           ))}
         </nav>
-      )}
-      {REAL_ESTATE_MOCK && access.enabled && (
-        <p className="f-alert f-alert-info re-sample-note" role="note">
-          {t('Sample data — the Real Estate backend isn’t connected yet. Changes you make are kept only until the page is reloaded.')}
-        </p>
       )}
       {body}
     </PageShell>

@@ -13,7 +13,6 @@ import { requireAuth } from '../../../api/authApi.ts';
 import { ApiError } from '../../../api/errors.ts';
 import { enT, type T } from '../../../i18n/language.ts';
 import type { OcrInputType, StoredBlob, UploadGrant, UploadPurpose } from '../types/realEstateTypes.ts';
-import { isMockUploadUrl } from '../mocks/realEstateMock.ts';
 import { toGrant } from './normalize.ts';
 import { RE_BASE } from './realEstateApi.ts';
 
@@ -65,18 +64,6 @@ export async function requestUploadGrant(file: File): Promise<UploadGrant> {
 
 /** PUT to the grant URL with progress (0–1). Abortable. */
 export function putToBlob(grant: UploadGrant, file: File, onProgress?: (p: number) => void, signal?: AbortSignal): Promise<void> {
-  // Sample-data mode: nothing is uploaded; progress is simulated.
-  if (isMockUploadUrl(grant.uploadUrl)) {
-    return new Promise((resolve, reject) => {
-      let p = 0;
-      const timer = setInterval(() => {
-        p = Math.min(1, p + 0.25);
-        onProgress?.(p);
-        if (p >= 1) { clearInterval(timer); resolve(); }
-      }, 150);
-      signal?.addEventListener('abort', () => { clearInterval(timer); reject(new UploadError('Upload cancelled.', false)); }, { once: true });
-    });
-  }
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', grant.uploadUrl);

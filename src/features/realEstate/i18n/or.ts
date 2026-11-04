@@ -439,7 +439,6 @@ export const OR_STRINGS: Record<string, string> = {
   Error: 'ତ୍ରୁଟି',
   Warning: 'ସତର୍କତା',
   'Approval does not import anything. Import is a separate step after approval.': 'ଅନୁମୋଦନ କିଛି ଆମଦାନୀ କରେ ନାହିଁ। ଆମଦାନୀ ଅନୁମୋଦନ ପରେ ଅଲଗା ପଦକ୍ଷେପ।',
-  'Sample data — the Real Estate backend isn’t connected yet. Changes you make are kept only until the page is reloaded.': 'ନମୁନା ତଥ୍ୟ — ଜମି ବ୍ୟବସାୟ ସର୍ଭର ଏପର୍ଯ୍ୟନ୍ତ ସଂଯୁକ୍ତ ନୁହେଁ। ଆପଣ କରୁଥିବା ପରିବର୍ତ୍ତନ ପୃଷ୍ଠା ପୁଣି ଲୋଡ୍ ହେବା ପର୍ଯ୍ୟନ୍ତ ରହିବ।',
   // ---------- session lists (the API has no bookings / batch lists) ----------
   'Booking details are shown for bookings created in this session. The ledger below comes from the API.': 'ଏହି ସେସନରେ ତିଆରି ବୁକିଂର ବିବରଣୀ ଦେଖାଯାଏ। ତଳର ହିସାବ ସର୍ଭରରୁ ଆସେ।',
   'Bookings created in this session': 'ଏହି ସେସନରେ ତିଆରି ବୁକିଂ',

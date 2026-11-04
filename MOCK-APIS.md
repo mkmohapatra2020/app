@@ -185,7 +185,7 @@ Notes: most paths have `steps: []` (only Woodworking Fundamentals has steps). `i
 
 ## Real Estate CRM, ledger and OCR — live (swagger checked 2026-11-04)
 
-All 19 `/realestate/*` routes from the Real Estate spec are deployed, and the UI calls them through APIM with the login token. Sample data (`src/features/realEstate/mocks/realEstateMock.ts`) is **off by default**; set `VITE_REALESTATE_MOCK=on` to use it for local demos.
+All 19 `/realestate/*` routes from the Real Estate spec are deployed, and the UI calls them through APIM with the login token. There is no mock or sample data for Real Estate: every screen uses the live API.
 
 **Not in the swagger, so the UI never calls them:**
 
