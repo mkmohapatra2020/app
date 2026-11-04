@@ -221,4 +221,10 @@ export interface StoredBlob {
 
 export type UploadPurpose = 'Document' | 'OcrLedger';
 /** OCR input kinds (Platform.OCR). */
-export type OcrInputType = 'ScannedLedgerPage' | 'Pdf' | 'Excel';
+export type OcrInputType = 'Image' | 'Pdf' | 'Excel' | 'ScannedLedgerPage';
+/**
+ * createOcrBatchRequest.inputType is an int32 enum 0–3 in the live swagger (no names given).
+ * Order assumed from the Platform OCR spec ("Images, PDFs, Excel, Scanned Ledger Pages") —
+ * confirm with the backend.
+ */
+export const OCR_INPUT_TYPE_CODE: Record<OcrInputType, number> = { Image: 0, Pdf: 1, Excel: 2, ScannedLedgerPage: 3 };

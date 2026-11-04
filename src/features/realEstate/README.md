@@ -70,7 +70,7 @@ Filters and the selected booking live in the URL, so deep links and refresh keep
 
 Paths are relative to the API base (`VITE_BACKEND_URL`, e.g. `…/service/api`). Responses may be bare or wrapped in `{ success, message, data }`, with camelCase or PascalCase keys. Lists may be an array or `{ items, totalCount }`.
 
-### From the specifications
+### Live (swagger checked 2026-11-04)
 
 | Method & path | Request body |
 |---|---|
@@ -86,9 +86,9 @@ Paths are relative to the API base (`VITE_BACKEND_URL`, e.g. `…/service/api`).
 | `POST /realestate/bookings` | `{ customerId, plotId, bookingAmount, agreedValue }`. **409** when the plot is unavailable |
 | `GET /realestate/bookings/:bookingId/transactions` | — |
 | `POST /realestate/bookings/:bookingId/transactions` | `{ transactionDate: "2026-01-15T00:00:00Z", amount, commissionAmount \| null, propertyAmount \| null, paymentMode, referenceNumber \| null, remarks \| null }` |
-| `POST /realestate/documents` | `{ bookingId, documentType, blobName, fileName, contentType }` |
+| `POST /realestate/documents` | `{ bookingId, documentType, blobName }` (`documentUrl` is set by the backend) |
 | `POST /realestate/images/upload-grant` | `{ fileName, contentType }` |
-| `POST /realestate/ocr/batches` | `{ fileName, contentType, inputType: "ScannedLedgerPage" \| "Pdf" \| "Excel", blobName, businessModule: "RealEstate" }` |
+| `POST /realestate/ocr/batches` | `{ fileName, contentType, inputType: 0–3, blobName, businessModule: "RealEstate" }`, where `inputType` is an int enum: 0 Image, 1 Pdf, 2 Excel, 3 ScannedLedgerPage (assumed order, to confirm) |
 | `GET /realestate/ocr/batches/:batchId` | — |
 | `POST /realestate/ocr/batches/:batchId/parse` | `{}` |
 | `POST /realestate/ocr/batches/:batchId/corrections` | `{ corrections: [{ fieldName: "ledgerRows[1].CommissionAmount", value: "5000" }] }` |
@@ -99,7 +99,7 @@ Paths are relative to the API base (`VITE_BACKEND_URL`, e.g. `…/service/api`).
 
 `ledgerRows[n]` uses the 0-based index of the row in the batch's `ledgerRows` array. Field names are `TransactionDate, CustomerName, PlotNumber, TotalAmountReceived, CommissionAmount, PropertyAmount, PaymentMode, ReferenceNumber, Remarks`.
 
-### Optional: the UI works without them
+### Not in the live swagger: the UI works without them
 
 | Method & path | Used by | Without it |
 |---|---|---|

@@ -52,7 +52,8 @@ describe('realEstateApi', () => {
     expect(calls[0].body).toEqual({ partnerId: 12, projectName: 'Green City', phase: 'Phase-2', location: 'Khurda', district: 'Khurda', state: 'Odisha' });
     expect(calls[2].params).toEqual({ page: 2, pageSize: 20 });
     expect(calls[3].params).toEqual({ partnerId: 12 });
-    expect(calls[4].body).toEqual({ bookingId: 9, documentType: 'Agreement', blobName: 're/a.pdf', fileName: 'a.pdf', contentType: 'application/pdf' });
+    // createDocumentRequest: only swagger fields; no client-built documentUrl.
+    expect(calls[4].body).toEqual({ bookingId: 9, documentType: 'Agreement', blobName: 're/a.pdf' });
   });
 
   it('sends the three ledger amounts independently, ISO date, empty optionals as null', async () => {
@@ -181,6 +182,7 @@ describe('OCR workflow API', () => {
     expect(calls[4].body).toEqual({});
     expect(calls.some((c) => /transactions|bookings|customers|plots/.test(c.url))).toBe(false);
     // Batch creation references the stored blob; no ids invented.
-    expect(calls[0].body).toEqual({ fileName: 'ledger-page-01.jpg', contentType: 'image/jpeg', inputType: 'ScannedLedgerPage', blobName: 'realestate/ledger-page-01.jpg', businessModule: 'RealEstate' });
+    // inputType is the swagger's int32 enum (3 = scanned ledger page).
+    expect(calls[0].body).toEqual({ fileName: 'ledger-page-01.jpg', contentType: 'image/jpeg', inputType: 3, blobName: 'realestate/ledger-page-01.jpg', businessModule: 'RealEstate' });
   });
 });

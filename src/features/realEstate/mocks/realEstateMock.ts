@@ -1,18 +1,16 @@
 /**
- * Sample data for the Real Estate module while its backend isn't deployed.
+ * Optional sample data for the Real Estate module (local demos / UI work without a login).
  *
- * Follows the app's mock convention (src/mocks/mockApi.js, MOCK-APIS.md): active unless
- * VITE_MOCK_API=off. Every /realestate/* request on the shared Axios client is answered in
- * the browser from an in-memory store (reset on page reload), so the normal envelope
- * unwrapping and error handling still apply. Writes (create, book, pay, OCR actions) change
- * the store, so the screens behave like the real thing. Nothing leaves the browser.
- *
- * When the backend is live: set VITE_MOCK_API=off, or delete this file's install call.
+ * The real API is deployed (swagger 2026-11-04), so this is OFF by default. Turn it on with
+ * VITE_REALESTATE_MOCK=on (e.g. in .env.development). Every /realestate/* request on the
+ * shared Axios client is then answered in the browser from an in-memory store (reset on
+ * page reload); writes and the OCR workflow behave like the real thing. Nothing leaves the
+ * browser, and every Real Estate page shows a "Sample data" notice.
  */
 import { AxiosError, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
 import { apiClient } from '../../../api/apiClient.ts';
 
-export const REAL_ESTATE_MOCK = String(import.meta.env.VITE_MOCK_API || 'planned').toLowerCase() !== 'off';
+export const REAL_ESTATE_MOCK = String(import.meta.env.VITE_REALESTATE_MOCK || '').toLowerCase() === 'on';
 /** Upload URLs the mock hands out; the uploader simulates the PUT for these. */
 export const MOCK_UPLOAD_PREFIX = 'https://realestate-sample.invalid/';
 export const isMockUploadUrl = (url: string) => url.startsWith(MOCK_UPLOAD_PREFIX);
@@ -282,5 +280,5 @@ export function installRealEstateMock() {
     if (String(config.url ?? '').startsWith('/realestate')) config.adapter = adapter;
     return config;
   });
-  if (import.meta.env.DEV) console.info('[mock api] Real Estate sample data active (VITE_MOCK_API=off to use the real API)');
+  if (import.meta.env.DEV) console.info('[mock api] Real Estate sample data active (remove VITE_REALESTATE_MOCK=on to use the real API)');
 }

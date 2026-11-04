@@ -13,7 +13,7 @@ import type { Booking, BookingInput, Customer, CustomerInput, DocumentInput, Id,
 import { installRealEstateMock } from '../mocks/realEstateMock.ts';
 import { toBooking, toCustomer, toDocument, toList, toOverview, toPaged, toPartner, toPlot, toProject, toTransaction } from './normalize.ts';
 
-// Sample data until the backend is deployed (off with VITE_MOCK_API=off).
+// Optional sample data for local demos (VITE_REALESTATE_MOCK=on); off by default — the real API is live.
 installRealEstateMock();
 
 export const RE_BASE = '/realestate';
@@ -117,9 +117,10 @@ export const realEstateApi = {
 
   documents: {
     /** POST /realestate/documents — records an already-uploaded file against a booking. */
-    create: async (d: DocumentInput): Promise<RealEstateDocument> => toDocument(await post('/documents', {
-      bookingId: d.bookingId, documentType: d.documentType, blobName: d.blob.blobName, fileName: d.blob.fileName, contentType: d.blob.contentType,
-    })),
+    create: async (d: DocumentInput): Promise<RealEstateDocument> => {
+      const doc = toDocument(await post('/documents', { bookingId: d.bookingId, documentType: d.documentType, blobName: d.blob.blobName }));
+      return { ...doc, fileName: doc.fileName || d.blob.fileName };
+    },
   },
 };
 

@@ -183,14 +183,23 @@ The frontend calls APIM first. Only when APIM answers 404 (or, in local dev, the
 
 Notes: most paths have `steps: []` (only Woodworking Fundamentals has steps). `imageUrl`/`toolsUsed`/`takeHomeProject` are mostly empty, so the UI shows series icons and hides empty sections. Please confirm the concept response returns `conceptId`.
 
-## Real Estate CRM, ledger and OCR (mocked — not in the swagger, checked 2026-11-04)
+## Real Estate CRM, ledger and OCR — live (swagger checked 2026-11-04)
 
-Every `/realestate/*` call is answered in the browser from sample data in `src/features/realEstate/mocks/realEstateMock.ts`. It's on while `VITE_MOCK_API` is not `off`, the same switch as the other mocks.
+All 19 `/realestate/*` routes from the Real Estate spec are deployed, and the UI calls them through APIM with the login token. Sample data (`src/features/realEstate/mocks/realEstateMock.ts`) is **off by default**; set `VITE_REALESTATE_MOCK=on` to use it for local demos.
 
-- **How it works:** it uses the shared Axios client (`apiClient`), so envelopes and errors are handled exactly as for the live API.
-- **What it covers:** sample partners, projects, plots, customers, bookings, ledger payments with all three amounts (total received, commission, property amount), documents and OCR batches.
-- **Writes:** creates, bookings, payments, uploads and the whole OCR workflow (parse, correct, validate, approve, import, reject) update an in-memory store. A page reload resets it, and nothing is sent anywhere.
-- **Uploads:** the upload grant returns a sample URL, and the uploader simulates the PUT.
-- **Visible notice:** every Real Estate page says "Sample data — the Real Estate backend isn't connected yet."
+**Not in the swagger.** The UI already handles each one:
 
-The endpoint contracts are listed in `src/features/realEstate/README.md`. **When the backend is live:** set `VITE_MOCK_API=off`, or remove the `installRealEstateMock()` call in `src/features/realEstate/api/realEstateApi.ts`.
+| Missing route | UI fallback |
+|---|---|
+| `GET /realestate/bookings` (list; 404 — only `POST` exists) | booking selectors ask for a booking ID |
+| `GET /realestate/bookings/{id}` | the ledger still loads; booking details and agreed value aren't shown |
+| `GET /realestate/ocr/batches` (list) | "Open a batch by ID" form |
+| `GET /realestate/overview` | Overview tiles show "Not available yet" |
+
+**Backend questions and issues:**
+
+- **Unauthenticated calls return 500.** Without a token, `/realestate/*` returns 500 with an empty body, where it should return 401 (`/membership/my-credits` correctly returns 401).
+- **`createOcrBatchRequest.inputType` values.** It is an `int32` enum `0–3` with no names. The UI assumes `0 Image, 1 Pdf, 2 Excel, 3 ScannedLedgerPage`, following the order in the Platform OCR spec. Please confirm.
+- **Nullable amounts.** `createTransactionRequest.commissionAmount` and `propertyAmount` are `double` in the swagger. The UI sends `null` when the ledger has no value, as the UI spec requires, so please make them `double?`.
+- **Documents.** `createDocumentRequest` is sent as `{ bookingId, documentType, blobName }`. `documentUrl` is left for the backend to set, because the UI never builds storage URLs.
+- **Response shapes.** All Real Estate responses are `ApiResponse` with an untyped `data`. The UI reads the field names listed in `src/features/realEstate/README.md` (camelCase or PascalCase).

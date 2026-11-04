@@ -5,7 +5,7 @@
  */
 import { apiGet, apiPost, pathId } from '../../../api/apiClient.ts';
 import { requireAuth } from '../../../api/authApi.ts';
-import type { Id, PageQuery, Paged, StoredBlob } from '../types/realEstateTypes.ts';
+import { OCR_INPUT_TYPE_CODE, type Id, type PageQuery, type Paged, type StoredBlob } from '../types/realEstateTypes.ts';
 import type { OcrBatch, OcrCorrection } from '../types/ocrTypes.ts';
 import { toOcrBatch, toPaged } from './normalize.ts';
 import { RE_BASE } from './realEstateApi.ts';
@@ -28,13 +28,13 @@ export const realEstateOcrApi = {
 
   /**
    * POST /realestate/ocr/batches
-   * { fileName, contentType, inputType, blobName, businessModule: "RealEstate" } — the blob
-   * is already in the dedicated container (upload grant).
+   * { fileName, contentType, inputType (int enum), blobName, businessModule: "RealEstate" } —
+   * the blob is already in the dedicated container (upload grant).
    */
   create: async (blob: StoredBlob): Promise<OcrBatch> => {
     requireAuth();
     return toOcrBatch(await apiPost<unknown>(OCR, {
-      fileName: blob.fileName, contentType: blob.contentType, inputType: ocrInputType(blob.contentType), blobName: blob.blobName, businessModule: 'RealEstate',
+      fileName: blob.fileName, contentType: blob.contentType, inputType: OCR_INPUT_TYPE_CODE[ocrInputType(blob.contentType)], blobName: blob.blobName, businessModule: 'RealEstate',
     }));
   },
 
