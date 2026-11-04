@@ -10,7 +10,11 @@ import { apiGet, apiPost, pathId } from '../../../api/apiClient.ts';
 import { requireAuth } from '../../../api/authApi.ts';
 import { isApiError } from '../../../api/errors.ts';
 import type { Booking, BookingInput, Customer, CustomerInput, DocumentInput, Id, LedgerTransaction, OverviewTotals, PageQuery, Paged, Partner, PartnerInput, Plot, PlotInput, Project, ProjectInput, RealEstateDocument, TransactionInput } from '../types/realEstateTypes.ts';
+import { installRealEstateMock } from '../mocks/realEstateMock.ts';
 import { toBooking, toCustomer, toDocument, toList, toOverview, toPaged, toPartner, toPlot, toProject, toTransaction } from './normalize.ts';
+
+// Sample data until the backend is deployed (off with VITE_MOCK_API=off).
+installRealEstateMock();
 
 export const RE_BASE = '/realestate';
 

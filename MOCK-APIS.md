@@ -182,3 +182,15 @@ The frontend calls APIM first. Only when APIM answers 404 (or, in local dev, the
 | POST | `/learn/media?conceptId&userId&fileName&fileType&youtubeVideoLink` | Optional file / YouTube link for the idea (binary body) |
 
 Notes: most paths have `steps: []` (only Woodworking Fundamentals has steps). `imageUrl`/`toolsUsed`/`takeHomeProject` are mostly empty, so the UI shows series icons and hides empty sections. Please confirm the concept response returns `conceptId`.
+
+## Real Estate CRM, ledger and OCR (mocked — not in the swagger, checked 2026-11-04)
+
+Every `/realestate/*` call is answered in the browser from sample data in `src/features/realEstate/mocks/realEstateMock.ts`. It's on while `VITE_MOCK_API` is not `off`, the same switch as the other mocks.
+
+- **How it works:** it uses the shared Axios client (`apiClient`), so envelopes and errors are handled exactly as for the live API.
+- **What it covers:** sample partners, projects, plots, customers, bookings, ledger payments with all three amounts (total received, commission, property amount), documents and OCR batches.
+- **Writes:** creates, bookings, payments, uploads and the whole OCR workflow (parse, correct, validate, approve, import, reject) update an in-memory store. A page reload resets it, and nothing is sent anywhere.
+- **Uploads:** the upload grant returns a sample URL, and the uploader simulates the PUT.
+- **Visible notice:** every Real Estate page says "Sample data — the Real Estate backend isn't connected yet."
+
+The endpoint contracts are listed in `src/features/realEstate/README.md`. **When the backend is live:** set `VITE_MOCK_API=off`, or remove the `installRealEstateMock()` call in `src/features/realEstate/api/realEstateApi.ts`.

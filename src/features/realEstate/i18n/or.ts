@@ -439,6 +439,7 @@ export const OR_STRINGS: Record<string, string> = {
   Error: 'ତ୍ରୁଟି',
   Warning: 'ସତର୍କତା',
   'Approval does not import anything. Import is a separate step after approval.': 'ଅନୁମୋଦନ କିଛି ଆମଦାନୀ କରେ ନାହିଁ। ଆମଦାନୀ ଅନୁମୋଦନ ପରେ ଅଲଗା ପଦକ୍ଷେପ।',
+  'Sample data — the Real Estate backend isn’t connected yet. Changes you make are kept only until the page is reloaded.': 'ନମୁନା ତଥ୍ୟ — ଜମି ବ୍ୟବସାୟ ସର୍ଭର ଏପର୍ଯ୍ୟନ୍ତ ସଂଯୁକ୍ତ ନୁହେଁ। ଆପଣ କରୁଥିବା ପରିବର୍ତ୍ତନ ପୃଷ୍ଠା ପୁଣି ଲୋଡ୍ ହେବା ପର୍ଯ୍ୟନ୍ତ ରହିବ।',
   'Review ledger import': 'ହିସାବ ଆମଦାନୀ ସମୀକ୍ଷା',
   'Loading batch…': 'ବ୍ୟାଚ୍ ଲୋଡ୍ ହେଉଛି…',
   'Batch status': 'ବ୍ୟାଚ୍ ସ୍ଥିତି',
