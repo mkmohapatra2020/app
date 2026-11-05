@@ -159,7 +159,9 @@ Spec: `AI_VISUALIZATION_UI_IMPLEMENTATION_PROMPT.md`. Mock: `src/mocks/visualiza
 
 Statuses: `Draft, Submitted, Queued, Processing, PendingReview, ChangesRequested, Completed, Failed, Rejected, Cancelled`. Mock rules: quota is charged once when generation starts (Auto submit / approve / admin submit), never on reject. Retry is free. A prompt containing `#fail` ends in `Failed` (for testing).
 
-**Backend to confirm:** real `visualizationTypeId` values (mock uses 101–108), the `details` object shape, how `ImageGenOpt` and the reference limit are returned, and the reject quota policy text.
+**New category (2026-11-05): Building Elevation** (`code: "elevation"`, icon 🏢, `businessArea: "OutdoorLiving"`). The customer uploads a photo of an under-construction house and gets a finished front elevation: same structure and openings, brick and plaster facade, glass railings, landscaping, scaffolding removed. The prompt template is in `src/data/flagship.js` (`studio.categories`). **Backend action:** add a matching visualization type with this prompt template to the real `/design-categories` catalog. The mock uses placeholder id **109**.
+
+**Backend to confirm:** real `visualizationTypeId` values (mock uses 101–109), the `details` object shape, how `ImageGenOpt` and the reference limit are returned, and the reject quota policy text.
 
 ---
 

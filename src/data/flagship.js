@@ -168,6 +168,8 @@ export const studio = {
       prompt: 'a careful heritage restoration: repaired carved woodwork, lime plaster, original timber restored with natural oil finish, traditional Odisha details preserved' },
     { id: 'product', label: 'DIY Product Concept', icon: '💡', hint: 'Turn a sketch or object into a product render.',
       prompt: 'a clean product concept render of a handcrafted wooden DIY product, shown on a workbench in soft daylight' },
+    { id: 'elevation', label: 'Building Elevation', icon: '🏢', hint: 'See an under-construction house as a finished exterior — facade, finishes and landscaping.',
+      prompt: 'a photorealistic finished front elevation of the same building shown in the site photo: keep the exact structure, number of floors, column and beam positions, window, door and balcony openings and proportions; finish the facade with exposed red-brick cladding framed by grey textured plaster bands, vertical fins and deep window frames; glass balcony railings, dark aluminium sliding doors and windows with sheer curtains, wall-mounted lights, a glass parapet on the terrace; remove all scaffolding, bamboo poles, construction debris and loose material; add a clean paved forecourt, low planters with ornamental grasses and a small tree; clear daylight, eye-level architectural render' },
   ],
   timeline: [
     ['submitted', 'Submitted', 'We have your photos and brief.'],

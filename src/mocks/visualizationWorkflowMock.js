@@ -33,10 +33,12 @@ export const MOCK_CATEGORIES = [
   { visualizationTypeId: 101, code: 'pergola', name: 'Pergola', description: 'Teak or WPC pergola with climbers and lighting.', icon: '🏡', businessArea: 'OutdoorLiving', promptTemplate: prompt('pergola') },
   { visualizationTypeId: 102, code: 'gazebo', name: 'Gazebo', description: 'A shaded gazebo for a garden or farmhouse.', icon: '⛺', businessArea: 'OutdoorLiving', promptTemplate: prompt('gazebo') },
   { visualizationTypeId: 103, code: 'terrace', name: 'Terrace', description: 'Deck, planters, shade and seating for a rooftop.', icon: '🌇', businessArea: 'OutdoorLiving', promptTemplate: prompt('terrace') },
+  // New: under-construction house → finished exterior. Backend must add a matching visualization type (id 109 is a placeholder).
+  { visualizationTypeId: 109, code: 'elevation', name: 'Building Elevation', description: 'See an under-construction house as a finished exterior — facade, finishes and landscaping.', icon: '🏢', businessArea: 'OutdoorLiving', promptTemplate: prompt('elevation') },
 ].map((c, i) => ({ ...c, displayOrder: i + 1 }));
 
 // Sample "generated" images (static site images), two per category to exercise imageOrder.
-const SAMPLE = { senior: 'senior-hub', heritage: 'heritage-woodcraft', product: 'camp-toolbox', 'kids-diy': 'camp-birdhouse', 'family-diy': 'hero-family', pergola: 'show-sitout', gazebo: 'show-gazebo', terrace: 'show-roofgarden' };
+const SAMPLE = { senior: 'senior-hub', heritage: 'heritage-woodcraft', product: 'camp-toolbox', 'kids-diy': 'camp-birdhouse', 'family-diy': 'hero-family', pergola: 'show-sitout', gazebo: 'show-gazebo', terrace: 'show-roofgarden', elevation: 'pillar-outdoor' };
 
 // ---------- state ----------
 const me = () => session.user() || {};
