@@ -447,6 +447,7 @@ export const OR_STRINGS: Record<string, string> = {
   'Import batches in this session': 'ଏହି ସେସନର ଆମଦାନୀ ବ୍ୟାଚ୍',
   'OCR batches in this session': 'ଏହି ସେସନର OCR ବ୍ୟାଚ୍',
   'Plot, payment and OCR totals need a summary endpoint the API doesn’t have yet. Open a project, booking or batch to see its figures.': 'ପ୍ଲଟ୍, ପେମେଣ୍ଟ ଓ OCR ମୋଟ ପାଇଁ ସର୍ଭରରେ ସାରାଂଶ ସୁବିଧା ଏପର୍ଯ୍ୟନ୍ତ ନାହିଁ। ସଂଖ୍ୟା ଦେଖିବାକୁ ଏକ ପ୍ରକଳ୍ପ, ବୁକିଂ କିମ୍ବା ବ୍ୟାଚ୍ ଖୋଲନ୍ତୁ।',
+  Close: 'ବନ୍ଦ କରନ୍ତୁ',
   '{n} available': '{n}ଟି ଉପଲବ୍ଧ',
   '{n} booked': '{n}ଟି ବୁକ୍ ହୋଇଛି',
   '{n} sold': '{n}ଟି ବିକ୍ରି ହୋଇଛି',
