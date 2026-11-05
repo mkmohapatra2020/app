@@ -218,7 +218,9 @@
 .studio-form{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start;}
 .studio-main{display:flex;flex-direction:column;gap:18px;}
 .studio-step{border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--card);padding:22px;margin:0;min-width:0;}
-.studio-step legend{display:flex;align-items:center;gap:10px;font:600 1.15rem 'Fraunces',serif;color:var(--heading);padding:0 6px;}
+/* Float the legend so it sits inside the card instead of on the fieldset's top border. */
+.studio-step legend{float:left;width:100%;display:flex;align-items:center;flex-wrap:wrap;gap:10px;font:600 1.15rem 'Fraunces',serif;color:var(--heading);padding:0;margin:0 0 12px;}
+.studio-step legend + *{clear:both;}
 .studio-step legend em{font:400 .85rem 'Work Sans',sans-serif;}
 .studio-step > p{margin:0 0 14px;font-size:.9rem;}
 .studio-num{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--forest);color:#fff;font:600 .95rem 'Work Sans',sans-serif;}
