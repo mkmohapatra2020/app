@@ -37,7 +37,9 @@ export default function RealEstateDashboardPage() {
   const customers = useRealEstateQuery((s) => realEstateApi.customers.list(partnerId as string | number, s), [partnerId], { enabled: on && settled && o?.customers == null && partnerId !== null && access.has('Customers') });
 
   const partnerCount = o?.partners ?? partners.data?.length ?? null;
-  const activeProjects = o?.activeProjects ?? o?.projects ?? (projects.data ? projects.data.filter((p) => !p.status || p.status.toLowerCase() === 'active').length : null);
+  // The live overview sends ProjectCount (all projects); "active" only when the API says so.
+  const projectCount = o?.activeProjects ?? o?.projects ?? (projects.data ? projects.data.filter((p) => !p.status || p.status.toLowerCase() === 'active').length : null);
+  const projectLabel = o?.activeProjects == null && o?.projects != null ? t('Projects') : t('Active projects');
   const customerCount = o?.customers ?? customers.data?.length ?? null;
   const plotHint = o && [o.availablePlots, o.bookedPlots, o.soldPlots].some((n) => n !== null)
     ? [o.availablePlots !== null && t('{n} available', { n: o.availablePlots }), o.bookedPlots !== null && t('{n} booked', { n: o.bookedPlots }), o.soldPlots !== null && t('{n} sold', { n: o.soldPlots })].filter(Boolean).join(' · ')
@@ -53,7 +55,7 @@ export default function RealEstateDashboardPage() {
         <>
           <dl className="re-stats" aria-label={t('Summary')}>
             <Tile label={t('Total partners')} value={partnerCount} to={`${RE_ROOT}/partners`} />
-            <Tile label={t('Active projects')} value={activeProjects} to={`${RE_ROOT}/projects`} />
+            <Tile label={projectLabel} value={projectCount} to={`${RE_ROOT}/projects`} />
             <Tile label={t('Total plots')} value={o?.totalPlots ?? null} to={`${RE_ROOT}/projects`} hint={plotHint} />
             <Tile label={t('Customers')} value={customerCount} to={`${RE_ROOT}/customers`} />
             <Tile label={t('Bookings')} value={o?.bookings ?? null} to={`${RE_ROOT}/bookings`} hint={o?.activeBookings != null ? t('{n} active', { n: o.activeBookings }) : undefined} />
@@ -65,7 +67,8 @@ export default function RealEstateDashboardPage() {
             <Tile label={t('Total property amount')} value={amount(o?.totalProperty)} tone="re-stat-property" />
             {o?.outstanding != null && <Tile label={t('Outstanding')} value={amount(o.outstanding)} tone={o.outstanding > 0 ? 're-stat-due' : 're-stat-good'} />}
             <Tile label={t('OCR batches awaiting review')} value={o?.ocrAwaitingReview ?? null} tone="re-stat-warn" to={`${RE_ROOT}/ocr`} />
-            <Tile label={t('OCR batches ready to import')} value={o?.ocrReadyToImport ?? null} to={`${RE_ROOT}/ocr`} />
+            {/* Not in the live response today: shown only if the API adds it. */}
+            {o?.ocrReadyToImport != null && <Tile label={t('OCR batches ready to import')} value={o.ocrReadyToImport} to={`${RE_ROOT}/ocr`} />}
           </dl>
           <section className="re-card" aria-labelledby="re-next">
             <h2 id="re-next">{t('Quick actions')}</h2>

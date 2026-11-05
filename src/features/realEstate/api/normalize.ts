@@ -131,10 +131,11 @@ export const toTransaction = (o: unknown): LedgerTransaction => ({
 
 /** Optional aggregate endpoint: every value stays null unless reported. */
 /**
- * GET /realestate/overview. The response model isn't documented yet, so this accepts flat
- * fields (`totalPlots`, `availablePlots`, `totalReceived`, …) or groups (`plots: { total,
- * available, booked, sold }`, `ledger: { … }`, `ocr: { … }`), camelCase or PascalCase.
- * A count may also come as an array (its length is used). Missing values stay null.
+ * GET /realestate/overview. Live response (2026-11-05):
+ *   { PartnerCount, ProjectCount, PlotCount, CustomerCount, BookingCount,
+ *     TotalAmountReceived, TotalCommissionAmount, TotalPropertyAmount, OcrPendingCount }
+ * Also accepts other flat / grouped names (camelCase or PascalCase) in case the model grows;
+ * values the API doesn't send stay null.
  */
 export function toOverview(o: unknown): OverviewTotals {
   const group = (k: string) => { const g = pick(o, k); return isObj(g) ? g : undefined; };
@@ -163,7 +164,7 @@ export function toOverview(o: unknown): OverviewTotals {
     totalCommission: money(pick(o, 'totalCommission', 'totalCommissionAmount'), pick(ledger, 'totalCommission', 'commissionAmount')),
     totalProperty: money(pick(o, 'totalProperty', 'totalPropertyAmount'), pick(ledger, 'totalProperty', 'propertyAmount')),
     outstanding: money(pick(o, 'outstanding', 'outstandingBalance', 'totalOutstanding'), pick(ledger, 'outstanding', 'outstandingBalance')),
-    ocrAwaitingReview: first(pick(o, 'ocrAwaitingReview', 'ocrBatchesAwaitingReview'), pick(ocr, 'awaitingReview', 'pendingReview')),
+    ocrAwaitingReview: first(pick(o, 'ocrPendingCount', 'ocrAwaitingReview', 'ocrBatchesAwaitingReview'), pick(ocr, 'pendingCount', 'awaitingReview', 'pendingReview')),
     ocrReadyToImport: first(pick(o, 'ocrReadyToImport', 'ocrBatchesReadyToImport'), pick(ocr, 'readyToImport', 'approved')),
   };
 }

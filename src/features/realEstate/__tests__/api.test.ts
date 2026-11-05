@@ -94,6 +94,19 @@ describe('realEstateApi', () => {
     expect(o).toMatchObject({ partners: null, bookings: null, outstanding: null, ocrReadyToImport: null });
   });
 
+  it('maps the live overview response exactly', () => {
+    const o = toOverview({
+      PartnerCount: 1, ProjectCount: 0, PlotCount: 0, CustomerCount: 0, BookingCount: 0,
+      TotalAmountReceived: 0, TotalCommissionAmount: 0, TotalPropertyAmount: 0, OcrPendingCount: 0,
+    });
+    expect(o).toMatchObject({
+      partners: 1, projects: 0, totalPlots: 0, customers: 0, bookings: 0,
+      totalReceived: 0, totalCommission: 0, totalProperty: 0, ocrAwaitingReview: 0,
+    });
+    // Zero is a real value, not "missing"; fields the API doesn't send stay null.
+    expect(o).toMatchObject({ activeProjects: null, availablePlots: null, outstanding: null, ocrReadyToImport: null });
+  });
+
   it('reads grouped overview responses too', () => {
     const o = toOverview({
       partnerName: 'Sai Developers',
