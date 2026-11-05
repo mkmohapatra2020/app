@@ -1,5 +1,12 @@
 /* Language switcher: builds on .theme-switch / .theme-btn / .theme-menu (themes.css). */
 .lang-btn .lang-code{line-height:1;font-size:.82rem;}
+/* The language button is a pill sized to its label ("EN" / "ଓଡ଼ିଆ"), never the fixed 42px circle
+   the compact header rules give .theme-btn, so the Odia name stays inside the border. */
+.nav-actions .lang-switch .lang-btn.lang-btn{width:auto;min-width:42px;padding:0 11px;gap:6px;}
+/* Narrow screens: the label alone ("EN" / "ଓଡ଼ିଆ") is enough; drop the globe to save room. */
+@media (max-width:1199px){ .nav-actions .lang-switch .lang-btn.lang-btn{padding:0 10px;} .nav-actions .lang-btn > svg{display:none;} }
+/* Phones: no room in the bar; the language choice is the "Language" row in the ☰ menu. */
+@media (max-width:480px){ .nav-actions .lang-switch{display:none;} }
 .lang-badge{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;color:var(--heading);background:var(--accent-soft);}
 /* Odia letters come from odia-font.css (bundled Noto Sans Oriya); they need a little more line height. */
 :root[lang="or"] body{line-height:1.65;}
@@ -8,13 +15,11 @@
 /* Odia labels are wider: keep the desktop menu bar on one line. */
 @media (min-width:981px){
   :root[lang="or"] .nav-links{gap:14px;}
-  :root[lang="or"] :is(.nav-menu-btn,.nav-studio,.nav-aux){font-size:.84rem;}
+  :root[lang="or"] :is(.nav-menu-btn,.nav-studio){font-size:.84rem;}
   :root[lang="or"] .theme-btn{width:42px;padding:0;}
   :root[lang="or"] .theme-btn :is(.theme-label,.theme-caret){display:none;}
 }
 @media (min-width:981px) and (max-width:1280px){
   :root[lang="or"] .nav-links .nav-menu-icon{display:none;}
 }
-@media (min-width:981px) and (max-width:1120px){
-  :root[lang="or"] .nav-aux[href="/#about"]{display:none;}
-}
+@media (max-width:360px){ :root[lang="or"] .nav-inner{gap:3px;} }

@@ -183,15 +183,12 @@ export default function Nav() {
               ? <><Link to="/profile">{t('My profile')}</Link>{isAdmin && <Link to="/admin">{t('Admin dashboard')}</Link>}<button type="button" className="nav-text-btn" onClick={logout}>{t('Sign out')}</button></>
               : <><Link to="/login">{t('Sign in')}</Link><Link to="/register">{t('Create account')}</Link></>}
           </li>
-          <li className="nav-mobile-only" style={{ '--i': mainNav.length + 2 }}><Link to="/contact">{t('Contact')}</Link><Link to="/#about">{t('About us')}</Link></li>
-          <li className="nav-mobile-only" style={{ '--i': mainNav.length + 3 }}><ThemeRow /></li>
-          <li className="nav-mobile-only" style={{ '--i': mainNav.length + 4 }}><LanguageRow /></li>
+          <li className="nav-mobile-only" style={{ '--i': mainNav.length + 1 }}><ThemeRow /></li>
+          <li className="nav-mobile-only" style={{ '--i': mainNav.length + 2 }}><LanguageRow /></li>
           {pill && <li className="nav-pill" aria-hidden="true" style={{ transform: `translateX(${pill.left}px)`, width: pill.width }} />}
         </ul>
         <div className="nav-actions">
           <TryNow showButton={false} />
-          <Link to="/contact" className="nav-aux">{t('Contact')}</Link>
-          <Link to="/#about" className="nav-aux">{t('About us')}</Link>
           <LanguageSwitcher />
           <ThemeSwitcher />
           <Link to="/cart" className="nav-icon-btn" aria-label={`Cart, ${cart.count} item${cart.count === 1 ? '' : 's'}`}>

@@ -8,10 +8,25 @@
 }
 :root[data-theme="dark"] .re-page{--re-ok:#7fd4a0;--re-warn:#f2b45c;--re-bad:#f28b82;--re-info:#7cc7d1;--re-done:#b9a8ea;}
 
-.re-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 20px;padding-bottom:10px;border-bottom:1px solid var(--line);}
-.re-tab{padding:8px 14px;border-radius:100px;color:var(--ink-soft);text-decoration:none;font-weight:600;font-size:.9rem;min-height:40px;display:inline-flex;align-items:center;}
-.re-tab{gap:7px;}
+/* One row always: if the tabs don't fit, the row scrolls sideways (no wrapping). */
+.re-tabs{display:flex;flex-wrap:nowrap;gap:4px;margin:0 0 20px;padding:2px 2px 10px;border-bottom:1px solid var(--line);overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.re-tabs::-webkit-scrollbar{display:none;}
+.re-tab{flex:none;white-space:nowrap;scroll-snap-align:start;padding:8px 12px;border-radius:100px;color:var(--ink-soft);text-decoration:none;font-weight:600;font-size:.88rem;min-height:40px;display:inline-flex;align-items:center;}
+.re-tab{gap:6px;}
 .re-tab-icon{font-size:1.05em;line-height:1;}
+/* Below 1180px (where the full labels stop fitting): inactive tabs show only their icon (name kept for screen readers and as a tooltip), so the whole row stays visible. */
+@media (max-width:1179px){
+  .re-tab:not(.is-active){padding:8px 11px;}
+  .re-tab:not(.is-active) .re-tab-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+  .re-tab-icon{font-size:1.2em;}
+}
+/* Phones: every tab is icon-only (the page title names the current section); the active one stays highlighted. */
+@media (max-width:480px){
+  .re-tabs{gap:4px;justify-content:space-between;}
+  .re-tab,.re-tab:not(.is-active){padding:8px 12px;}
+  .re-tab .re-tab-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+}
+@media (max-width:360px){ .re-tab,.re-tab:not(.is-active){padding:8px 8px;} .re-tabs{gap:2px;} }
 .re-tab:hover{background:var(--accent-soft);color:var(--ink);}
 .re-tab.is-active{background:var(--accent-soft);color:var(--accent-text);}
 .re-tab:focus-visible,.re-page a:focus-visible,.re-page button:focus-visible,.re-table-wrap:focus-visible{outline:3px solid var(--teal,#1f6e7a);outline-offset:2px;}

@@ -3,7 +3,7 @@
  * to the features the backend granted, and the access gate (loading / disabled / feature
  * not granted). Routes are also protected by ProtectedRoute (sign-in) in App.jsx.
  */
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import PageShell from '../../../components/common/PageShell.jsx';
 import { useT } from '../../../i18n/language.ts';
@@ -39,6 +39,15 @@ export default function RealEstateLayout({ title, intro, feature, crumbs = [], a
   const access = useRealEstateAccess();
   const t = useT();
   const { pathname } = useLocation();
+  // The tab row scrolls sideways when narrow: keep the active tab in view.
+  const tabsRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const row = tabsRef.current;
+    const active = row?.querySelector<HTMLElement>('.re-tab.is-active');
+    if (!row || !active) return;
+    const left = active.offsetLeft - row.offsetLeft;
+    if (left < row.scrollLeft || left + active.offsetWidth > row.scrollLeft + row.clientWidth) row.scrollLeft = Math.max(0, left - 16);
+  }, [pathname, access.enabled]);
   let body: ReactNode = children;
 
   if (access.status === 'loading') body = <LoadingState text={t('Checking your Real Estate access…')} />;
@@ -73,9 +82,9 @@ export default function RealEstateLayout({ title, intro, feature, crumbs = [], a
       className="re-page"
     >
       {access.enabled && (
-        <nav className="re-tabs" aria-label={t('Real Estate')}>
+        <nav className="re-tabs" aria-label={t('Real Estate')} ref={tabsRef}>
           {TABS.filter((tab) => !tab.feature || access.has(tab.feature)).map((tab) => (
-            <NavLink key={tab.to} to={tab.to} end={tab.to === RE_ROOT}
+            <NavLink key={tab.to} to={tab.to} end={tab.to === RE_ROOT} title={t(tab.label)}
               className={({ isActive }) => `re-tab${isActive || tab.also?.some((p) => under(pathname, p)) ? ' is-active' : ''}`}>
               <span className="re-tab-icon" aria-hidden="true">{tab.icon}</span><span className="re-tab-label">{t(tab.label)}</span>
             </NavLink>
