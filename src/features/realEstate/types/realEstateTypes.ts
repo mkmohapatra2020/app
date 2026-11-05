@@ -173,13 +173,24 @@ export interface DocumentInput {
 }
 
 /** Optional aggregate endpoint. Every value is null unless the backend reports it. */
+/** GET /realestate/overview. Every value is null unless the API reports it (nothing is invented). */
 export interface OverviewTotals {
+  partnerName: string;
+  partners: number | null;
+  projects: number | null;
+  activeProjects: number | null;
   totalPlots: number | null;
+  availablePlots: number | null;
+  bookedPlots: number | null;
+  soldPlots: number | null;
   customers: number | null;
   bookings: number | null;
+  activeBookings: number | null;
+  totalAgreedValue: number | null;
   totalReceived: number | null;
   totalCommission: number | null;
   totalProperty: number | null;
+  outstanding: number | null;
   ocrAwaitingReview: number | null;
   ocrReadyToImport: number | null;
 }

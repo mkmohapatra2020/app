@@ -8,12 +8,12 @@
  * Buyer payments go to /realestate/bookings/:id/transactions — never the membership
  * payment API.
  *
- * Not in the API (so not called): bookings list, booking by id, overview totals.
+ * Not in the API (so not called): bookings list, booking by id.
  */
 import { apiGet, apiPost, pathId } from '../../../api/apiClient.ts';
 import { requireAuth } from '../../../api/authApi.ts';
-import type { Booking, BookingInput, Customer, CustomerInput, DocumentInput, Id, LedgerTransaction, Partner, PartnerInput, Plot, PlotInput, Project, ProjectInput, RealEstateDocument, TransactionInput } from '../types/realEstateTypes.ts';
-import { toBooking, toCustomer, toDocument, toList, toPartner, toPlot, toProject, toTransaction } from './normalize.ts';
+import type { Booking, BookingInput, Customer, CustomerInput, DocumentInput, Id, LedgerTransaction, OverviewTotals, Partner, PartnerInput, Plot, PlotInput, Project, ProjectInput, RealEstateDocument, TransactionInput } from '../types/realEstateTypes.ts';
+import { toBooking, toCustomer, toDocument, toList, toOverview, toPartner, toPlot, toProject, toTransaction } from './normalize.ts';
 
 export const RE_BASE = '/realestate';
 
@@ -32,6 +32,9 @@ const compact = (o: Record<string, unknown>) => Object.fromEntries(Object.entrie
 export const isoDate = (d: string) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T00:00:00Z` : d);
 
 export const realEstateApi = {
+  /** GET /realestate/overview — summary totals for the signed-in user's Real Estate data. */
+  overview: async (signal?: AbortSignal): Promise<OverviewTotals> => toOverview(await get('/overview', signal)),
+
   partners: {
     /** GET /realestate/partners — only partners the caller may see. */
     list: async (signal?: AbortSignal): Promise<Partner[]> => toList(await get('/partners', signal), toPartner),

@@ -130,16 +130,43 @@ export const toTransaction = (o: unknown): LedgerTransaction => ({
 });
 
 /** Optional aggregate endpoint: every value stays null unless reported. */
-export const toOverview = (o: unknown): OverviewTotals => ({
-  totalPlots: numOrNull(pick(o, 'totalPlots', 'plots')),
-  customers: numOrNull(pick(o, 'customers', 'customerCount')),
-  bookings: numOrNull(pick(o, 'bookings', 'bookingCount')),
-  totalReceived: amountOrNull(pick(o, 'totalReceived', 'totalAmountReceived')),
-  totalCommission: amountOrNull(pick(o, 'totalCommission', 'commissionAmount')),
-  totalProperty: amountOrNull(pick(o, 'totalProperty', 'propertyAmount')),
-  ocrAwaitingReview: numOrNull(pick(o, 'ocrAwaitingReview', 'ocrBatchesAwaitingReview')),
-  ocrReadyToImport: numOrNull(pick(o, 'ocrReadyToImport', 'ocrBatchesReadyToImport')),
-});
+/**
+ * GET /realestate/overview. The response model isn't documented yet, so this accepts flat
+ * fields (`totalPlots`, `availablePlots`, `totalReceived`, …) or groups (`plots: { total,
+ * available, booked, sold }`, `ledger: { … }`, `ocr: { … }`), camelCase or PascalCase.
+ * A count may also come as an array (its length is used). Missing values stay null.
+ */
+export function toOverview(o: unknown): OverviewTotals {
+  const group = (k: string) => { const g = pick(o, k); return isObj(g) ? g : undefined; };
+  const plots = group('plots') ?? group('plotSummary');
+  const ledger = group('ledger') ?? group('transactions') ?? group('payments') ?? group('ledgerTotals');
+  const ocr = group('ocr') ?? group('ocrBatches');
+  const projects = group('projects');
+  const bookings = group('bookings');
+  const count = (v: unknown) => (Array.isArray(v) ? v.length : isObj(v) ? null : numOrNull(v));
+  const first = (...vals: unknown[]) => { for (const v of vals) { const n = count(v); if (n !== null) return n; } return null; };
+  const money = (...vals: unknown[]) => { for (const v of vals) { const n = amountOrNull(v); if (n !== null) return n; } return null; };
+  return {
+    partnerName: str(pick(o, 'partnerName', 'businessName')),
+    partners: first(pick(o, 'totalPartners', 'partnerCount', 'partners')),
+    projects: first(pick(o, 'totalProjects', 'projectCount'), pick(projects, 'total', 'count'), pick(o, 'projects')),
+    activeProjects: first(pick(o, 'activeProjects', 'activeProjectCount'), pick(projects, 'active')),
+    totalPlots: first(pick(o, 'totalPlots', 'plotCount'), pick(plots, 'total', 'count'), pick(o, 'plots')),
+    availablePlots: first(pick(o, 'availablePlots'), pick(plots, 'available')),
+    bookedPlots: first(pick(o, 'bookedPlots'), pick(plots, 'booked')),
+    soldPlots: first(pick(o, 'soldPlots'), pick(plots, 'sold')),
+    customers: first(pick(o, 'totalCustomers', 'customerCount', 'customers')),
+    bookings: first(pick(o, 'totalBookings', 'bookingCount'), pick(bookings, 'total', 'count'), pick(o, 'bookings')),
+    activeBookings: first(pick(o, 'activeBookings'), pick(bookings, 'active')),
+    totalAgreedValue: money(pick(o, 'totalAgreedValue', 'agreedValue'), pick(ledger, 'totalAgreedValue', 'agreedValue')),
+    totalReceived: money(pick(o, 'totalReceived', 'totalAmountReceived'), pick(ledger, 'totalReceived', 'totalAmountReceived', 'amount')),
+    totalCommission: money(pick(o, 'totalCommission', 'totalCommissionAmount'), pick(ledger, 'totalCommission', 'commissionAmount')),
+    totalProperty: money(pick(o, 'totalProperty', 'totalPropertyAmount'), pick(ledger, 'totalProperty', 'propertyAmount')),
+    outstanding: money(pick(o, 'outstanding', 'outstandingBalance', 'totalOutstanding'), pick(ledger, 'outstanding', 'outstandingBalance')),
+    ocrAwaitingReview: first(pick(o, 'ocrAwaitingReview', 'ocrBatchesAwaitingReview'), pick(ocr, 'awaitingReview', 'pendingReview')),
+    ocrReadyToImport: first(pick(o, 'ocrReadyToImport', 'ocrBatchesReadyToImport'), pick(ocr, 'readyToImport', 'approved')),
+  };
+}
 
 export const toDocument = (o: unknown): RealEstateDocument => ({
   id: id(o, 'documentId'),

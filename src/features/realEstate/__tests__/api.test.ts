@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../../../api/apiClient.ts';
 import { ApiError } from '../../../api/errors.ts';
 import { realEstateApi } from '../api/realEstateApi.ts';
+import { toOverview } from '../api/normalize.ts';
 import { realEstateOcrApi } from '../api/realEstateOcrApi.ts';
 import { ocrInputType, UPLOAD_GRANT_PATH, uploadRealEstateFile, validateUploadFile } from '../api/realEstateUpload.ts';
 import { ok, signIn, stubApi } from './helpers.tsx';
@@ -76,11 +77,41 @@ describe('realEstateApi', () => {
     expect(tx).toMatchObject({ amount: 100000, commissionAmount: 5000, propertyAmount: null });
   });
 
-  it('only calls routes that exist in the live swagger', () => {
-    // No bookings list / booking by id / overview / OCR batch list in the API.
+  it('only calls routes that exist in the live API', () => {
+    // No bookings list / booking by id / OCR batch list in the API.
     expect(Object.keys(realEstateApi.bookings)).toEqual(['create']);
-    expect('overview' in realEstateApi).toBe(false);
     expect('list' in realEstateOcrApi).toBe(false);
+  });
+
+  it('loads the overview from GET /realestate/overview with the login token', async () => {
+    signIn();
+    const calls = stubApi(() => ok({ TotalPlots: 13, AvailablePlots: 6, TotalReceived: 2225000, TotalCommission: 77500, TotalPropertyAmount: 2062500, OcrBatchesAwaitingReview: 2 }));
+    const o = await realEstateApi.overview();
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual(['GET /realestate/overview']);
+    expect(calls[0].auth).toMatch(/^Bearer /);
+    expect(o).toMatchObject({ totalPlots: 13, availablePlots: 6, totalReceived: 2225000, totalCommission: 77500, totalProperty: 2062500, ocrAwaitingReview: 2 });
+    // Values the API didn't send stay null — never invented.
+    expect(o).toMatchObject({ partners: null, bookings: null, outstanding: null, ocrReadyToImport: null });
+  });
+
+  it('reads grouped overview responses too', () => {
+    const o = toOverview({
+      partnerName: 'Sai Developers',
+      plots: { total: 13, available: 6, booked: 4, sold: 3 },
+      ledger: { totalReceived: 100, commissionAmount: 5, propertyAmount: 95, outstanding: 900 },
+      ocr: { awaitingReview: 1, readyToImport: 0 },
+      projects: [{ id: 1 }, { id: 2 }],
+    });
+    expect(o).toMatchObject({
+      partnerName: 'Sai Developers', totalPlots: 13, availablePlots: 6, bookedPlots: 4, soldPlots: 3,
+      totalReceived: 100, totalCommission: 5, totalProperty: 95, outstanding: 900, ocrAwaitingReview: 1, ocrReadyToImport: 0, projects: 2,
+    });
+  });
+
+  it('surfaces overview errors (e.g. 401) instead of showing zeros', async () => {
+    signIn();
+    stubApi(() => ({ status: 403, data: { Success: false, Message: 'Forbidden' } }));
+    await expectKind(realEstateApi.overview(), 'forbidden');
   });
 
   it('reads PascalCase responses, as a plain array or wrapped in Items', async () => {
