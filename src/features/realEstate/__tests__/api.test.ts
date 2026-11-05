@@ -94,6 +94,24 @@ describe('realEstateApi', () => {
     expect(o).toMatchObject({ partners: null, bookings: null, outstanding: null, ocrReadyToImport: null });
   });
 
+  it('maps the live partner response exactly (GSTNumber, nulls, soft-deleted rows)', async () => {
+    signIn();
+    const live = {
+      BusinessName: 'Greater Aska Real Estate Con', ContactPerson: 'Bapi', Phone: null, Email: null, Address: null, GSTNumber: '21AABCG1234F1Z5',
+      IsActive: true, Id: 1, CreatedBy: 'manual-admin', CreatedDate: '2026-11-04T02:38:49.2815783', ModifiedBy: null, ModifiedDate: null, IsDeleted: false,
+    };
+    stubApi(() => ok([live, { ...live, Id: 2, BusinessName: 'Removed', IsDeleted: true }]));
+    expect(await realEstateApi.partners.list()).toEqual([
+      { id: 1, businessName: 'Greater Aska Real Estate Con', contactPerson: 'Bapi', phone: '', email: '', address: '', gstNumber: '21AABCG1234F1Z5', isActive: true },
+    ]);
+  });
+
+  it('reads the PANNumber casing used by the API', async () => {
+    signIn();
+    stubApi(() => ok([{ Id: 5, PartnerId: 1, Name: 'Ramesh', PANNumber: 'ABCPS1234F', AadhaarNumber: '234567890123', IsDeleted: false }]));
+    expect((await realEstateApi.customers.list(1))[0]).toMatchObject({ id: 5, partnerId: 1, panNumber: 'ABCPS1234F', aadhaarNumber: '234567890123' });
+  });
+
   it('maps the live overview response exactly', () => {
     const o = toOverview({
       PartnerCount: 1, ProjectCount: 0, PlotCount: 0, CustomerCount: 0, BookingCount: 0,

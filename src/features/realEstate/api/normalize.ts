@@ -33,7 +33,8 @@ const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 
 /** Array body, or `{ items | data | results, totalCount | total }`. */
 export function toPaged<T>(body: unknown, map: (o: unknown) => T, page = 1, pageSize = 0): Paged<T> {
-  const list = Array.isArray(body) ? body : arr(pick(body, 'items', 'data', 'results', 'records'));
+  // Soft-deleted rows (IsDeleted: true) are never shown.
+  const list = (Array.isArray(body) ? body : arr(pick(body, 'items', 'data', 'results', 'records'))).filter((r) => pick(r, 'isDeleted') !== true);
   const total = Array.isArray(body) ? null : numOrNull(pick(body, 'totalCount', 'total', 'count'));
   return {
     items: list.map(map),
@@ -65,7 +66,7 @@ export const toPartner = (o: unknown): Partner => ({
   phone: str(pick(o, 'phone', 'mobile')),
   email: str(pick(o, 'email')),
   address: str(pick(o, 'address')),
-  gstNumber: str(pick(o, 'gstNumber', 'gst')),
+  gstNumber: str(pick(o, 'gstNumber', 'GSTNumber', 'gst')),
   isActive: boolOrNull(pick(o, 'isActive', 'active')),
 });
 
@@ -100,7 +101,7 @@ export const toCustomer = (o: unknown): Customer => ({
   email: str(pick(o, 'email')),
   address: str(pick(o, 'address')),
   aadhaarNumber: str(pick(o, 'aadhaarNumber', 'aadhaar')),
-  panNumber: str(pick(o, 'panNumber', 'pan')),
+  panNumber: str(pick(o, 'panNumber', 'PANNumber', 'pan')),
 });
 
 export const toBooking = (o: unknown): Booking => ({
