@@ -3,13 +3,12 @@
  * Each screen is its own chunk; each one gates itself on the backend access response.
  */
 import { lazy, Suspense } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { LoadingState } from '../components/ApiStateView.tsx';
 import '../realEstate.css';
 import '../i18n/or.ts';
 
 const Dashboard = lazy(() => import('../pages/RealEstateDashboardPage.tsx'));
-const Partners = lazy(() => import('../pages/PartnersPage.tsx'));
 const Projects = lazy(() => import('../pages/ProjectsPage.tsx'));
 const Plots = lazy(() => import('../pages/PlotsPage.tsx'));
 const Customers = lazy(() => import('../pages/CustomersPage.tsx'));
@@ -24,7 +23,7 @@ const NotFound = lazy(() => import('../../../pages/NotFoundPage.jsx'));
 
 /** Paths relative to /real-estate (documented in src/features/realEstate/README.md). */
 export const REAL_ESTATE_PATHS = [
-  '', 'partners', 'projects', 'projects/:projectId/plots', 'customers', 'bookings',
+  '', 'projects', 'projects/:projectId/plots', 'customers', 'bookings',
   'bookings/:bookingId', 'bookings/:bookingId/ledger', 'ledger', 'documents', 'ocr', 'ocr/new', 'ocr/:batchId',
 ] as const;
 
@@ -33,7 +32,8 @@ export default function RealEstateRoutes() {
     <Suspense fallback={<LoadingState />}>
       <Routes>
         <Route index element={<Dashboard />} />
-        <Route path="partners" element={<Partners />} />
+        {/* The Partners section was removed; old links go to the overview. */}
+        <Route path="partners" element={<Navigate to="/real-estate" replace />} />
         <Route path="projects" element={<Projects />} />
         <Route path="projects/:projectId/plots" element={<Plots />} />
         <Route path="customers" element={<Customers />} />

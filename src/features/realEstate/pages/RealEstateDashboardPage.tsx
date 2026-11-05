@@ -36,7 +36,6 @@ export default function RealEstateDashboardPage() {
   const partnerId = access.access.partnerId ?? partners.data?.[0]?.id ?? null;
   const customers = useRealEstateQuery((s) => realEstateApi.customers.list(partnerId as string | number, s), [partnerId], { enabled: on && settled && o?.customers == null && partnerId !== null && access.has('Customers') });
 
-  const partnerCount = o?.partners ?? partners.data?.length ?? null;
   // The live overview sends ProjectCount (all projects); "active" only when the API says so.
   const projectCount = o?.activeProjects ?? o?.projects ?? (projects.data ? projects.data.filter((p) => !p.status || p.status.toLowerCase() === 'active').length : null);
   const projectLabel = o?.activeProjects == null && o?.projects != null ? t('Projects') : t('Active projects');
@@ -48,13 +47,12 @@ export default function RealEstateDashboardPage() {
   const amount = (n: number | null | undefined) => (n == null ? null : money(n));
 
   return (
-    <RealEstateLayout title={o?.partnerName || t('Real Estate overview')} intro={t('Partners, plots, bookings and buyer payments at a glance.')}>
+    <RealEstateLayout title={o?.partnerName || t('Real Estate overview')} intro={t('Plots, bookings and buyer payments at a glance.')}>
       {loading && <LoadingState text={t('Loading your dashboard…')} />}
       {overview.error && <ErrorView error={overview.error} onRetry={overview.reload} />}
       {!loading && (
         <>
           <dl className="re-stats" aria-label={t('Summary')}>
-            <Tile label={t('Total partners')} value={partnerCount} to={`${RE_ROOT}/partners`} />
             <Tile label={projectLabel} value={projectCount} to={`${RE_ROOT}/projects`} />
             <Tile label={t('Total plots')} value={o?.totalPlots ?? null} to={`${RE_ROOT}/projects`} hint={plotHint} />
             <Tile label={t('Customers')} value={customerCount} to={`${RE_ROOT}/customers`} />

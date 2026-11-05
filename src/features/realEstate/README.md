@@ -46,12 +46,12 @@ Validation requires a total above 0 and a payment mode. Commission and property 
 
 ## Frontend routes
 
-Section navigation: Overview · Partners · Projects and plots · Customers and bookings · Ledger transactions · Ledger OCR · Documents and images.
+Section navigation (with icons): 📊 Overview · 🏘️ Projects and plots · 👥 Customers and bookings · 📒 Ledger transactions · 🧾 Ledger OCR · 🗂️ Documents and images.
 
 | Route | Screen | Feature |
 |---|---|---|
 | `/real-estate` | Overview: counts derived from loaded data, plus aggregates from the optional summary endpoint | — |
-| `/real-estate/partners?q=` | Partners: search, active/inactive status, links to the partner's projects and customers, create if permitted | Partners |
+| `/real-estate/partners` | Removed: redirects to the overview. Partner choice remains in the project and customer forms (pre-filled when there is one partner) | — |
 | `/real-estate/projects?partnerId=` | Projects: partner filter, create | Projects |
 | `/real-estate/projects/:projectId/plots` | Plots: status filter, create, "Book" for Available plots only | Plots |
 | `/real-estate/customers?partnerId=` | Customers and bookings: paged, search, create; Aadhaar/PAN masked | Customers |

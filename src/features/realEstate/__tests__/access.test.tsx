@@ -70,7 +70,7 @@ describe('open to all signed-in users (current setting)', () => {
     await flush();
     expect(document.querySelector('[data-testid="content"]')).not.toBeNull();
     expect(document.body.textContent).not.toContain("isn't enabled");
-    expect(document.querySelectorAll('.re-tab')).toHaveLength(7);
+    expect(document.querySelectorAll('.re-tab')).toHaveLength(6);
   });
 });
 
@@ -148,8 +148,8 @@ describe('Real Estate access gate (gated mode)', () => {
       </MemoryRouter>,
     );
     expect(document.querySelector('[data-testid="secret"]')).toBeNull();
-    const tabs = [...document.querySelectorAll('.re-tab')].map((a) => a.textContent);
-    expect(tabs).toEqual(['Overview', 'Projects and plots']);
+    const tabs = [...document.querySelectorAll('.re-tab')].map((a) => [a.querySelector('.re-tab-icon')?.textContent, a.querySelector('.re-tab-label')?.textContent]);
+    expect(tabs).toEqual([['📊', 'Overview'], ['🏘️', 'Projects and plots']]);
   });
 
   it('partner creation needs a backend grant (or admin)', () => {

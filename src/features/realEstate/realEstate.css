@@ -10,6 +10,8 @@
 
 .re-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 20px;padding-bottom:10px;border-bottom:1px solid var(--line);}
 .re-tab{padding:8px 14px;border-radius:100px;color:var(--ink-soft);text-decoration:none;font-weight:600;font-size:.9rem;min-height:40px;display:inline-flex;align-items:center;}
+.re-tab{gap:7px;}
+.re-tab-icon{font-size:1.05em;line-height:1;}
 .re-tab:hover{background:var(--accent-soft);color:var(--ink);}
 .re-tab.is-active{background:var(--accent-soft);color:var(--accent-text);}
 .re-tab:focus-visible,.re-page a:focus-visible,.re-page button:focus-visible,.re-table-wrap:focus-visible{outline:3px solid var(--teal,#1f6e7a);outline-offset:2px;}

@@ -14,15 +14,14 @@ import '../i18n/or.ts';
 
 export const RE_ROOT = '/real-estate';
 
-/** Section navigation. `also` lists other paths that belong to the same tab. */
-export const TABS: { to: string; label: string; feature: RealEstateFeature | null; also?: string[] }[] = [
-  { to: RE_ROOT, label: 'Overview', feature: null },
-  { to: `${RE_ROOT}/partners`, label: 'Partners', feature: 'Partners' },
-  { to: `${RE_ROOT}/projects`, label: 'Projects and plots', feature: 'Projects' },
-  { to: `${RE_ROOT}/customers`, label: 'Customers and bookings', feature: 'Customers', also: [`${RE_ROOT}/bookings`] },
-  { to: `${RE_ROOT}/ledger`, label: 'Ledger transactions', feature: 'Ledger' },
-  { to: `${RE_ROOT}/ocr`, label: 'Ledger OCR', feature: 'OCR' },
-  { to: `${RE_ROOT}/documents`, label: 'Documents and images', feature: 'Bookings' },
+/** Section navigation, with an icon per tab like the site's menu bar. `also` lists other paths that belong to the same tab. */
+export const TABS: { to: string; label: string; icon: string; feature: RealEstateFeature | null; also?: string[] }[] = [
+  { to: RE_ROOT, label: 'Overview', icon: '📊', feature: null },
+  { to: `${RE_ROOT}/projects`, label: 'Projects and plots', icon: '🏘️', feature: 'Projects' },
+  { to: `${RE_ROOT}/customers`, label: 'Customers and bookings', icon: '👥', feature: 'Customers', also: [`${RE_ROOT}/bookings`] },
+  { to: `${RE_ROOT}/ledger`, label: 'Ledger transactions', icon: '📒', feature: 'Ledger' },
+  { to: `${RE_ROOT}/ocr`, label: 'Ledger OCR', icon: '🧾', feature: 'OCR' },
+  { to: `${RE_ROOT}/documents`, label: 'Documents and images', icon: '🗂️', feature: 'Bookings' },
 ];
 const under = (path: string, base: string) => path === base || path.startsWith(`${base}/`);
 
@@ -77,7 +76,9 @@ export default function RealEstateLayout({ title, intro, feature, crumbs = [], a
         <nav className="re-tabs" aria-label={t('Real Estate')}>
           {TABS.filter((tab) => !tab.feature || access.has(tab.feature)).map((tab) => (
             <NavLink key={tab.to} to={tab.to} end={tab.to === RE_ROOT}
-              className={({ isActive }) => `re-tab${isActive || tab.also?.some((p) => under(pathname, p)) ? ' is-active' : ''}`}>{t(tab.label)}</NavLink>
+              className={({ isActive }) => `re-tab${isActive || tab.also?.some((p) => under(pathname, p)) ? ' is-active' : ''}`}>
+              <span className="re-tab-icon" aria-hidden="true">{tab.icon}</span><span className="re-tab-label">{t(tab.label)}</span>
+            </NavLink>
           ))}
         </nav>
       )}
