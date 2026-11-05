@@ -111,8 +111,12 @@ export default function Nav() {
     };
     place();
     window.addEventListener('resize', place);
-    return () => window.removeEventListener('resize', place);
-  }, [activeKey, scrolled]);
+    // Labels change width when the language switches (and when the Odia font finishes
+    // loading): re-measure whenever any menu item changes size.
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(place);
+    if (ro && listRef.current) [...listRef.current.children].forEach((li) => ro.observe(li));
+    return () => { window.removeEventListener('resize', place); ro?.disconnect(); };
+  }, [activeKey, scrolled, t]);
 
 
   const logout = () => { authService.logout(); closeAll(); navigate('/'); };
