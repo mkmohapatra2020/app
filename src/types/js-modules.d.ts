@@ -4,6 +4,10 @@
  */
 declare module '*/services/apiConfig.js' {
   export const API_BASE_URLS: { API_BASE_URL: string; BACKEND: string };
+  /** Blob containers for SAS uploads (imageSasRequest.containerName). */
+  export const STORAGE_TYPES: { UPLOAD: string; GENERATED: string };
+  /** imageSasRequest.storageType. */
+  export const STORAGE_KIND: string;
 }
 
 declare module '*/services/session.js' {
@@ -70,4 +74,14 @@ declare module '*/services/httpClient.js' {
     post<T = unknown>(url: string, body?: unknown, config?: Record<string, unknown>): Promise<ApiResponse<T>>;
   };
   export default httpClient;
+}
+
+declare module '*/lib/ledgerOcr.mjs' {
+  export const LEDGER_DEFAULT_DEPLOYMENT: string;
+  export function resourceOrigin(endpoint: string): string;
+  export function analyseLedger(
+    body: unknown,
+    env?: Record<string, string | undefined>,
+    fetchImpl?: typeof fetch,
+  ): Promise<{ status: number; body: { rows?: unknown[]; pageNotes?: string | null; model?: string; error?: { message: string } } }>;
 }

@@ -14,7 +14,7 @@ import { InlineError } from './ApiStateView.tsx';
 import BlobUploadField from './BlobUploadField.tsx';
 import { SelectInput } from './FormFields.tsx';
 
-const TYPE_LABEL: Record<string, string> = { PaymentReceipt: 'Payment receipt', IdentityProof: 'Identity proof', SitePhoto: 'Site photo', LedgerPage: 'Ledger page' };
+export const DOCUMENT_TYPE_LABEL: Record<string, string> = { PaymentReceipt: 'Payment receipt', IdentityProof: 'Identity proof', SitePhoto: 'Site photo', LedgerPage: 'Ledger page' };
 
 export default function DocumentsPanel({ bookingId, initial = [] }: { bookingId: Id; initial?: RealEstateDocument[] }) {
   const t = useT();
@@ -41,7 +41,7 @@ export default function DocumentsPanel({ bookingId, initial = [] }: { bookingId:
         <ul className="re-doc-list">
           {docs.map((d, i) => (
             <li key={`${String(d.id)}-${i}`}>
-              <span className="re-badge re-badge-info">{t(TYPE_LABEL[d.documentType] ?? d.documentType)}</span>
+              <span className="re-badge re-badge-info">{t(DOCUMENT_TYPE_LABEL[d.documentType] ?? d.documentType)}</span>
               {/* Only a URL the backend returned is linked — the UI never builds storage URLs. */}
               {d.documentUrl ? <a href={d.documentUrl} target="_blank" rel="noopener noreferrer">{d.fileName || t('Open')}</a> : <span>{d.fileName || '—'}</span>}
               {d.uploadedDate && <small className="re-sub">{date(d.uploadedDate)}</small>}
@@ -51,7 +51,7 @@ export default function DocumentsPanel({ bookingId, initial = [] }: { bookingId:
       )}
       <div className="re-form">
         <SelectInput label={t('Document type')} value={type} onChange={(e) => setType(e.target.value)}
-          options={DOCUMENT_TYPES.map((d) => ({ value: d, label: t(TYPE_LABEL[d] ?? d) }))} />
+          options={DOCUMENT_TYPES.map((d) => ({ value: d, label: t(DOCUMENT_TYPE_LABEL[d] ?? d) }))} />
         <BlobUploadField key={uploadKey} label={t('Add a document or image')} purpose="Document" disabled={create.pending} onUploaded={(b) => void record(b)} />
         <InlineError error={create.error} />
       </div>

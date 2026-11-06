@@ -70,6 +70,22 @@ Filters and the selected booking live in the URL, so deep links and refresh keep
 
 Paths are relative to the API base (`VITE_BACKEND_URL`, e.g. `…/service/api`). Responses may be bare or wrapped in `{ success, message, data }`, with camelCase or PascalCase keys. Lists may be an array or `{ items, totalCount }`.
 
+### Ledger OCR: interim direct analysis (gpt-6-luna)
+
+Until the backend's `POST /realestate/ocr/batches/:id/parse` is ready, the upload page reads the
+page itself through the site's own server route **`POST /api/ledger-ocr`**
+(`api/src/lib/ledgerOcr.mjs`). In dev it is served by `vite.config.js`; in Azure Static Web Apps it
+is the function `api/src/functions/ledgerOcr.mjs`. It calls
+`<resource>/openai/v1/responses` with deployment `gpt-6-luna` (env `AZURE_LEDGER_DEPLOYMENT`), a
+fixed prompt and a strict JSON schema, and adds `AZURE_OPENAI_API_KEY` on the server, so the key never
+reaches the browser. Accepted: JPG, PNG, WebP, PDF (≤ 10 MB; big photos are scaled down first). Excel is
+not supported in this mode.
+
+Flow: choose file (upload to Blob starts) → **Analyse with GPT-6 Luna** (`/api/ledger-ocr`) → popup →
+**Submit**: `POST /realestate/ocr/batches` (uploaded blob) → `POST …/corrections` with **every** reviewed
+value as `ledgerRows[n].Field` → `POST …/validate` → review page. The backend must accept corrections
+for rows it did not parse itself; if it doesn't, switch to `VITE_LEDGER_OCR_MODE=backend` once its parse works.
+
 ### Live (swagger checked 2026-11-04)
 
 | Method & path | Request body |
@@ -120,7 +136,7 @@ The session memory keeps only display fields (customer name, plot, amounts, stat
 
 ## Safety rules enforced in the UI
 
-- **Uploads:** files are checked locally before upload (max 10 MB, or stricter limits from the grant). Documents accept JPG, PNG, WebP and PDF; OCR also accepts Excel. The UI then gets a grant and `PUT`s to **exactly** the returned `https` URL, without sending the bearer token. It keeps only `{ blobName, container, contentType, size, fileName }`; the SAS URL is never stored. The app's media endpoints (`/write-sas-token`, `/ai-visualization/*`) are never used.
+- **Uploads:** same flow as the AI Space Visualizer (`src/services/blobService.js`). Files are checked locally first (max 10 MB). Documents accept JPG, PNG, WebP and PDF; OCR also accepts Excel. The UI then calls `POST /write-sas-token` `{ userId, blobName: "<userId>/yyyy/MM/dd/<uuid>.<ext>", containerName: "uploaded", storageType, contentType }` and `PUT`s the file to `blobUri?sasToken` (`x-ms-blob-type: BlockBlob`, no bearer token). It keeps only `{ blobName, container, contentType, size, fileName }`; the SAS URL is never stored. (`POST /realestate/images/upload-grant` is no longer used.)
 - **OCR:**
   - Customer name and plot number are shown as matching hints, never as ids. Booking links come only from the server's `matchedBookingId`.
   - **Approve** and **Import** stay disabled while any validation error, unmatched row or unsaved correction remains. Import also requires status `Approved`; approving never imports.

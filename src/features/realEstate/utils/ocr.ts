@@ -28,6 +28,21 @@ export function cellState(row: OcrRow, field: OcrField, draft?: string): CellSta
   return 'extracted';
 }
 
+/**
+ * Every reviewed (non-empty) value as a correction — used when the rows were read in the
+ * browser session (direct model analysis) and the backend batch has no rows of its own yet.
+ */
+export function allValuesAsCorrections(rows: OcrRow[], draft: OcrDraft, fields: readonly OcrField[] = OCR_FIELDS): OcrCorrection[] {
+  const out: OcrCorrection[] = [];
+  for (const row of rows) {
+    for (const field of fields) {
+      const value = cellValue(row.cells[field], draft[rowKey(row)]?.[field]).trim();
+      if (value) out.push({ fieldName: correctionKey(row.index, field), value });
+    }
+  }
+  return out;
+}
+
 /** Draft entries that actually change the stored value, in table order. */
 export function buildCorrections(rows: OcrRow[], draft: OcrDraft): OcrCorrection[] {
   const out: OcrCorrection[] = [];

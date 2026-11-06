@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { analyseLedger } from './api/src/lib/ledgerOcr.mjs';
 
 // The Azure API key is read from .env on the dev/preview server and added to the
 // proxied request here, so it is never bundled into the browser JavaScript.
@@ -62,8 +63,33 @@ export default defineConfig(({ mode }) => {
 `)); };
   const apiInfo = { name: 'wl-api-info', configureServer: log, configurePreviewServer: log };
 
+  // POST /api/ledger-ocr — Real Estate ledger page analysis (gpt-6-luna), the same code as the
+  // Static Web Apps function in api/src/functions/ledgerOcr.mjs. The key stays on this server.
+  const ledgerOcr = (req, res, next) => {
+    if (req.method !== 'POST') return next();
+    const reply = (status, body) => { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(body)); };
+    if (!/^Bearer\s+\S+/i.test(req.headers.authorization || '')) return reply(401, { error: { message: 'Please sign in to continue.' } });
+    const chunks = [];
+    let size = 0;
+    req.on('data', (c) => { size += c.length; if (size <= 16 * 1024 * 1024) chunks.push(c); });
+    req.on('end', async () => {
+      if (size > 16 * 1024 * 1024) return reply(413, { error: { message: 'The file is too large (max 10 MB).' } });
+      let body = null;
+      try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { /* handled below */ }
+      if (!body) return reply(400, { error: { message: 'Invalid request.' } });
+      const out = await analyseLedger(body, env).catch((err) => ({ status: 500, body: { error: { message: String(err?.message || err) } } }));
+      reply(out.status, out.body);
+    });
+    return undefined;
+  };
+  const ledgerApi = {
+    name: 'wl-ledger-ocr',
+    configureServer: (server) => { server.middlewares.use('/api/ledger-ocr', ledgerOcr); },
+    configurePreviewServer: (server) => { server.middlewares.use('/api/ledger-ocr', ledgerOcr); },
+  };
+
   return {
-    plugins: [react(), apiInfo],
+    plugins: [react(), apiInfo, ledgerApi],
     build: {
       target: 'es2020',
       cssCodeSplit: true,

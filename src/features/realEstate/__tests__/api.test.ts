@@ -5,7 +5,7 @@ import { ApiError } from '../../../api/errors.ts';
 import { realEstateApi } from '../api/realEstateApi.ts';
 import { toOverview } from '../api/normalize.ts';
 import { realEstateOcrApi } from '../api/realEstateOcrApi.ts';
-import { ocrInputType, UPLOAD_GRANT_PATH, uploadRealEstateFile, validateUploadFile } from '../api/realEstateUpload.ts';
+import { ocrInputType, RE_CONTAINER, STORAGE_NOT_CONFIGURED_MESSAGE, UploadError, WRITE_SAS_PATH, uploadRealEstateFile, validateUploadFile } from '../api/realEstateUpload.ts';
 import { ok, signIn, stubApi } from './helpers.tsx';
 
 const original = apiClient.defaults.adapter;
@@ -166,39 +166,65 @@ describe('dedicated Real Estate uploads', () => {
     abort() { this.onabort?.(); }
     send(body: unknown) { this.body = body; this.upload.onprogress?.({ lengthComputable: true, loaded: 5, total: 10 }); this.status = 201; this.onload?.(); }
   }
-  const GRANT_URL = 'https://realestatedocs.blob.core.windows.net/realestate-ocr/p12/abc.jpg?sv=2024&sig=SECRET';
+  const BLOB_URI = 'https://wlstorage.blob.core.windows.net/uploaded/7/2026/11/06/abc.jpg';
+  const SAS = 'sv=2024&se=2026-11-06T10%3A00%3A00Z&sp=cw&sig=SECRET';
 
-  it('gets a grant from /realestate/images/upload-grant and PUTs to exactly that URL', async () => {
+  it('gets a write SAS from /write-sas-token (like the Visualizer) and PUTs to blobUri?sasToken', async () => {
     signIn();
     vi.stubGlobal('XMLHttpRequest', FakeXhr);
-    const calls = stubApi(() => ok({ uploadUrl: GRANT_URL, blobName: 'p12/abc.jpg', container: 'realestate-ocr', expiresOn: '2026-11-03T10:00:00Z' }));
+    const calls = stubApi(() => ok({ blobUri: BLOB_URI, sasToken: `?${SAS}`, blobName: '7/2026/11/06/abc.jpg', expiresOn: '2026-11-06T10:00:00Z' }));
     const progress: number[] = [];
     const file = new File([new Uint8Array(10)], 'ledger.jpg', { type: 'image/jpeg' });
     const blob = await uploadRealEstateFile(file, { purpose: 'OcrLedger', onProgress: (p) => progress.push(p) });
 
-    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([`POST ${UPLOAD_GRANT_PATH}`]);
-    expect(calls[0].body).toEqual({ fileName: 'ledger.jpg', contentType: 'image/jpeg' });
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([`POST ${WRITE_SAS_PATH}`]);
+    const body = calls[0].body as Record<string, unknown>;
+    expect(body).toMatchObject({ userId: 7, containerName: 'uploaded', storageType: 'blob', contentType: 'image/jpeg' });
+    expect(body.blobName).toMatch(/^7\/\d{4}\/\d{2}\/\d{2}\/[\w-]+\.jpg$/);
     // No storage account key / credentials in anything the browser sends.
     expect(JSON.stringify(calls)).not.toMatch(/AccountKey|accountKey|SharedAccessKey/);
-    // Never the app's media endpoints.
-    expect(calls.some((c) => /write-sas-token|ai-visualization|images\/generate/.test(c.url))).toBe(false);
     const xhr = FakeXhr.last!;
     expect(xhr.method).toBe('PUT');
-    expect(xhr.url).toBe(GRANT_URL);
+    expect(xhr.url).toBe(`${BLOB_URI}?${SAS}`);
+    expect(xhr.headers['x-ms-blob-type']).toBe('BlockBlob');
     expect(xhr.headers.Authorization).toBeUndefined(); // the bearer token never goes to storage
     expect(progress).toEqual([0.5, 1]);
-    // Only backend metadata is kept — no SAS URL / signature.
-    expect(blob).toEqual({ blobName: 'p12/abc.jpg', container: 'realestate-ocr', contentType: 'image/jpeg', size: 10, fileName: 'ledger.jpg' });
+    // Only metadata is kept — no SAS URL / signature.
+    expect(blob).toEqual({ blobName: '7/2026/11/06/abc.jpg', container: RE_CONTAINER, contentType: 'image/jpeg', size: 10, fileName: 'ledger.jpg' });
     expect(JSON.stringify(blob)).not.toContain('sig=');
   });
 
-  it('refuses a non-https grant URL and never uploads', async () => {
+  it('uses the suggested blob name for a PDF ledger when the server returns none', async () => {
+    signIn();
+    vi.stubGlobal('XMLHttpRequest', FakeXhr);
+    const calls = stubApi(() => ok({ blobUri: 'https://wlstorage.blob.core.windows.net/uploaded/x.pdf', sasToken: SAS }));
+    const blob = await uploadRealEstateFile(new File(['%PDF'], 'page.pdf', { type: 'application/pdf' }), { purpose: 'OcrLedger' });
+    expect(blob.blobName).toBe((calls[0].body as { blobName: string }).blobName);
+    expect(blob.blobName).toMatch(/\.pdf$/);
+  });
+
+  it('refuses a non-https upload URL and never uploads', async () => {
     signIn();
     vi.stubGlobal('XMLHttpRequest', FakeXhr);
     FakeXhr.last = null;
-    stubApi(() => ok({ uploadUrl: 'http://evil.example/x', blobName: 'a', container: 'c' }));
+    stubApi(() => ok({ blobUri: 'http://evil.example/x', sasToken: 'sig=1', blobName: 'a' }));
     await expectKind(uploadRealEstateFile(new File(['x'], 'a.png', { type: 'image/png' }), { purpose: 'Document' }), 'server');
     expect(FakeXhr.last).toBeNull();
+  });
+
+  it('turns "storage not configured" (409) into a plain, non-retryable message', async () => {
+    signIn();
+    vi.stubGlobal('XMLHttpRequest', FakeXhr);
+    FakeXhr.last = null;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    stubApi(() => ({ status: 409, data: { success: false, message: 'BlobServiceUri must be an absolute HTTPS Azure Blob service URI when BLOB_CONNECTION_STRING is not configured.' } }));
+    const err = await uploadRealEstateFile(new File(['x'], 'a.png', { type: 'image/png' }), { purpose: 'OcrLedger' }).catch((e) => e);
+    expect(err).toBeInstanceOf(UploadError);
+    expect(err.retryable).toBe(false);
+    expect(err.message).toBe(STORAGE_NOT_CONFIGURED_MESSAGE);
+    expect(warn).toHaveBeenCalled();
+    expect(FakeXhr.last).toBeNull();
+    warn.mockRestore();
   });
 
   it('maps PDF and Excel ledgers to their OCR input types', () => {

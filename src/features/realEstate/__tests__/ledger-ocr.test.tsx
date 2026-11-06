@@ -185,35 +185,56 @@ describe('mobile layout (10)', () => {
   });
 });
 
-describe('OCR analysis popup (GPT-6 Luna)', () => {
-  it('shows the screenshot and each row as key → value pairs, edits and submits', async () => {
+describe('OCR analysis popup', () => {
+  const BLOB = { blobName: '7/2026/11/06/r.jpg', container: 'uploaded', contentType: 'image/jpeg', size: 10, fileName: 'receipt.jpg' };
+
+  it('shows the transactions as an editable table with a Documents column (no screenshot)', async () => {
     const onEdit = vi.fn();
     const onSubmit = vi.fn();
+    const onRemove = vi.fn();
     const b = toOcrBatch(batchJson({ status: 'Parsed' }));
     view = await render(
-      <OcrAnalysisDialog batch={b} previewUrl="blob:ledger" previewType="image/jpeg" fileName="ledger-page-01.jpg" draft={{ 0: { commissionAmount: '5500' } }}
-        editable pending={false} error="" onEdit={onEdit} onSubmit={onSubmit} onClose={() => {}} />,
+      <OcrAnalysisDialog batch={b} fileName="ledger-page-01.jpg" draft={{ 0: { commissionAmount: '5500' } }}
+        attachments={{ 0: [{ blob: BLOB, documentType: 'PaymentReceipt' }] }}
+        editable pending={false} error="" onEdit={onEdit} onAttach={() => {}} onRemoveAttachment={onRemove} onSubmit={onSubmit} onClose={() => {}} />,
     );
     expect($('[role="dialog"] h2')?.textContent).toBe('Ledger analysis (GPT-6 Luna)');
-    expect(($('.re-ocr-shot img') as HTMLImageElement).src).toBe('blob:ledger');
-    expect(document.querySelectorAll('.re-ocr-kv')).toHaveLength(2);
-    const pairs = [...document.querySelectorAll('.re-ocr-kv')[0].querySelectorAll('.re-ocr-kv-item')]
-      .map((i) => [i.querySelector('label')?.textContent, (i.querySelector('input') as HTMLInputElement).value]);
-    expect(pairs).toContainEqual(['Customer name', 'Ramesh']);
-    expect(pairs).toContainEqual(['Plot number', 'A-1']);
-    expect(pairs).toContainEqual(['Total received', '100000']);
-    expect(pairs).toContainEqual(['Commission (lower black amount)', '5500']);
-    expect($('.re-ocr-dialog-foot')?.textContent).toContain('1 value changed');
-    await change(document.querySelectorAll('.re-ocr-kv')[1].querySelector('input'), '2026-01-02');
+    expect($('[role="dialog"] img')).toBeNull();
+    const heads = [...document.querySelectorAll('.re-ocr-dlg-table thead th')].map((th) => th.firstChild?.textContent);
+    expect(heads).toEqual(['#', 'Transaction date', 'Customer name', 'Plot number', 'Total received', 'Commission (lower black amount)', 'Property amount (red)', 'Payment mode', 'Reference number', 'Documents']);
+    const rows = document.querySelectorAll('.re-ocr-dlg-table tbody tr');
+    expect(rows).toHaveLength(2);
+    const values = [...rows[0].querySelectorAll('td input')].map((i) => (i as HTMLInputElement).value);
+    expect(values.slice(1, 6)).toEqual(['Ramesh', 'A-1', '100000', '5500', '95000']);
+    expect(rows[0].querySelector('td.re-col-property')).not.toBeNull();
+    // Documents column: attached file listed, removable.
+    const docs = rows[0].querySelector('.re-ocr-dlg-docs')!;
+    expect(docs.textContent).toContain('receipt.jpg');
+    expect(docs.textContent).toContain('Payment receipt');
+    expect($('.re-ocr-dialog-foot')?.textContent).toContain('1 value changed · 1 document attached');
+    await click(docs.querySelector('.re-link-btn'));
+    expect(onRemove).toHaveBeenCalledWith('0', 0);
+
+    // "Attach" opens an upload strip under that row only.
+    expect($('.re-ocr-attach-row')).toBeNull();
+    await click([...rows[1].querySelectorAll('.re-ocr-dlg-docs button')].find((x) => x.textContent?.includes('Attach'))!);
+    const strip = document.querySelectorAll('.re-ocr-attach-row');
+    expect(strip).toHaveLength(1);
+    expect(strip[0].previousElementSibling).toBe(document.querySelectorAll('.re-ocr-dlg-table tbody tr')[1]);
+    expect(strip[0].querySelector('select')).not.toBeNull();
+    expect(strip[0].querySelector('input[type="file"]')).not.toBeNull();
+
+    await change(rows[1].querySelector('td input'), '2026-01-02');
     expect(onEdit).toHaveBeenCalledWith('1', 'transactionDate', '2026-01-02');
     await click([...document.querySelectorAll('.re-ocr-dialog-foot button')].find((x) => x.textContent === 'Submit')!);
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
-  it('locks the values once the batch can no longer be edited', async () => {
+  it('locks values and attachments once the batch can no longer be edited', async () => {
     const b = toOcrBatch(batchJson({ status: 'Approved' }));
-    view = await render(<OcrAnalysisDialog batch={b} previewUrl="" previewType="" fileName="x.pdf" draft={{}} editable={false} pending={false} error="" onEdit={() => {}} onSubmit={() => {}} onClose={() => {}} />);
-    expect([...document.querySelectorAll('.re-ocr-kv input')].every((i) => (i as HTMLInputElement).disabled)).toBe(true);
+    view = await render(<OcrAnalysisDialog batch={b} fileName="x.pdf" draft={{}} attachments={{}} editable={false} pending={false} error="" onEdit={() => {}} onAttach={() => {}} onRemoveAttachment={() => {}} onSubmit={() => {}} onClose={() => {}} />);
+    expect([...document.querySelectorAll('.re-ocr-dlg-table td input')].every((i) => (i as HTMLInputElement).disabled)).toBe(true);
+    expect($('.re-ocr-dlg-docs button')).toBeNull();
     expect(([...document.querySelectorAll('.re-ocr-dialog-foot button')].find((x) => x.textContent === 'Submit') as HTMLButtonElement).disabled).toBe(true);
   });
 });
