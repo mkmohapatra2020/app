@@ -314,7 +314,7 @@ export const OR_STRINGS: Record<string, string> = {
   "Upload isn't available right now. Please try again shortly.": 'ଏବେ ଅପଲୋଡ୍ ଉପଲବ୍ଧ ନାହିଁ। କିଛି ସମୟ ପରେ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
 
   // ---------- OCR batches ----------
-  'Photograph a paper ledger (hisab khata). GPT-4o Vision reads it; you review every row before anything is imported.': 'କାଗଜ ହିସାବ ଖାତାର ଫଟୋ ଉଠାନ୍ତୁ। GPT-4o Vision ଏହାକୁ ପଢ଼େ; କିଛି ଆମଦାନୀ ହେବା ପୂର୍ବରୁ ଆପଣ ପ୍ରତ୍ୟେକ ଧାଡ଼ି ଯାଞ୍ଚ କରନ୍ତି।',
+  'Photograph a paper ledger (hisab khata). Azure Vision reads it; you review every row before anything is imported.': 'କାଗଜ ହିସାବ ଖାତାର ଫଟୋ ଉଠାନ୍ତୁ। Azure Vision ଏହାକୁ ପଢ଼େ; କିଛି ଆମଦାନୀ ହେବା ପୂର୍ବରୁ ଆପଣ ପ୍ରତ୍ୟେକ ଧାଡ଼ି ଯାଞ୍ଚ କରନ୍ତି।',
   'Import batches': 'ଆମଦାନୀ ବ୍ୟାଚ୍',
   'No import batches yet': 'ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଆମଦାନୀ ବ୍ୟାଚ୍ ନାହିଁ',
   'Upload a ledger photo to start.': 'ଆରମ୍ଭ କରିବାକୁ ହିସାବ ଖାତାର ଫଟୋ ଅପଲୋଡ୍ କରନ୍ତୁ।',
@@ -460,7 +460,7 @@ export const OR_STRINGS: Record<string, string> = {
   'The server matches each row to an existing booking; rows it cannot match must be corrected before import.': 'ସର୍ଭର ପ୍ରତ୍ୟେକ ଧାଡ଼ିକୁ ଏକ ବିଦ୍ୟମାନ ବୁକିଂ ସହ ମେଳାଏ; ମେଳ ନଥିବା ଧାଡ଼ି ଆମଦାନୀ ପୂର୍ବରୁ ସଂଶୋଧନ କରିବା ଆବଶ୍ୟକ।',
   'Extraction problem: {error}': 'ପଢ଼ିବାରେ ସମସ୍ୟା: {error}',
   'Not extracted yet': 'ଏପର୍ଯ୍ୟନ୍ତ ପଢ଼ାଯାଇନାହିଁ',
-  'Choose “Extract rows” to read this ledger page with GPT-4o Vision.': 'GPT-4o Vision ଦ୍ୱାରା ଏହି ପୃଷ୍ଠା ପଢ଼ିବାକୁ “ଧାଡ଼ି ବାହାର କରନ୍ତୁ” ବାଛନ୍ତୁ।',
+  'Choose “Extract rows” to read this ledger page with Azure Vision.': 'Azure Vision ଦ୍ୱାରା ଏହି ପୃଷ୍ଠା ପଢ଼ିବାକୁ “ଧାଡ଼ି ବାହାର କରନ୍ତୁ” ବାଛନ୍ତୁ।',
   'Extracted rows ({n})': 'ବାହାର କରାଯାଇଥିବା ଧାଡ଼ି ({n})',
   'Extracted ledger rows': 'ବାହାର କରାଯାଇଥିବା ହିସାବ ଧାଡ଼ି',
   'Discard edits': 'ପରିବର୍ତ୍ତନ ବାତିଲ୍ କରନ୍ତୁ',
@@ -484,7 +484,7 @@ export const OR_STRINGS: Record<string, string> = {
   'Rows imported into the ledger': 'ଧାଡ଼ି ହିସାବ ଖାତାରେ ଆମଦାନୀ ହେଲା',
   'Batch rejected': 'ବ୍ୟାଚ୍ ପ୍ରତ୍ୟାଖ୍ୟାତ ହେଲା',
   // actions
-  'Extract rows (GPT-4o Vision)': 'ଧାଡ଼ି ବାହାର କରନ୍ତୁ (GPT-4o Vision)',
+  'Extract rows (Azure Vision)': 'ଧାଡ଼ି ବାହାର କରନ୍ତୁ (Azure Vision)',
   'Save corrections': 'ସଂଶୋଧନ ସେଭ୍ କରନ୍ତୁ',
   'Validate rows': 'ଧାଡ଼ି ଯାଞ୍ଚ କରନ୍ତୁ',
   'Approve batch': 'ବ୍ୟାଚ୍ ଅନୁମୋଦନ କରନ୍ତୁ',
@@ -515,6 +515,28 @@ export const OR_STRINGS: Record<string, string> = {
   'No matching booking': 'ମେଳ ଖାଉଥିବା ବୁକିଂ ନାହିଁ',
   'More than one possible booking': 'ଏକାଧିକ ସମ୍ଭାବ୍ୟ ବୁକିଂ',
   'Not matched yet': 'ଏପର୍ଯ୍ୟନ୍ତ ମେଳ ହୋଇନାହିଁ',
+  // ---------- OCR analysis popup (Azure Vision) ----------
+  'Ledger analysis (Azure Vision)': 'ହିସାବ ବିଶ୍ଳେଷଣ (Azure Vision)',
+  'Check each value against the screenshot, correct anything that is wrong, then submit.': 'ସ୍କ୍ରିନସଟ୍ ସହ ପ୍ରତ୍ୟେକ ମୂଲ୍ୟ ମିଳାନ୍ତୁ, ଭୁଲ ଥିଲେ ସଂଶୋଧନ କରନ୍ତୁ, ତାପରେ ଦାଖଲ କରନ୍ତୁ।',
+  'Uploaded ledger screenshot {name}': 'ଅପଲୋଡ୍ ହୋଇଥିବା ହିସାବ ସ୍କ୍ରିନସଟ୍ {name}',
+  'No preview for this file': 'ଏହି ଫାଇଲର ପୂର୍ବାବଲୋକନ ନାହିଁ',
+  'Confidence {n}': 'ନିଶ୍ଚିତତା {n}',
+  'Extracted values': 'ବାହାର କରାଯାଇଥିବା ମୂଲ୍ୟ',
+  'Azure Vision found no ledger rows on this page. Try a clearer, well-lit photo of a single page.': 'Azure Vision ଏହି ପୃଷ୍ଠାରେ କୌଣସି ହିସାବ ଧାଡ଼ି ପାଇଲା ନାହିଁ। ଗୋଟିଏ ପୃଷ୍ଠାର ସ୍ପଷ୍ଟ, ଭଲ ଆଲୋକିତ ଫଟୋ ଚେଷ୍ଟା କରନ୍ତୁ।',
+  'No changes': 'କୌଣସି ପରିବର୍ତ୍ତନ ନାହିଁ',
+  '{n} value changed': '{n}ଟି ମୂଲ୍ୟ ବଦଳିଛି',
+  '{n} values changed': '{n}ଟି ମୂଲ୍ୟ ବଦଳିଛି',
+  'Submitting…': 'ଦାଖଲ ହେଉଛି…',
+  Submit: 'ଦାଖଲ କରନ୍ତୁ',
+  'Ledger data submitted': 'ହିସାବ ତଥ୍ୟ ଦାଖଲ ହେଲା',
+  'The data could not be submitted. Please try again.': 'ତଥ୍ୟ ଦାଖଲ ହୋଇପାରିଲା ନାହିଁ। ଦୟାକରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
+  'Azure Vision analyses it and shows every value next to the screenshot. Correct anything that is wrong and submit.': 'Azure Vision ଏହାକୁ ବିଶ୍ଳେଷଣ କରି ସ୍କ୍ରିନସଟ୍ ପାଖରେ ପ୍ରତ୍ୟେକ ମୂଲ୍ୟ ଦେଖାଏ। ଭୁଲ ଥିଲେ ସଂଶୋଧନ କରି ଦାଖଲ କରନ୍ତୁ।',
+  'Analysing with Azure Vision…': 'Azure Vision ଦ୍ୱାରା ବିଶ୍ଳେଷଣ ହେଉଛି…',
+  'Analyse with Azure Vision': 'Azure Vision ଦ୍ୱାରା ବିଶ୍ଳେଷଣ କରନ୍ତୁ',
+  '2. Analysis': '୨. ବିଶ୍ଳେଷଣ',
+  'After the upload, choose “Analyse with Azure Vision”. The result opens in a popup.': 'ଅପଲୋଡ୍ ପରେ “Azure Vision ଦ୍ୱାରା ବିଶ୍ଳେଷଣ କରନ୍ତୁ” ବାଛନ୍ତୁ। ଫଳାଫଳ ଏକ ପପ୍‌ଅପ୍‌ରେ ଖୋଲିବ।',
+  'Rows found': 'ମିଳିଥିବା ଧାଡ଼ି',
+  'Show analysis': 'ବିଶ୍ଳେଷଣ ଦେଖନ୍ତୁ',
 };
 
 registerStrings('or', OR_STRINGS);

@@ -17,9 +17,11 @@ interface Props {
   hint?: string;
   disabled?: boolean;
   onUploaded: (blob: StoredBlob) => void;
+  /** The chosen local file (valid type and size), e.g. to show it again later. */
+  onFile?: (file: File) => void;
 }
 
-export default function BlobUploadField({ label, purpose, hint, disabled, onUploaded }: Props) {
+export default function BlobUploadField({ label, purpose, hint, disabled, onUploaded, onFile }: Props) {
   const id = useId();
   const t = useT();
   const allowed = allowedTypesFor(purpose);
@@ -67,7 +69,7 @@ export default function BlobUploadField({ label, purpose, hint, disabled, onUplo
     setBlobName('');
     const problem = f ? validateUploadFile(f, allowed, DEFAULT_MAX_BYTES, t) : null;
     setError(problem || '');
-    if (f && !problem) void start(f);
+    if (f && !problem) { onFile?.(f); void start(f); }
   };
   const busy = disabled || phase === 'uploading';
   const onDrop = (e: DragEvent) => { e.preventDefault(); setOver(false); if (!busy) choose(e.dataTransfer.files?.[0] ?? null); };

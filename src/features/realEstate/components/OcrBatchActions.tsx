@@ -25,7 +25,7 @@ export default function OcrBatchActions({ batch, draft, pending, onAction }: Pro
   return (
     <div className="re-ocr-actions">
       <div className="re-actions">
-        {canParse(batch) && btn('parse', 'Extract rows (GPT-4o Vision)', true, 'btn-primary')}
+        {canParse(batch) && btn('parse', 'Extract rows (Azure Vision)', true, 'btn-primary')}
         {btn('save', 'Save corrections', canSaveCorrections(batch, draft))}
         {btn('validate', 'Validate rows', canValidate(batch, draft))}
         {btn('approve', 'Approve batch', canApprove(batch, draft), 'btn-primary')}

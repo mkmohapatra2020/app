@@ -32,7 +32,7 @@ const dynamicKeys = [
   'Sq. ft', 'Sq. yd', 'Sq. m', 'Decimal', 'Acre',
   'Extracted', 'Corrected', 'Edited — not saved', 'Validation error', 'Low confidence',
   'Matched to booking', 'Customer not found', 'Plot not found', 'No matching booking', 'More than one possible booking', 'Not matched yet',
-  'Extract rows (GPT-4o Vision)', 'Save corrections', 'Validate rows', 'Approve batch', 'Import approved rows', 'Reject batch',
+  'Extract rows (Azure Vision)', 'Save corrections', 'Validate rows', 'Approve batch', 'Import approved rows', 'Reject batch',
   'Business name', 'Contact person', 'Phone', 'Partner', 'Project name', 'Location', 'District', 'State', 'Plot number', 'Area', 'Area unit',
   'Name', 'Customer', 'Plot', 'Booking amount', 'Agreed value', 'Transaction date', 'Total received', 'Payment mode',
   'Overview', 'Projects and plots', 'Customers and bookings', 'Ledger transactions', 'Ledger OCR', 'Documents and images',

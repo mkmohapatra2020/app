@@ -61,7 +61,7 @@ Section navigation (with icons): 📊 Overview · 🏘️ Projects and plots · 
 | `/real-estate/ledger?bookingId=` | Ledger transactions: booking selector + ledger | Ledger |
 | `/real-estate/documents?bookingId=` | Documents and images: booking selector + upload | Bookings |
 | `/real-estate/ocr?status=` | OCR batch list (or open a batch by ID when there is no list endpoint) | OCR |
-| `/real-estate/ocr/new` | OCR upload: drop zone, preview, progress, batch creation, parse | OCR |
+| `/real-estate/ocr/new` | OCR upload: drop zone → "Analyse with Azure Vision" (create batch + parse) → popup with the screenshot and editable key → value pairs per row → Submit (corrections + validate) → review page | OCR |
 | `/real-estate/ocr/:batchId` | OCR review: issues, corrections, validate / approve / import / reject | OCR |
 
 Filters and the selected booking live in the URL, so deep links and refresh keep them.

@@ -10,6 +10,7 @@ import { AuthProvider } from '../../../auth/AuthContext.tsx';
 import ProtectedRoute from '../../../auth/ProtectedRoute.tsx';
 import { toOcrBatch } from '../api/normalize.ts';
 import { ErrorView } from '../components/ApiStateView.tsx';
+import OcrAnalysisDialog from '../components/OcrAnalysisDialog.tsx';
 import OcrConfirmSummary from '../components/OcrConfirmSummary.tsx';
 import OcrIssueList from '../components/OcrIssueList.tsx';
 import OcrReviewTable from '../components/OcrReviewTable.tsx';
@@ -181,5 +182,38 @@ describe('mobile layout (10)', () => {
     expect(phone).toContain('.re-table tr{display:block');
     expect(phone).toContain('.re-row{grid-template-columns:1fr;}');
     expect(css).toMatch(/@media \(max-width:1180px\)\{\.re-split\{grid-template-columns:1fr;\}\}/);
+  });
+});
+
+describe('OCR analysis popup (Azure Vision)', () => {
+  it('shows the screenshot and each row as key → value pairs, edits and submits', async () => {
+    const onEdit = vi.fn();
+    const onSubmit = vi.fn();
+    const b = toOcrBatch(batchJson({ status: 'Parsed' }));
+    view = await render(
+      <OcrAnalysisDialog batch={b} previewUrl="blob:ledger" previewType="image/jpeg" fileName="ledger-page-01.jpg" draft={{ 0: { commissionAmount: '5500' } }}
+        editable pending={false} error="" onEdit={onEdit} onSubmit={onSubmit} onClose={() => {}} />,
+    );
+    expect($('[role="dialog"] h2')?.textContent).toBe('Ledger analysis (Azure Vision)');
+    expect(($('.re-ocr-shot img') as HTMLImageElement).src).toBe('blob:ledger');
+    expect(document.querySelectorAll('.re-ocr-kv')).toHaveLength(2);
+    const pairs = [...document.querySelectorAll('.re-ocr-kv')[0].querySelectorAll('.re-ocr-kv-item')]
+      .map((i) => [i.querySelector('label')?.textContent, (i.querySelector('input') as HTMLInputElement).value]);
+    expect(pairs).toContainEqual(['Customer name', 'Ramesh']);
+    expect(pairs).toContainEqual(['Plot number', 'A-1']);
+    expect(pairs).toContainEqual(['Total received', '100000']);
+    expect(pairs).toContainEqual(['Commission (lower black amount)', '5500']);
+    expect($('.re-ocr-dialog-foot')?.textContent).toContain('1 value changed');
+    await change(document.querySelectorAll('.re-ocr-kv')[1].querySelector('input'), '2026-01-02');
+    expect(onEdit).toHaveBeenCalledWith('1', 'transactionDate', '2026-01-02');
+    await click([...document.querySelectorAll('.re-ocr-dialog-foot button')].find((x) => x.textContent === 'Submit')!);
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('locks the values once the batch can no longer be edited', async () => {
+    const b = toOcrBatch(batchJson({ status: 'Approved' }));
+    view = await render(<OcrAnalysisDialog batch={b} previewUrl="" previewType="" fileName="x.pdf" draft={{}} editable={false} pending={false} error="" onEdit={() => {}} onSubmit={() => {}} onClose={() => {}} />);
+    expect([...document.querySelectorAll('.re-ocr-kv input')].every((i) => (i as HTMLInputElement).disabled)).toBe(true);
+    expect(([...document.querySelectorAll('.re-ocr-dialog-foot button')].find((x) => x.textContent === 'Submit') as HTMLButtonElement).disabled).toBe(true);
   });
 });

@@ -85,7 +85,7 @@ export default function OcrReviewPage() {
           {issues.length > 0 && <section className="re-card"><OcrIssueList issues={issues} rows={batch.rows} /></section>}
 
           {batch.status === 'Uploaded' && batch.rows.length === 0 && (
-            <EmptyView icon="🧾" title={t('Not extracted yet')}>{t('Choose “Extract rows” to read this ledger page with GPT-4o Vision.')}</EmptyView>
+            <EmptyView icon="🧾" title={t('Not extracted yet')}>{t('Choose “Extract rows” to read this ledger page with Azure Vision.')}</EmptyView>
           )}
           {batch.rows.length > 0 && (
             <section className="re-card" aria-labelledby="re-rows">
