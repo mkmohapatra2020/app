@@ -1,4 +1,4 @@
-/** Platform OCR import (Azure Vision extraction, reviewed by a person before import). */
+/** Platform OCR import (GPT-6 Luna extraction, reviewed by a person before import). */
 import type { Id } from './realEstateTypes.ts';
 
 export const OCR_STATUSES = ['Uploaded', 'Parsed', 'Validated', 'Approved', 'Imported', 'Rejected'] as const;
@@ -58,7 +58,7 @@ export const LOW_CONFIDENCE = 0.8;
 export type OcrMatchStatus = 'Matched' | 'UnmatchedCustomer' | 'UnmatchedPlot' | 'Unmatched' | 'Ambiguous' | 'Pending';
 
 export interface OcrCell {
-  /** What Azure Vision read ('' when absent or unreadable). */
+  /** What GPT-6 Luna read ('' when absent or unreadable). */
   extracted: string;
   /** Saved manual correction, if any. */
   corrected: string | null;

@@ -185,7 +185,7 @@ describe('mobile layout (10)', () => {
   });
 });
 
-describe('OCR analysis popup (Azure Vision)', () => {
+describe('OCR analysis popup (GPT-6 Luna)', () => {
   it('shows the screenshot and each row as key → value pairs, edits and submits', async () => {
     const onEdit = vi.fn();
     const onSubmit = vi.fn();
@@ -194,7 +194,7 @@ describe('OCR analysis popup (Azure Vision)', () => {
       <OcrAnalysisDialog batch={b} previewUrl="blob:ledger" previewType="image/jpeg" fileName="ledger-page-01.jpg" draft={{ 0: { commissionAmount: '5500' } }}
         editable pending={false} error="" onEdit={onEdit} onSubmit={onSubmit} onClose={() => {}} />,
     );
-    expect($('[role="dialog"] h2')?.textContent).toBe('Ledger analysis (Azure Vision)');
+    expect($('[role="dialog"] h2')?.textContent).toBe('Ledger analysis (GPT-6 Luna)');
     expect(($('.re-ocr-shot img') as HTMLImageElement).src).toBe('blob:ledger');
     expect(document.querySelectorAll('.re-ocr-kv')).toHaveLength(2);
     const pairs = [...document.querySelectorAll('.re-ocr-kv')[0].querySelectorAll('.re-ocr-kv-item')]

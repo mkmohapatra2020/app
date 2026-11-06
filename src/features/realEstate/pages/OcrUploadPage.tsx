@@ -1,5 +1,5 @@
 /**
- * /real-estate/ocr/new — upload a ledger page, have Azure Vision analyse it (on the backend),
+ * /real-estate/ocr/new — upload a ledger page, have GPT-6 Luna analyse it (on the backend),
  * check the extracted key → value pairs in a popup next to the screenshot, then submit:
  * the edits go to the backend as corrections and the batch is validated. Approval and
  * import stay separate, explicit steps on the review page.
@@ -51,7 +51,7 @@ export default function OcrUploadPage() {
 
   const keep = (b: OcrBatch) => { rememberBatch({ ...b, fileName: b.fileName || blob?.fileName || '' }); setBatch(b); };
 
-  /** Create the batch (once), then ask the backend to analyse it with Azure Vision. */
+  /** Create the batch (once), then ask the backend to analyse it with GPT-6 Luna. */
   const analyse = async () => {
     if (!blob) return;
     setBusy('analyse'); setError('');
@@ -110,7 +110,7 @@ export default function OcrUploadPage() {
           <h2 id="re-ocr-up">{t('1. Upload')}</h2>
           <ol className="re-steps">
             <li>{t('Upload a clear, well-lit photo of one ledger page, a PDF, or an Excel sheet.')}</li>
-            <li>{t('Azure Vision analyses it and shows every value next to the screenshot. Correct anything that is wrong and submit.')}</li>
+            <li>{t('GPT-6 Luna analyses it and shows every value next to the screenshot. Correct anything that is wrong and submit.')}</li>
             <li>{t('Validate, approve, and import. Nothing is saved to the ledger until you import.')}</li>
           </ol>
           <BlobUploadField label={t('Ledger file')} purpose="OcrLedger" disabled={!!batch || busy !== null} onFile={setFile} onUploaded={setBlob} />
@@ -120,14 +120,14 @@ export default function OcrUploadPage() {
           {error && !open && <p className="f-alert f-alert-error" role="alert">{error}</p>}
           {!analysed && (
             <button type="button" className="btn btn-primary" disabled={!blob || busy !== null} onClick={() => void analyse()}>
-              {busy === 'analyse' ? t('Analysing with Azure Vision…') : t('Analyse with Azure Vision')}
+              {busy === 'analyse' ? t('Analysing with GPT-6 Luna…') : t('Analyse with GPT-6 Luna')}
             </button>
           )}
         </section>
 
         <section className="re-card" aria-labelledby="re-ocr-res" aria-live="polite">
           <h2 id="re-ocr-res">{t('2. Analysis')}</h2>
-          {!batch ? <p className="re-sub">{t('After the upload, choose “Analyse with Azure Vision”. The result opens in a popup.')}</p> : (
+          {!batch ? <p className="re-sub">{t('After the upload, choose “Analyse with GPT-6 Luna”. The result opens in a popup.')}</p> : (
             <>
               <dl className="re-facts">
                 <div><dt>{t('Batch ID')}</dt><dd>{String(batch.id)}</dd></div>

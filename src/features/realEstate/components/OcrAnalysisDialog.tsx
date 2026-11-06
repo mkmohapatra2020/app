@@ -1,5 +1,5 @@
 /**
- * Popup shown after Azure Vision has analysed an uploaded ledger page: the screenshot on one
+ * Popup shown after GPT-6 Luna has analysed an uploaded ledger page: the screenshot on one
  * side, every extracted row as editable key → value pairs on the other. "Submit" hands the
  * edits to the page, which sends them to the backend (corrections + validation). Nothing is
  * imported into the ledger from here.
@@ -67,7 +67,7 @@ export default function OcrAnalysisDialog({ batch, previewUrl, previewType, file
       <div className="re-dialog re-ocr-dialog" role="dialog" aria-modal="true" aria-labelledby={`${id}-t`} ref={boxRef}>
         <div className="re-ocr-dialog-head">
           <div>
-            <h2 id={`${id}-t`}>{t('Ledger analysis (Azure Vision)')}</h2>
+            <h2 id={`${id}-t`}>{t('Ledger analysis (GPT-6 Luna)')}</h2>
             <p className="re-sub">{t('Check each value against the screenshot, correct anything that is wrong, then submit.')}</p>
           </div>
           <button type="button" className="re-dialog-x" ref={closeRef} onClick={onClose} disabled={pending} aria-label={t('Close')}>×</button>
@@ -88,7 +88,7 @@ export default function OcrAnalysisDialog({ batch, previewUrl, previewType, file
           <div className="re-ocr-kv-list" role="region" aria-label={t('Extracted values')} tabIndex={-1}>
             {batch.error && <p className="f-alert f-alert-error" role="alert">{t('Extraction problem: {error}', { error: batch.error })}</p>}
             {issues.map((i, n) => <p key={n} className={`f-alert ${i.severity === 'Error' ? 'f-alert-error' : 'f-alert-info'}`}>{i.message}</p>)}
-            {batch.rows.length === 0 && !batch.error && <p className="re-sub">{t('Azure Vision found no ledger rows on this page. Try a clearer, well-lit photo of a single page.')}</p>}
+            {batch.rows.length === 0 && !batch.error && <p className="re-sub">{t('GPT-6 Luna found no ledger rows on this page. Try a clearer, well-lit photo of a single page.')}</p>}
             {batch.rows.map((row) => (
               <fieldset key={rowKey(row)} className="re-ocr-kv">
                 <legend>

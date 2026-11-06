@@ -24,7 +24,7 @@ export default function OcrBatchesPage() {
 
   return (
     <RealEstateLayout title={t('Ledger OCR')} feature="OCR" crumbs={[[null, t('Ledger OCR')]]}
-      intro={t('Photograph a paper ledger (hisab khata). Azure Vision reads it; you review every row before anything is imported.')}
+      intro={t('Photograph a paper ledger (hisab khata). GPT-6 Luna reads it; you review every row before anything is imported.')}
       actions={<Link className="btn btn-primary" to={`${RE_ROOT}/ocr/new`}>{t('New import')}</Link>}>
       <section className="re-card" aria-labelledby="re-batches">
         <h2 id="re-batches">{t('Import batches in this session')}</h2>

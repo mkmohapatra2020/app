@@ -1,6 +1,6 @@
 /**
  * Platform OCR import for Real Estate ledgers. The UI only drives the staged workflow;
- * the backend parses (Azure Vision), validates, matches and imports. Nothing here
+ * the backend parses (GPT-6 Luna), validates, matches and imports. Nothing here
  * writes ledger transactions: `import` sends no row data, and approval never imports.
  */
 import { apiGet, apiPost, pathId } from '../../../api/apiClient.ts';
