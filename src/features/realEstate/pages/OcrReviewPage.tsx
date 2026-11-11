@@ -109,14 +109,15 @@ export default function OcrReviewPage() {
       {confirm && CONFIRM[confirm] && (
         <ConfirmDialog
           open title={t(CONFIRM[confirm]!.title)} confirmLabel={t(CONFIRM[confirm]!.label)} tone={CONFIRM[confirm]!.tone}
-          pending={ocr.pending === confirm} onConfirm={() => void act(confirm)} onCancel={() => { setConfirm(null); setReason(''); }}
+          pending={ocr.pending === confirm} confirmDisabled={confirm === 'reject' && !reason.trim()} onConfirm={() => void act(confirm)} onCancel={() => { setConfirm(null); setReason(''); }}
         >
           <p>{t(CONFIRM[confirm]!.text)}</p>
           {(confirm === 'approve' || confirm === 'import') && batch && <OcrConfirmSummary batch={batch} draft={ocr.draft} />}
           {confirm === 'reject' && (
             <label className="f-field">
-              <span className="f-label">{t('Reason (optional)')}</span>
-              <textarea className="f-input" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} />
+              <span className="f-label">{t('Reason')}</span>
+              <textarea className="f-input" rows={3} value={reason} required aria-required="true" onChange={(e) => setReason(e.target.value)} maxLength={500} />
+              <small className="f-hint">{t('A reason is required to reject a batch.')}</small>
             </label>
           )}
         </ConfirmDialog>

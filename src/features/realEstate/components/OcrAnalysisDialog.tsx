@@ -39,10 +39,12 @@ interface Props {
   onRemoveAttachment: (rowKey: string, index: number) => void;
   onSubmit: () => void;
   onClose: () => void;
+  /** Static mode: attached files stay on this device (no upload). */
+  localFiles?: boolean;
 }
 
 /** Upload strip under a transaction row: pick a document type, then upload. */
-function AttachForm({ rowId, label, onAttach }: { rowId: string; label: string; onAttach: (a: RowAttachment) => void }) {
+function AttachForm({ rowId, label, localOnly, onAttach }: { rowId: string; label: string; localOnly: boolean; onAttach: (a: RowAttachment) => void }) {
   const t = useT();
   const [type, setType] = useState<string>('PaymentReceipt');
   const [uploadKey, setUploadKey] = useState(0);
@@ -52,14 +54,14 @@ function AttachForm({ rowId, label, onAttach }: { rowId: string; label: string; 
       <div className="re-ocr-attach-form">
         <SelectInput label={t('Document type')} id={`${rowId}-doctype`} value={type} onChange={(e) => setType(e.target.value)}
           options={DOCUMENT_TYPES.map((d) => ({ value: d, label: t(DOCUMENT_TYPE_LABEL[d] ?? d) }))} />
-        <BlobUploadField key={uploadKey} label={t('Document or image')} purpose="Document"
+        <BlobUploadField key={uploadKey} label={t('Document or image')} purpose="Document" localOnly={localOnly}
           onUploaded={(blob) => { onAttach({ blob, documentType: type }); setUploadKey((k) => k + 1); }} />
       </div>
     </div>
   );
 }
 
-export default function OcrAnalysisDialog({ batch, fileName, draft, attachments, editable, pending, error, onEdit, onAttach, onRemoveAttachment, onSubmit, onClose }: Props) {
+export default function OcrAnalysisDialog({ batch, fileName, draft, attachments, editable, pending, error, onEdit, onAttach, onRemoveAttachment, onSubmit, onClose, localFiles = false }: Props) {
   const id = useId();
   const t = useT();
   const boxRef = useRef<HTMLDivElement>(null);
@@ -188,7 +190,7 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
                         {isOpen && (
                           <tr className="re-ocr-attach-row">
                             <td colSpan={DIALOG_FIELDS.length + 2}>
-                              <AttachForm rowId={`${id}-r${key}`} label={label} onAttach={(a) => onAttach(key, a)} />
+                              <AttachForm rowId={`${id}-r${key}`} label={label} localOnly={localFiles} onAttach={(a) => onAttach(key, a)} />
                             </td>
                           </tr>
                         )}

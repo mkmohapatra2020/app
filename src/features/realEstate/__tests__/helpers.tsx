@@ -42,7 +42,7 @@ export async function click(el: Element | null) {
   await act(async () => { (el as HTMLElement).click(); });
 }
 
-export interface Call { url: string; method: string; auth: string | null; body: unknown; params: unknown }
+export interface Call { url: string; method: string; auth: string | null; body: unknown; params: unknown; timeout?: number }
 export type Reply = { status: number; data?: unknown };
 
 /** Replace the shared Axios client's network layer; returns the recorded calls. */
@@ -52,7 +52,7 @@ export function stubApi(handler: (c: Call) => Reply | Promise<Reply>): Call[] {
     let body: unknown = config.data;
     if (typeof body === 'string') { try { body = JSON.parse(body); } catch { /* raw */ } }
     const auth = config.headers.get('Authorization');
-    const call: Call = { url: String(config.url), method: String(config.method).toUpperCase(), auth: auth ? String(auth) : null, body, params: config.params ?? null };
+    const call: Call = { url: String(config.url), method: String(config.method).toUpperCase(), auth: auth ? String(auth) : null, body, params: config.params ?? null, timeout: config.timeout };
     calls.push(call);
     const r = await handler(call);
     if (r.status >= 400) throw new AxiosError('fail', 'ERR_BAD_RESPONSE', config, {}, { status: r.status, statusText: '', headers: {}, config, data: r.data ?? {} });

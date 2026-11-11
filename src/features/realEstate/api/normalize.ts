@@ -4,7 +4,7 @@
  */
 import { field, isObj } from '../../../api/errors.ts';
 import { REAL_ESTATE_FEATURES, type Booking, type Customer, type Id, type LedgerTransaction, type OverviewTotals, type Paged, type Partner, type Plot, type Project, type RealEstateAccess, type RealEstateDocument, type RealEstateFeature, type UploadGrant } from '../types/realEstateTypes.ts';
-import { OCR_API_FIELD, OCR_FIELDS, type OcrBatch, type OcrCell, type OcrField, type OcrMatchStatus, type OcrRow, type OcrValidationIssue } from '../types/ocrTypes.ts';
+import { OCR_API_FIELD, OCR_FIELDS, type OcrBatch, type OcrCell, type OcrField, type OcrMatchStatus, type OcrRow, type OcrValidationIssue, OCR_STATUSES } from '../types/ocrTypes.ts';
 
 /** First defined value among the keys (each read as camelCase or PascalCase). */
 const pick = (o: unknown, ...keys: string[]): unknown => {
@@ -258,8 +258,43 @@ export function toOcrRow(o: unknown, index = 0): OcrRow {
   };
 }
 
+/**
+ * The backend stores extraction as flat fields — { Name: "ledgerRows[0].CustomerName", Value,
+ * Confidence, IsCorrected } (Platform.OCR.OcrField). Group them into rows.
+ */
+export function rowsFromFields(fields: unknown[]): OcrRow[] {
+  const byRow = new Map<number, { cells: Partial<Record<OcrField, OcrCell>>; conf: number[] }>();
+  for (const f of fields) {
+    const { rowIndex, field } = parseFieldPath(str(pick(f, 'name', 'fieldName')));
+    if (rowIndex === null) continue;
+    const row = byRow.get(rowIndex) ?? { cells: {}, conf: [] };
+    byRow.set(rowIndex, row);
+    const confidence = toConfidence(pick(f, 'confidence'));
+    if (confidence !== null) row.conf.push(confidence);
+    if (!field) continue;
+    const value = str(pick(f, 'value'));
+    const corrected = pick(f, 'isCorrected') === true;
+    row.cells[field] = { extracted: value, corrected: corrected ? value : null, confidence };
+  }
+  // Keep the API index (correction keys use it); number rows by position (WLService starts at 1).
+  return [...byRow.entries()].sort(([a], [b]) => a - b).map(([index, r], position) => {
+    const cells = {} as Record<OcrField, OcrCell>;
+    for (const f of OCR_FIELDS) cells[f] = r.cells[f] ?? { extracted: '', corrected: null, confidence: null };
+    const confidence = r.conf.length ? Math.round((r.conf.reduce((a, b) => a + b, 0) / r.conf.length) * 100) / 100 : null;
+    return { id: index, index, rowNumber: position + 1, cells, confidence, issues: [], match: { status: 'Pending' as OcrMatchStatus, bookingId: null, label: '' } };
+  });
+}
+
+/** Backend enum Platform.OCR.OcrImportStatus is serialized as a number (0 Uploaded … 5 Rejected). */
+const statusOf = (v: unknown): string => {
+  const s = str(v);
+  return /^\d+$/.test(s) ? (OCR_STATUSES[Number(s)] ?? s) : s;
+};
+
 export function toOcrBatch(o: unknown): OcrBatch {
-  const rows = arr(pick(o, 'ledgerRows', 'rows', 'items')).map(toOcrRow);
+  const listed = arr(pick(o, 'ledgerRows', 'rows', 'items'));
+  const fields = arr(pick(o, 'fields', 'extractedFields'));
+  const rows = listed.length || !fields.length ? listed.map(toOcrRow) : rowsFromFields(fields);
   // Batch-level issues that name a row ("ledgerRows[1].CommissionAmount") are attached to it.
   const batchIssues: OcrValidationIssue[] = [];
   for (const e of arr(pick(o, 'validationIssues', 'validationErrors', 'issues'))) {
@@ -270,12 +305,12 @@ export function toOcrBatch(o: unknown): OcrBatch {
   const counted = rows.reduce((n, r) => n + r.issues.length, 0) + batchIssues.length;
   return {
     id: id(o, 'batchId'),
-    status: str(pick(o, 'status')) || 'Uploaded',
+    status: statusOf(pick(o, 'status')) || 'Uploaded',
     fileName: str(pick(o, 'fileName', 'originalFileName')),
     createdAt: str(pick(o, 'createdAt', 'createdDate', 'uploadedAt')),
     updatedAt: str(pick(o, 'updatedAt', 'modifiedDate', 'updatedDate')),
     confidence: toConfidence(pick(o, 'confidence', 'confidenceScore')),
-    rowCount: num(pick(o, 'rowCount')) || rows.length,
+    rowCount: rows.length || num(pick(o, 'rowCount')),
     // List responses carry counts without rows.
     issueCount: rows.length || batchIssues.length ? counted : num(pick(o, 'issueCount')),
     rows,

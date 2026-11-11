@@ -3,7 +3,9 @@
  * key → value pairs in a popup next to the screenshot, then submit to the backend (batch +
  * corrections + validation). Approval and import stay separate steps on the review page.
  *
- * LEDGER_OCR_MODE 'direct' (interim): the site's own /api/ledger-ocr reads the page; Submit
+ * LEDGER_OCR_MODE 'static' (default, no backend yet): the file stays on this device, the site's own
+ *   /api/ledger-ocr reads it, and Submit saves the reviewed rows on this device (+ JSON download).
+ * LEDGER_OCR_MODE 'direct': the site's own /api/ledger-ocr reads the page; Submit
  *   creates the batch from the uploaded file and sends every reviewed value as a correction.
  * LEDGER_OCR_MODE 'backend': create batch → backend parse → corrections for edits only.
  */
@@ -17,17 +19,21 @@ import { realEstateApi } from '../api/realEstateApi.ts';
 import { realEstateOcrApi } from '../api/realEstateOcrApi.ts';
 import { ocrInputType } from '../api/realEstateUpload.ts';
 import BlobUploadField from '../components/BlobUploadField.tsx';
+import { localBlob } from '../components/BlobUploadField.tsx';
 import OcrAnalysisDialog, { DIALOG_FIELDS, type RowAttachment, type RowAttachments } from '../components/OcrAnalysisDialog.tsx';
 import RealEstateLayout, { RE_ROOT } from '../components/RealEstateLayout.tsx';
 import RealEstateStatusBadge from '../components/RealEstateStatusBadge.tsx';
 import type { OcrBatch, OcrDraft, OcrField } from '../types/ocrTypes.ts';
 import type { StoredBlob } from '../types/realEstateTypes.ts';
 import { allValuesAsCorrections, buildCorrections, isEditable } from '../utils/ocr.ts';
+import { buildLocalImport, downloadLocalImport, saveLocalImport, type LocalImport } from '../utils/localImports.ts';
 import { rememberBatch } from '../utils/recent.ts';
 
 const INPUT_LABEL: Record<string, string> = { ScannedLedgerPage: 'Scanned ledger page', Pdf: 'PDF', Excel: 'Excel' };
 type Busy = 'analyse' | 'submit' | null;
-const DIRECT = LEDGER_OCR_MODE === 'direct';
+const STATIC = LEDGER_OCR_MODE === 'static';
+/** The page reads the file itself via /api/ledger-ocr (static and direct modes). */
+const DIRECT = LEDGER_OCR_MODE !== 'backend';
 
 export default function OcrUploadPage() {
   const t = useT();
@@ -38,6 +44,8 @@ export default function OcrUploadPage() {
   const [batch, setBatch] = useState<OcrBatch | null>(null);
   const [draft, setDraft] = useState<OcrDraft>({});
   const [attachments, setAttachments] = useState<RowAttachments>({});
+  const [localSaved, setLocalSaved] = useState<LocalImport | null>(null);
+  const [fieldKey, setFieldKey] = useState(0);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState('');
@@ -78,7 +86,9 @@ export default function OcrUploadPage() {
   const keep = (b: OcrBatch) => { rememberBatch({ ...b, fileName: b.fileName || blob?.fileName || '' }); setBatch(b); };
 
   /** A new file starts over (nothing has been sent to the backend for the old one yet). */
-  const chooseFile = (f: File) => { setFile(f); setBlob(null); if (!saved) { setBatch(null); setDraft({}); setAttachments({}); } };
+  const chooseFile = (f: File) => { setFile(f); setBlob(STATIC ? localBlob(f) : null); setLocalSaved(null); if (!saved) { setBatch(null); setDraft({}); setAttachments({}); } };
+  /** Static mode: clear everything for the next page. */
+  const startOver = () => { setFile(null); setBlob(null); setBatch(null); setDraft({}); setAttachments({}); setLocalSaved(null); setError(''); setFieldKey((k) => k + 1); };
 
   /** Direct: read the local file with the model. Backend: create the batch (once), then parse. */
   const analyse = async () => {
@@ -118,22 +128,29 @@ export default function OcrUploadPage() {
     if (!batch) return;
     setBusy('submit'); setError('');
     try {
+      if (STATIC) {
+        const rec = buildLocalImport(batch, draft, attachments, DIALOG_FIELDS, file?.name || batch.fileName);
+        if (!saveLocalImport(rec)) throw new LedgerAnalysisError('This browser could not save the data. Use “Download JSON” to keep a copy.');
+        setLocalSaved(rec);
+        setOpen(false);
+        toast(t('Saved on this device'));
+        return;
+      }
       if (DIRECT && batch.id === '') {
         if (!blob) throw new LedgerAnalysisError('The ledger file has not finished uploading (or the upload failed). It must be uploaded before the data can be sent.');
         const created = await realEstateOcrApi.create(blob);
         if (created.id === '') throw new Error('The import batch could not be created. Please try again.');
         rememberBatch({ ...created, fileName: created.fileName || blob.fileName });
         const all = allValuesAsCorrections(batch.rows, draft, DIALOG_FIELDS);
-        if (all.length) await realEstateOcrApi.submitCorrections(created.id, all);
-        let v = await realEstateOcrApi.validate(created.id);
+        // WLService validates while saving corrections (→ Validated); /validate only accepts Parsed.
+        let v = all.length ? await realEstateOcrApi.submitCorrections(created.id, all) : await realEstateOcrApi.validate(created.id);
         if (v.id === '' || v.rows.length === 0) v = await realEstateOcrApi.get(created.id);
         await finish(v, created.id);
         return;
       }
       const corrections = buildCorrections(batch.rows, draft);
-      let b = batch;
-      if (corrections.length) b = await realEstateOcrApi.submitCorrections(batch.id, corrections);
-      b = await realEstateOcrApi.validate(batch.id);
+      // WLService validates while saving corrections (→ Validated); /validate only accepts Parsed.
+      let b = corrections.length ? await realEstateOcrApi.submitCorrections(batch.id, corrections) : await realEstateOcrApi.validate(batch.id);
       if (b.id === '' || b.rows.length === 0) b = await realEstateOcrApi.get(batch.id);
       await finish(b, batch.id);
     } catch (e) {
@@ -155,25 +172,42 @@ export default function OcrUploadPage() {
         <section className="re-card" aria-labelledby="re-ocr-up">
           <h2 id="re-ocr-up">{t('1. Upload')}</h2>
           <ol className="re-steps">
-            <li>{t('Upload a clear, well-lit photo of one ledger page, a PDF, or an Excel sheet.')}</li>
-            <li>{t('GPT-6 Luna analyses it and shows every value next to the screenshot. Correct anything that is wrong and submit.')}</li>
+            <li>{t('Upload a clear, well-lit photo of one ledger page (JPG, PNG or WebP).')}</li>
+            <li>{t('GPT-6 Luna reads it and shows every transaction in a table. Correct anything that is wrong, attach documents, and submit.')}</li>
             <li>{t('Validate, approve, and import. Nothing is saved to the ledger until you import.')}</li>
           </ol>
-          <BlobUploadField label={t('Ledger file')} purpose="OcrLedger" disabled={saved || busy !== null} onFile={chooseFile} onUploaded={setBlob} />
-          {blob && !saved && (
+          <BlobUploadField key={fieldKey} label={t('Ledger file')} purpose="OcrLedger" localOnly={STATIC} disabled={saved || busy !== null} onFile={chooseFile} onUploaded={setBlob} />
+          {blob && !saved && !STATIC && (
             <p className="re-sub">{t('Input type: {type}', { type: t(INPUT_LABEL[ocrInputType(blob.contentType)]) })}</p>
           )}
           {error && !open && <p className="f-alert f-alert-error" role="alert">{error}</p>}
-          {!analysed && (
+          {!analysed && !localSaved && (
             <button type="button" className="btn btn-primary" disabled={(DIRECT ? !file : !blob) || busy !== null} onClick={() => void analyse()}>
               {busy === 'analyse' ? t('Analysing with GPT-6 Luna…') : t('Analyse with GPT-6 Luna')}
             </button>
           )}
+          {busy === 'analyse' && <p className="re-sub" aria-live="polite">{t('Reading the ledger page can take up to a minute or two. Please keep this page open.')}</p>}
         </section>
 
         <section className="re-card" aria-labelledby="re-ocr-res" aria-live="polite">
           <h2 id="re-ocr-res">{t('2. Analysis')}</h2>
-          {!batch ? <p className="re-sub">{t('After the upload, choose “Analyse with GPT-6 Luna”. The result opens in a popup.')}</p> : (
+          {localSaved ? (
+            <div className="re-local-saved">
+              <p className="f-alert f-alert-info">
+                {t('Saved on this device. There is no backend yet, so nothing was sent. Download the JSON to keep a copy or to send it later.')}
+              </p>
+              <dl className="re-facts">
+                <div><dt>{t('File')}</dt><dd>{localSaved.fileName}</dd></div>
+                <div><dt>{t('Rows found')}</dt><dd>{localSaved.rows.length}</dd></div>
+                <div><dt>{t('Documents')}</dt><dd>{localSaved.rows.reduce((n, r) => n + r.documents.length, 0)}</dd></div>
+              </dl>
+              <div className="re-actions">
+                <button type="button" className="btn btn-primary" onClick={() => downloadLocalImport(localSaved)}>⬇ {t('Download JSON')}</button>
+                <button type="button" className="btn btn-outline" onClick={() => setOpen(true)}>{t('Show analysis')}</button>
+                <button type="button" className="btn btn-outline" onClick={startOver}>{t('New import')}</button>
+              </div>
+            </div>
+          ) : !batch ? <p className="re-sub">{t('After the upload, choose “Analyse with GPT-6 Luna”. The result opens in a popup.')}</p> : (
             <>
               <dl className="re-facts">
                 {saved && <div><dt>{t('Batch ID')}</dt><dd>{String(batch.id)}</dd></div>}
@@ -195,7 +229,7 @@ export default function OcrUploadPage() {
           batch={batch} fileName={file?.name || batch.fileName || blob?.fileName || ''}
           draft={draft} attachments={attachments} editable={isEditable(batch)} pending={busy === 'submit'} error={error}
           onEdit={edit} onAttach={attach} onRemoveAttachment={unattach}
-          onSubmit={() => void submit()} onClose={() => { setOpen(false); setError(''); }}
+          onSubmit={() => void submit()} onClose={() => { setOpen(false); setError(''); }} localFiles={STATIC}
         />
       )}
     </RealEstateLayout>

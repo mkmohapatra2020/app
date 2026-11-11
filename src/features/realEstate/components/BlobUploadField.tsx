@@ -19,9 +19,14 @@ interface Props {
   onUploaded: (blob: StoredBlob) => void;
   /** The chosen local file (valid type and size), e.g. to show it again later. */
   onFile?: (file: File) => void;
+  /** Keep the file on this device only (no backend yet): checked, never uploaded. */
+  localOnly?: boolean;
 }
 
-export default function BlobUploadField({ label, purpose, hint, disabled, onUploaded, onFile }: Props) {
+/** Placeholder metadata for a file kept on this device (localOnly). */
+export const localBlob = (f: File): StoredBlob => ({ blobName: `local/${f.name}`, container: 'local', contentType: f.type, size: f.size, fileName: f.name });
+
+export default function BlobUploadField({ label, purpose, hint, disabled, onUploaded, onFile, localOnly = false }: Props) {
   const id = useId();
   const t = useT();
   const allowed = allowedTypesFor(purpose);
@@ -69,7 +74,10 @@ export default function BlobUploadField({ label, purpose, hint, disabled, onUplo
     setBlobName('');
     const problem = f ? validateUploadFile(f, allowed, DEFAULT_MAX_BYTES, t) : null;
     setError(problem || '');
-    if (f && !problem) { onFile?.(f); void start(f); }
+    if (f && !problem) {
+      onFile?.(f);
+      if (localOnly) { setPhase('done'); onUploaded(localBlob(f)); } else void start(f);
+    }
   };
   const busy = disabled || phase === 'uploading';
   const onDrop = (e: DragEvent) => { e.preventDefault(); setOver(false); if (!busy) choose(e.dataTransfer.files?.[0] ?? null); };
@@ -106,7 +114,8 @@ export default function BlobUploadField({ label, purpose, hint, disabled, onUplo
             <button type="button" className="btn btn-outline btn-sm" onClick={() => { ctrl.current?.abort(); setPhase('idle'); }}>{t('Cancel')}</button>
           </div>
         )}
-        {phase === 'done' && (
+        {phase === 'done' && localOnly && <small className="re-ok">✓ {t('{name} is ready (kept on this device, not uploaded)', { name: file?.name ?? '' })}</small>}
+        {phase === 'done' && !localOnly && (
           <small className="re-ok">✓ {t('Uploaded {name}', { name: file?.name ?? '' })} · {t('Stored as {blob} in the Real Estate / OCR container', { blob: blobName })}</small>
         )}
         {error && (

@@ -102,7 +102,8 @@ const ACTIVE = ['Uploaded', 'Parsed', 'Validated', 'Approved'];
 
 export const canParse = (batch: OcrBatch) => batch.status === 'Uploaded';
 export const canSaveCorrections = (batch: OcrBatch, draft: OcrDraft) => ['Parsed', 'Validated'].includes(String(batch.status)) && buildCorrections(batch.rows, draft).length > 0;
-export const canValidate = (batch: OcrBatch, draft: OcrDraft) => ['Parsed', 'Validated'].includes(String(batch.status)) && buildCorrections(batch.rows, draft).length === 0;
+/** WLService only validates Parsed batches (saving corrections re-validates on its own). */
+export const canValidate = (batch: OcrBatch, draft: OcrDraft) => batch.status === 'Parsed' && buildCorrections(batch.rows, draft).length === 0;
 /** Approval needs a validated batch with no errors, unmatched rows or unsaved edits. */
 export const canApprove = (batch: OcrBatch, draft: OcrDraft) => batch.status === 'Validated' && batch.rows.length > 0 && clear(batchBlockers(batch, draft));
 /** Import is separate from approval: only an approved batch, still clean. */

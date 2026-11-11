@@ -10,8 +10,16 @@ import { toOcrBatch } from './normalize.ts';
 import { EXCEL_TYPES } from './realEstateUpload.ts';
 
 export const LEDGER_OCR_PATH = '/api/ledger-ocr';
-/** 'direct' (default, this file) or 'backend' (create batch + backend parse). */
-export const LEDGER_OCR_MODE: 'direct' | 'backend' = (import.meta.env.VITE_LEDGER_OCR_MODE as string | undefined) === 'backend' ? 'backend' : 'direct';
+/**
+ * VITE_LEDGER_OCR_MODE:
+ *  'backend' (default) upload, batch, parse and Submit all on the backend.
+ *  'direct'  analysis via the site's /api/ledger-ocr; upload + Submit go to the backend.
+ *  'static'  no backend at all — files stay on this device, Submit saves the reviewed
+ *            rows on this device (and as a JSON download). Analysis uses /api/ledger-ocr.
+ */
+export type LedgerOcrMode = 'static' | 'direct' | 'backend';
+const RAW_MODE = import.meta.env.VITE_LEDGER_OCR_MODE as string | undefined;
+export const LEDGER_OCR_MODE: LedgerOcrMode = RAW_MODE === 'static' || RAW_MODE === 'direct' ? RAW_MODE : 'backend';
 
 export class LedgerAnalysisError extends Error {
   constructor(message: string) { super(message); this.name = 'LedgerAnalysisError'; }
@@ -67,6 +75,11 @@ export async function analyseLedgerFile(file: File, signal?: AbortSignal): Promi
   }
   let body: { rows?: unknown[]; pageNotes?: string | null; model?: string; error?: { message?: string } } | null = null;
   try { body = await res.json(); } catch { /* handled below */ }
+  // A non-JSON 5xx/404 (e.g. Azure Static Web Apps "Backend call failure") means the site's
+  // /api functions are not running — not a problem with the photo.
+  if (!body && (res.status >= 500 || res.status === 404)) {
+    throw new LedgerAnalysisError('The ledger analysis service is not running on this site yet. Please try again later.');
+  }
   if (!res.ok || !body || !Array.isArray(body.rows)) {
     throw new LedgerAnalysisError(body?.error?.message || "We couldn't read this ledger image. Try a clearer, well-lit photo of a single page, or try again.");
   }

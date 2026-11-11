@@ -556,6 +556,17 @@ export const OR_STRINGS: Record<string, string> = {
   'Documents': 'ଡକ୍ୟୁମେଣ୍ଟ',
   'Done': 'ହୋଇଗଲା',
   'Attach': 'ଯୋଡ଼ନ୍ତୁ',
+  '{name} is ready (kept on this device, not uploaded)': '{name} ପ୍ରସ୍ତୁତ (ଏହି ଡିଭାଇସରେ ରଖାଗଲା, ଅପଲୋଡ୍ ହୋଇନାହିଁ)',
+  'Saved on this device': 'ଏହି ଡିଭାଇସରେ ସେଭ୍ ହେଲା',
+  'Saved on this device. There is no backend yet, so nothing was sent. Download the JSON to keep a copy or to send it later.': 'ଏହି ଡିଭାଇସରେ ସେଭ୍ ହେଲା। ଏପର୍ଯ୍ୟନ୍ତ ବ୍ୟାକଏଣ୍ଡ ନାହିଁ, ତେଣୁ କିଛି ପଠାଯାଇନାହିଁ। କପି ରଖିବା କିମ୍ବା ପରେ ପଠାଇବା ପାଇଁ JSON ଡାଉନଲୋଡ୍ କରନ୍ତୁ।',
+  'Download JSON': 'JSON ଡାଉନଲୋଡ୍ କରନ୍ତୁ',
+  'This browser could not save the data. Use “Download JSON” to keep a copy.': 'ଏହି ବ୍ରାଉଜର୍ ତଥ୍ୟ ସେଭ୍ କରିପାରିଲା ନାହିଁ। କପି ରଖିବା ପାଇଁ “JSON ଡାଉନଲୋଡ୍ କରନ୍ତୁ” ବ୍ୟବହାର କରନ୍ତୁ।',
+  'The ledger analysis service is not running on this site yet. Please try again later.': 'ହିସାବ ବିଶ୍ଳେଷଣ ସେବା ଏହି ସାଇଟରେ ଏପର୍ଯ୍ୟନ୍ତ ଚାଲୁନାହିଁ। ଦୟାକରି ପରେ ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
+  'GPT-6 Luna reads it and shows every transaction in a table. Correct anything that is wrong, attach documents, and submit.': 'GPT-6 Luna ଏହାକୁ ପଢ଼ି ପ୍ରତ୍ୟେକ କାରବାର ଏକ ସାରଣୀରେ ଦେଖାଏ। ଭୁଲ ଥିଲେ ସଂଶୋଧନ କରନ୍ତୁ, ଡକ୍ୟୁମେଣ୍ଟ ଯୋଡ଼ନ୍ତୁ, ତାପରେ ଦାଖଲ କରନ୍ତୁ।',
+  'Upload a clear, well-lit photo of one ledger page (JPG, PNG or WebP).': 'ହିସାବର ଗୋଟିଏ ପୃଷ୍ଠାର ସ୍ପଷ୍ଟ, ଭଲ ଆଲୋକିତ ଫଟୋ ଅପଲୋଡ୍ କରନ୍ତୁ (JPG, PNG କିମ୍ବା WebP)।',
+  'Reading the ledger page can take up to a minute or two. Please keep this page open.': 'ହିସାବ ପୃଷ୍ଠା ପଢ଼ିବାକୁ ଏକ ବା ଦୁଇ ମିନିଟ୍ ଲାଗିପାରେ। ଦୟାକରି ଏହି ପୃଷ୍ଠା ଖୋଲା ରଖନ୍ତୁ।',
+  Reason: 'କାରଣ',
+  'A reason is required to reject a batch.': 'ବ୍ୟାଚ୍ ପ୍ରତ୍ୟାଖ୍ୟାନ କରିବାକୁ ଏକ କାରଣ ଆବଶ୍ୟକ।',
 };
 
 registerStrings('or', OR_STRINGS);

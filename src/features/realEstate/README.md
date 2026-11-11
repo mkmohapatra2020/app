@@ -72,6 +72,11 @@ Paths are relative to the API base (`VITE_BACKEND_URL`, e.g. `…/service/api`).
 
 ### Ledger OCR: interim direct analysis (gpt-6-luna)
 
+**Default mode is now `backend`** (upload → batch → backend parse → popup → Submit = corrections + validate + documents to matched bookings). **`static` mode (no backend)**, `VITE_LEDGER_OCR_MODE=static`: the ledger file and per-row documents stay on the
+device (no `write-sas-token`, no batch), analysis uses `/api/ledger-ocr`, and **Submit** saves the
+reviewed rows on the device (`localStorage` key `re:ocr:local-imports`, last 50) with a **Download
+JSON** button. Document files are recorded by name and type only. 
+
 Until the backend's `POST /realestate/ocr/batches/:id/parse` is ready, the upload page reads the
 page itself through the site's own server route **`POST /api/ledger-ocr`**
 (`api/src/lib/ledgerOcr.mjs`). In dev it is served by `vite.config.js`; in Azure Static Web Apps it

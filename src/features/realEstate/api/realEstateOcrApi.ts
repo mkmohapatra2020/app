@@ -13,9 +13,17 @@ import { ocrInputType } from './realEstateUpload.ts';
 
 const OCR = `${RE_BASE}/ocr/batches`;
 const batchUrl = (batchId: Id, action = '') => `${OCR}/${pathId(batchId, 'batch id')}${action ? `/${action}` : ''}`;
+/**
+ * OCR calls can be slow: a cold Function App start, and parse sends a high-detail photo to the
+ * model (often 30–90 s). The app-wide 30 s limit would cancel them, so these get longer limits
+ * (parse stays under Azure's 230 s HTTP limit).
+ */
+export const OCR_TIMEOUT_MS = 90_000;
+export const OCR_PARSE_TIMEOUT_MS = 200_000;
 const act = async (batchId: Id, action: string, body: object = {}): Promise<OcrBatch> => {
   requireAuth();
-  return toOcrBatch(await apiPost<unknown>(batchUrl(batchId, action), body));
+  const timeout = action === 'parse' ? OCR_PARSE_TIMEOUT_MS : OCR_TIMEOUT_MS;
+  return toOcrBatch(await apiPost<unknown>(batchUrl(batchId, action), body, { timeout }));
 };
 
 export const realEstateOcrApi = {
@@ -26,9 +34,15 @@ export const realEstateOcrApi = {
    */
   create: async (blob: StoredBlob): Promise<OcrBatch> => {
     requireAuth();
-    return toOcrBatch(await apiPost<unknown>(OCR, {
+    const res = await apiPost<unknown>(OCR, {
       fileName: blob.fileName, contentType: blob.contentType, inputType: OCR_INPUT_TYPE_CODE[ocrInputType(blob.contentType)], blobName: blob.blobName, businessModule: 'RealEstate',
-    }));
+    }, { timeout: OCR_TIMEOUT_MS });
+    // The backend answers with the new batch id only (int): load the batch.
+    if (typeof res === 'number' || (typeof res === 'string' && /^\d+$/.test(res))) {
+      const b = await realEstateOcrApi.get(Number(res));
+      return { ...b, id: b.id === '' ? Number(res) : b.id, fileName: b.fileName || blob.fileName };
+    }
+    return toOcrBatch(res);
   },
 
   /** GET /realestate/ocr/batches/:batchId */

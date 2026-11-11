@@ -5,7 +5,7 @@ import { ApiError } from '../../../api/errors.ts';
 import { realEstateApi } from '../api/realEstateApi.ts';
 import { toOverview } from '../api/normalize.ts';
 import { realEstateOcrApi } from '../api/realEstateOcrApi.ts';
-import { ocrInputType, RE_CONTAINER, STORAGE_NOT_CONFIGURED_MESSAGE, UploadError, WRITE_SAS_PATH, uploadRealEstateFile, validateUploadFile } from '../api/realEstateUpload.ts';
+import { ocrInputType, STORAGE_NOT_CONFIGURED_MESSAGE, UPLOAD_GRANT_PATH, UploadError, uploadRealEstateFile, validateUploadFile } from '../api/realEstateUpload.ts';
 import { ok, signIn, stubApi } from './helpers.tsx';
 
 const original = apiClient.defaults.adapter;
@@ -166,22 +166,20 @@ describe('dedicated Real Estate uploads', () => {
     abort() { this.onabort?.(); }
     send(body: unknown) { this.body = body; this.upload.onprogress?.({ lengthComputable: true, loaded: 5, total: 10 }); this.status = 201; this.onload?.(); }
   }
-  const BLOB_URI = 'https://wlstorage.blob.core.windows.net/uploaded/7/2026/11/06/abc.jpg';
-  const SAS = 'sv=2024&se=2026-11-06T10%3A00%3A00Z&sp=cw&sig=SECRET';
+  // WLService ImageUploadGrant, serialized PascalCase inside { Success, Data }.
+  const BLOB_URI = 'https://wlstorage.blob.core.windows.net/realestate-images/7/3f2a_ledger.jpg';
+  const SAS = 'sv=2024&se=2026-11-10T10%3A00%3A00Z&sp=cw&sig=SECRET';
 
-  it('gets a write SAS from /write-sas-token (like the Visualizer) and PUTs to blobUri?sasToken', async () => {
+  it('gets a grant from /realestate/images/upload-grant { fileName, contentType } and PUTs to BlobUri?SasToken', async () => {
     signIn();
     vi.stubGlobal('XMLHttpRequest', FakeXhr);
-    const calls = stubApi(() => ok({ blobUri: BLOB_URI, sasToken: `?${SAS}`, blobName: '7/2026/11/06/abc.jpg', expiresOn: '2026-11-06T10:00:00Z' }));
+    const calls = stubApi(() => ({ status: 200, data: { Success: true, Data: { BlobUri: BLOB_URI, SasToken: SAS, BlobName: '7/3f2a_ledger.jpg', ContainerName: 'realestate-images', ExpiresOn: '2026-11-10T10:00:00+00:00' } } }));
     const progress: number[] = [];
     const file = new File([new Uint8Array(10)], 'ledger.jpg', { type: 'image/jpeg' });
     const blob = await uploadRealEstateFile(file, { purpose: 'OcrLedger', onProgress: (p) => progress.push(p) });
 
-    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([`POST ${WRITE_SAS_PATH}`]);
-    const body = calls[0].body as Record<string, unknown>;
-    expect(body).toMatchObject({ userId: 7, containerName: 'uploaded', storageType: 'blob', contentType: 'image/jpeg' });
-    expect(body.blobName).toMatch(/^7\/\d{4}\/\d{2}\/\d{2}\/[\w-]+\.jpg$/);
-    // No storage account key / credentials in anything the browser sends.
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([`POST ${UPLOAD_GRANT_PATH}`]);
+    expect(calls[0].body).toEqual({ fileName: 'ledger.jpg', contentType: 'image/jpeg' });
     expect(JSON.stringify(calls)).not.toMatch(/AccountKey|accountKey|SharedAccessKey/);
     const xhr = FakeXhr.last!;
     expect(xhr.method).toBe('PUT');
@@ -189,25 +187,16 @@ describe('dedicated Real Estate uploads', () => {
     expect(xhr.headers['x-ms-blob-type']).toBe('BlockBlob');
     expect(xhr.headers.Authorization).toBeUndefined(); // the bearer token never goes to storage
     expect(progress).toEqual([0.5, 1]);
-    // Only metadata is kept — no SAS URL / signature.
-    expect(blob).toEqual({ blobName: '7/2026/11/06/abc.jpg', container: RE_CONTAINER, contentType: 'image/jpeg', size: 10, fileName: 'ledger.jpg' });
+    // Only metadata is kept — no SAS URL / signature. BlobName is what the OCR batch must use.
+    expect(blob).toEqual({ blobName: '7/3f2a_ledger.jpg', container: 'realestate-images', contentType: 'image/jpeg', size: 10, fileName: 'ledger.jpg' });
     expect(JSON.stringify(blob)).not.toContain('sig=');
-  });
-
-  it('uses the suggested blob name for a PDF ledger when the server returns none', async () => {
-    signIn();
-    vi.stubGlobal('XMLHttpRequest', FakeXhr);
-    const calls = stubApi(() => ok({ blobUri: 'https://wlstorage.blob.core.windows.net/uploaded/x.pdf', sasToken: SAS }));
-    const blob = await uploadRealEstateFile(new File(['%PDF'], 'page.pdf', { type: 'application/pdf' }), { purpose: 'OcrLedger' });
-    expect(blob.blobName).toBe((calls[0].body as { blobName: string }).blobName);
-    expect(blob.blobName).toMatch(/\.pdf$/);
   });
 
   it('refuses a non-https upload URL and never uploads', async () => {
     signIn();
     vi.stubGlobal('XMLHttpRequest', FakeXhr);
     FakeXhr.last = null;
-    stubApi(() => ok({ blobUri: 'http://evil.example/x', sasToken: 'sig=1', blobName: 'a' }));
+    stubApi(() => ok({ BlobUri: 'http://evil.example/x', SasToken: 'sig=1', BlobName: 'a' }));
     await expectKind(uploadRealEstateFile(new File(['x'], 'a.png', { type: 'image/png' }), { purpose: 'Document' }), 'server');
     expect(FakeXhr.last).toBeNull();
   });
@@ -274,5 +263,21 @@ describe('OCR workflow API', () => {
     // Batch creation references the stored blob; no ids invented.
     // inputType is the swagger's int32 enum (3 = scanned ledger page).
     expect(calls[0].body).toEqual({ fileName: 'ledger-page-01.jpg', contentType: 'image/jpeg', inputType: 3, blobName: 'realestate/ledger-page-01.jpg', businessModule: 'RealEstate' });
+  });
+});
+
+describe('ledger upload types (backend OCR reads images only)', () => {
+  it('accepts JPG/PNG/WebP for ledgers and refuses PDF and Excel before uploading; documents still take PDF', async () => {
+    const { allowedTypesFor } = await import('../api/realEstateUpload.ts');
+    expect(allowedTypesFor('OcrLedger')).toEqual(['image/jpeg', 'image/png', 'image/webp']);
+    expect(allowedTypesFor('Document')).toContain('application/pdf');
+    signIn();
+    const calls = stubApi(() => ok({}));
+    for (const [name, type] of [['page.pdf', 'application/pdf'], ['sheet.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']]) {
+      const err = await uploadRealEstateFile(new File(['x'], name, { type }), { purpose: 'OcrLedger' }).catch((e) => e);
+      expect(err).toBeInstanceOf(UploadError);
+      expect(err.message).toMatch(/JPG, PNG, WebP/);
+    }
+    expect(calls).toHaveLength(0);
   });
 });

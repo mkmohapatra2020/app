@@ -9,11 +9,13 @@ interface Props {
   confirmLabel: string;
   tone?: 'primary' | 'danger';
   pending?: boolean;
+  /** Keep the confirm button disabled (e.g. a required reason is empty). */
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-export default function ConfirmDialog({ open, title, children, confirmLabel, tone = 'primary', pending = false, onConfirm, onCancel }: Props) {
+export default function ConfirmDialog({ open, title, children, confirmLabel, tone = 'primary', pending = false, confirmDisabled = false, onConfirm, onCancel }: Props) {
   const id = useId();
   const t = useT();
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -45,7 +47,7 @@ export default function ConfirmDialog({ open, title, children, confirmLabel, ton
         <div id={`${id}-b`} className="re-dialog-body">{children}</div>
         <div className="re-actions">
           <button type="button" className="btn btn-outline" ref={cancelRef} onClick={onCancel} disabled={pending}>{t('Cancel')}</button>
-          <button type="button" className={`btn ${tone === 'danger' ? 're-btn-danger' : 'btn-primary'}`} onClick={onConfirm} disabled={pending}>
+          <button type="button" className={`btn ${tone === 'danger' ? 're-btn-danger' : 'btn-primary'}`} onClick={onConfirm} disabled={pending || confirmDisabled}>
             {pending ? t('Please wait…') : confirmLabel}
           </button>
         </div>

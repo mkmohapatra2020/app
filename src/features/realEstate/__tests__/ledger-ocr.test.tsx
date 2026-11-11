@@ -238,3 +238,81 @@ describe('OCR analysis popup', () => {
     expect(([...document.querySelectorAll('.re-ocr-dialog-foot button')].find((x) => x.textContent === 'Submit') as HTMLButtonElement).disabled).toBe(true);
   });
 });
+
+describe('WLService OCR response shapes', () => {
+  it('reads OcrBatchSummary: numeric Status, PascalCase Issues and Fields grouped into rows', () => {
+    const b = toOcrBatch({
+      Id: 12, Status: 1, Confidence: 0.82, RowCount: 4,
+      Issues: [{ Code: 'MATCH_HINT_REQUIRED', Message: 'CustomerName or PlotNumber is required', FieldName: 'ledgerRows[1].CustomerName' }],
+      Fields: [
+        { Name: 'ledgerRows[0].CustomerName', Value: 'Ramesh', Confidence: 0.9, IsCorrected: false },
+        { Name: 'ledgerRows[0].CommissionAmount', Value: '5000', Confidence: 0.7, IsCorrected: true },
+        { Name: 'ledgerRows[1].PropertyAmount', Value: '95000', Confidence: 0.6, IsCorrected: false },
+      ],
+    });
+    expect(b.id).toBe(12);
+    expect(b.status).toBe('Parsed');
+    expect(b.rows).toHaveLength(2);
+    expect(b.rows[0].cells.customerName).toEqual({ extracted: 'Ramesh', corrected: null, confidence: 0.9 });
+    expect(b.rows[0].cells.commissionAmount.corrected).toBe('5000');
+    expect(b.rows[0].confidence).toBe(0.8);
+    expect(b.rows[1].cells.propertyAmount.extracted).toBe('95000');
+    expect(b.rows[1].cells.customerName.extracted).toBe('');
+    expect(b.rows[1].issues[0]).toMatchObject({ code: 'MATCH_HINT_REQUIRED', field: 'customerName', rowIndex: 1 });
+    expect(toOcrBatch({ Id: 3, Status: 2 }).status).toBe('Validated');
+    expect(toOcrBatch({ Id: 3, Status: 'Approved' }).status).toBe('Approved');
+  });
+
+  it('create: the backend returns only the new batch id, then the batch is loaded', async () => {
+    signIn();
+    const calls = stubApi((c) => (c.method === 'POST'
+      ? { status: 200, data: { Success: true, Data: 12 } }
+      : { status: 200, data: { Success: true, Data: { Id: 12, Status: 0, Confidence: null, RowCount: 0, Issues: [] } } }));
+    const { realEstateOcrApi } = await import('../api/realEstateOcrApi.ts');
+    const b = await realEstateOcrApi.create({ blobName: '7/3f2a_ledger.jpg', container: 'realestate-images', contentType: 'image/jpeg', size: 1, fileName: 'ledger.jpg' });
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual(['POST /realestate/ocr/batches', 'GET /realestate/ocr/batches/12']);
+    expect(calls[0].body).toEqual({ fileName: 'ledger.jpg', contentType: 'image/jpeg', inputType: 3, blobName: '7/3f2a_ledger.jpg', businessModule: 'RealEstate' });
+    expect(b).toMatchObject({ id: 12, status: 'Uploaded', fileName: 'ledger.jpg' });
+  });
+});
+
+describe('OCR request time limits', () => {
+  it('gives parse 200 s and the other OCR calls 90 s (the app default of 30 s cancels them)', async () => {
+    signIn();
+    const calls = stubApi((c) => (c.method === 'POST' && c.url.endsWith('/batches')
+      ? { status: 200, data: { Success: true, Data: 5 } }
+      : { status: 200, data: { Success: true, Data: { Id: 5, Status: 1, Issues: [] } } }));
+    const { realEstateOcrApi } = await import('../api/realEstateOcrApi.ts');
+    await realEstateOcrApi.create({ blobName: '7/a.jpg', container: 'realestate-images', contentType: 'image/jpeg', size: 1, fileName: 'a.jpg' });
+    await realEstateOcrApi.parse(5);
+    await realEstateOcrApi.validate(5);
+    const t = Object.fromEntries(calls.map((c) => [`${c.method} ${c.url.replace('/realestate/ocr/batches', '')}`, c.timeout]));
+    expect(t).toEqual({ 'POST ': 90_000, 'GET /5': 30_000, 'POST /5/parse': 200_000, 'POST /5/validate': 90_000 });
+  });
+});
+
+describe('WLService workflow rules', () => {
+  it('numbers rows by position when the backend counts from 1, keeping the API index for corrections', async () => {
+    const { correctionKey } = await import('../utils/ocr.ts');
+    const b = toOcrBatch({ Id: 1, Status: 1, Fields: [
+      { Name: 'ledgerRows[1].CustomerName', Value: 'Ramesh', Confidence: 0.9 },
+      { Name: 'ledgerRows[2].CustomerName', Value: 'Sita', Confidence: 0.9 },
+      { Name: '__batch__', Value: null, Confidence: 0 },
+    ] });
+    expect(b.rows.map((r) => [r.rowNumber, r.index])).toEqual([[1, 1], [2, 2]]);
+    expect(correctionKey(b.rows[0].index, 'customerName')).toBe('ledgerRows[1].CustomerName');
+  });
+
+  it('allows Validate only on Parsed batches (the backend refuses Validated ones)', async () => {
+    const { canValidate } = await import('../utils/ocr.ts');
+    expect(canValidate(toOcrBatch({ Id: 1, Status: 1 }), {})).toBe(true);
+    expect(canValidate(toOcrBatch({ Id: 1, Status: 2 }), {})).toBe(false);
+  });
+
+  it('keeps Reject disabled until a reason is typed', async () => {
+    const { default: ConfirmDialog } = await import('../components/ConfirmDialog.tsx');
+    view = await render(<ConfirmDialog open title="Reject this batch?" confirmLabel="Reject batch" confirmDisabled onConfirm={() => {}} onCancel={() => {}} />);
+    const btn = [...document.querySelectorAll('.re-dialog button')].find((b) => b.textContent === 'Reject batch') as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
+  });
+});

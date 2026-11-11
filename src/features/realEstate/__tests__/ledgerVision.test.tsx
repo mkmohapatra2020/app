@@ -1,11 +1,13 @@
-/** Interim direct ledger analysis (gpt-6-luna): server module, browser client, submit helper. */
+/** Interim ledger analysis (static / direct modes) (gpt-6-luna): server module, browser client, submit helper. */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { analyseLedger, resourceOrigin } from '../../../../api/src/lib/ledgerOcr.mjs';
 import { analyseLedgerFile, LEDGER_OCR_PATH, LedgerAnalysisError } from '../api/ledgerVisionApi.ts';
 import { toOcrBatch } from '../api/normalize.ts';
 import { DIALOG_FIELDS } from '../components/OcrAnalysisDialog.tsx';
+import BlobUploadField from '../components/BlobUploadField.tsx';
+import { buildLocalImport, listLocalImports, saveLocalImport } from '../utils/localImports.ts';
 import { allValuesAsCorrections } from '../utils/ocr.ts';
-import { signIn } from './helpers.tsx';
+import { render, signIn, stubApi } from './helpers.tsx';
 
 const ENV = {
   AZURE_OPENAI_ENDPOINT: 'https://weekend-live-new-resource.services.ai.azure.com/api/projects/weekend-live-new',
@@ -105,5 +107,45 @@ describe('submit helper: allValuesAsCorrections', () => {
     const b = toOcrBatch({ status: 'Parsed', ledgerRows: [{ ...ROW, remarks: 'repeat entry' }] });
     expect(allValuesAsCorrections(b.rows, {}).some((c) => c.fieldName.endsWith('.Remarks'))).toBe(true);
     expect(allValuesAsCorrections(b.rows, {}, DIALOG_FIELDS).some((c) => c.fieldName.endsWith('.Remarks'))).toBe(false);
+  });
+});
+
+describe('static mode (no backend yet)', () => {
+  it('says the service is not running when the site /api returns "Backend call failure"', async () => {
+    signIn();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('Backend call failure', { status: 500 })));
+    const e = await analyseLedgerFile(new File(['x'], 'a.png', { type: 'image/png' })).catch((x) => x);
+    expect(e).toBeInstanceOf(LedgerAnalysisError);
+    expect(e.message).toMatch(/not running on this site/);
+  });
+
+  it('keeps a chosen file on the device: no upload call at all', async () => {
+    signIn();
+    const calls = stubApi(() => ({ status: 500 }));
+    const onUploaded = vi.fn();
+    const view = await render(<BlobUploadField label="Ledger file" purpose="OcrLedger" localOnly onUploaded={onUploaded} />);
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['abc'], 'page.jpg', { type: 'image/jpeg' });
+    Object.defineProperty(input, 'files', { value: [file] });
+    const { act } = await import('react');
+    await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(calls).toHaveLength(0);
+    expect(onUploaded).toHaveBeenCalledWith({ blobName: 'local/page.jpg', container: 'local', contentType: 'image/jpeg', size: 3, fileName: 'page.jpg' });
+    expect(view.container.textContent).toContain('kept on this device, not uploaded');
+    view.unmount();
+  });
+
+  it('saves the reviewed rows (edits, no Remarks) and document names on this device', () => {
+    localStorage.clear();
+    const b = toOcrBatch({ status: 'Parsed', ledgerRows: [{ ...ROW, remarks: 'repeat' }] });
+    const blob = { blobName: 'local/r.jpg', container: 'local', contentType: 'image/jpeg', size: 1, fileName: 'r.jpg' };
+    const rec = buildLocalImport(b, { 0: { commissionAmount: '5500' } }, { 0: [{ blob, documentType: 'PaymentReceipt' }] }, DIALOG_FIELDS, 'page.jpg', new Date('2026-11-09T10:00:00Z'));
+    expect(rec.rows[0]).toEqual({
+      rowNumber: 1,
+      values: { transactionDate: '2026-01-15', customerName: 'Ramesh', plotNumber: 'A-12', totalAmountReceived: '100000', commissionAmount: '5500', propertyAmount: '95000', paymentMode: 'Cash' },
+      documents: [{ documentType: 'PaymentReceipt', fileName: 'r.jpg' }],
+    });
+    expect(saveLocalImport(rec)).toBe(true);
+    expect(listLocalImports()[0]).toEqual(rec);
   });
 });
