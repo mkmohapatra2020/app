@@ -135,6 +135,10 @@
 .wf-details dt,.wf-kv dt{color:var(--ink-soft);}
 .wf-details dd,.wf-kv dd{margin:0;}
 .wf-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+/* Result as a "Weekend transformation" card (reuses the home hero's .hero-ba styles, solid on light pages). */
+.wf-transform{background:var(--teak,#2B1A0B);max-width:760px;margin-top:6px;animation:none;}
+.wf-transform .ba{border-radius:14px;}
+.wf-transform-dl{text-decoration:none;animation:none;}
 .wf-result{margin:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card);}
 .wf-result img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;}
 .wf-result figcaption{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;font-size:.84rem;}

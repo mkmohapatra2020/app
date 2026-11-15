@@ -198,6 +198,9 @@ export default function NewDesignForm({ resume, onSubmitted }) {
     ].filter(Boolean).join('. ');
     return {
       visualizationTypeId: category.typeId,
+      // The backend builds the AI prompt from these (category template + business area).
+      systemPrompt: category.prompt,
+      businessArea: category.businessArea,
       projectName: form.projectName.trim() || `${category.label} — Design Studio`,
       userPrompt: form.prompt.trim(),
       additionalDetail: summary,

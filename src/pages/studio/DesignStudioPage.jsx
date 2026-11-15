@@ -11,7 +11,7 @@ const TABS = [['new', 'New design'], ['requests', 'My design requests'], ['galle
 
 // History groups, in display order.
 const GROUPS = [
-  ['In progress', ['Submitted', 'Queued', 'Processing']],
+  ['In progress', ['Submitted', 'Queued', 'Processing', 'Generating']],
   ['Needs your attention', ['ChangesRequested']],
   ['Awaiting review', ['PendingReview']],
   ['Completed', ['Completed']],
@@ -35,7 +35,7 @@ export default function DesignStudioPage() {
     return [...(history.data || []), ...fresh].filter((r) => (seen.has(r.id) ? false : seen.add(r.id))).map((r) => (latest[r.id] ? { ...r, ...latest[r.id] } : r));
   }, [fresh, history.data, latest]);
   const onStatus = (r) => setLatest((m) => ({ ...m, [r.id]: r }));
-  const active = list.filter((r) => ['Submitted', 'Queued', 'Processing', 'ChangesRequested'].includes(r.status)).length;
+  const active = list.filter((r) => ['Submitted', 'Queued', 'Processing', 'Generating', 'ChangesRequested'].includes(r.status)).length;
 
   const onSubmitted = (req) => { setFresh((f) => [req, ...f]); setResume(null); refreshMembership(); setTab('requests'); };
   const onResubmit = (req) => { setResume(req); setTab('new'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
@@ -96,7 +96,7 @@ function Gallery({ list, loading, onNew, onExpired }) {
         <section key={r.id} className="card">
           <h3>{r.projectName || 'AI design'}</h3>
           <small className="muted">{[r.category, r.completedAt && `Completed ${fmtWhen(r.completedAt)}`].filter(Boolean).join(' · ')}</small>
-          <ResultImages images={r.images} title={r.projectName} onExpired={onExpired} />
+          <ResultImages images={r.images} title={r.projectName} beforeUrl={r.beforeUrl} onExpired={onExpired} />
         </section>
       ))}
     </div>

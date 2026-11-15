@@ -37,21 +37,11 @@ const toSas = (d) => {
   return { uri, sas, blobName: str(pick(p, 'blobName')), expires, url: uri && sas && !uri.includes('?') ? `${uri}?${sas}` : uri };
 };
 
-const MOCK_BLOB_HOST = 'mock-blob.local'; // see src/mocks/visualizationWorkflowMock.js
-
 /**
  * PUT a file straight to Blob Storage with a SAS URL, reporting progress (0–1).
  * Resolves to { ok, status }. Never logs the URL (it contains the SAS).
  */
 export function putFile(url, file, { onProgress, signal } = {}) {
-  if (url.includes(`//${MOCK_BLOB_HOST}/`)) {
-    // Mock upload: no network, simulated progress.
-    return new Promise((resolve) => {
-      let p = 0;
-      const t = setInterval(() => { p = Math.min(1, p + 0.25); onProgress?.(p); if (p >= 1) { clearInterval(t); resolve({ ok: true, status: 201 }); } }, 120);
-      signal?.addEventListener('abort', () => { clearInterval(t); resolve({ ok: false, status: 0, aborted: true }); }, { once: true });
-    });
-  }
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', url);

@@ -132,7 +132,7 @@ function AdminDetail({ id, onClose, onChanged }) {
             <details className="wf-details"><summary>Status history ({r.history.length})</summary>
               <ol className="wf-history">{r.history.map((h, i) => <li key={i}><StatusChip status={h.status} /> <small className="muted">{fmtWhen(h.at)} · {h.by}</small>{h.note && <p>{h.note}</p>}</li>)}</ol></details>
           )}
-          <ResultImages images={r.images} title={r.projectName} onExpired={() => detail.execute({ id })} />
+          <ResultImages images={r.images} title={r.projectName} beforeUrl={r.beforeUrl} onExpired={() => detail.execute({ id })} />
           <div className="row-btns wf-actions">
             {Object.entries(ACTIONS).filter(([, a]) => a.when.includes(r.status)).map(([k, a]) => (
               <button key={k} type="button" className={`btn btn-small ${k === 'reject' ? 'btn-quiet' : k === 'approve' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setConfirm(k)}>{a.label}</button>

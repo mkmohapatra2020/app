@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import BeforeAfter from '../../components/common/BeforeAfter.jsx';
 import { ACTIVE_STATUSES, STOP_STATUSES, aiWorkflowService as W } from '../../services/aiWorkflowService.js';
 
 const POLL_START = 3000;
@@ -6,7 +7,7 @@ const POLL_MAX_GAP = 20000;
 const POLL_WINDOW = 10 * 60 * 1000;
 
 const STATUS_LABEL = {
-  Draft: 'Draft', Submitted: 'Submitted', Queued: 'Queued', Processing: 'Generating', PendingReview: 'Awaiting review',
+  Draft: 'Draft', Submitted: 'Submitted', Queued: 'Queued', Processing: 'Generating', Generating: 'Generating', PendingReview: 'Awaiting review',
   ChangesRequested: 'Changes requested', Completed: 'Completed', Failed: 'Failed', Rejected: 'Rejected', Cancelled: 'Cancelled',
 };
 export const statusLabel = (s) => STATUS_LABEL[s] || s;
@@ -72,11 +73,15 @@ export function useRequestPolling(id, initial) {
   return { req, polling, error, refresh: loadDetail, poll, stop };
 }
 
-/** Generated images ordered by imageOrder; an expired link re-fetches the detail once. */
-export function ResultImages({ images = [], title, onExpired }) {
+/**
+ * Generated images ordered by imageOrder; an expired link re-fetches the detail once.
+ * With the site photo (`beforeUrl`), each result is a before/after slider, like the Outdoor page.
+ */
+export function ResultImages({ images = [], title, beforeUrl = '', onExpired }) {
   const [broken, setBroken] = useState({});
   const retried = useRef(false);
   if (!images.length) return null;
+  if (beforeUrl) return <TransformationCard images={images} title={title} beforeUrl={beforeUrl} />;
   return (
     <div className="wf-results">
       {images.map((img) => (
@@ -100,6 +105,36 @@ export function ResultImages({ images = [], title, onExpired }) {
   );
 }
 
+/**
+ * "Weekend transformation" card, like the home page hero: the site photo (before) against one
+ * result (after) in a large drag-to-compare slider; tabs switch between results.
+ */
+function TransformationCard({ images, title, beforeUrl }) {
+  const [i, setI] = useState(0);
+  const img = images[Math.min(i, images.length - 1)];
+  const name = title || 'AI design';
+  return (
+    <section className="hero-ba wf-transform" aria-label={`Before and after: ${name}`}>
+      <div className="hero-ba-head">
+        <span className="hero-ba-badge">Weekend transformation</span>
+        <span className="hero-ba-title">{name}</span>
+      </div>
+      <BeforeAfter key={`${img.order}-${img.url.split('?')[0]}`} beforeSrc={beforeUrl} afterSrc={img.url} alt={`${name} — result ${img.order}`} aspect="4 / 3" />
+      {images.length > 1 && (
+        <div className="hero-ba-tabs" role="tablist" aria-label="Choose a result">
+          {images.map((x, n) => (
+            <button key={x.order} type="button" role="tab" aria-selected={n === i} className={n === i ? 'is-on' : ''} onClick={() => setI(n)}>Result {x.order}</button>
+          ))}
+        </div>
+      )}
+      <div className="hero-ba-foot">
+        <p className="hero-ba-hint">Drag to compare your site photo with the design.</p>
+        <a className="hero-ba-try wf-transform-dl" href={img.url} download={`weekend-live-design-${img.order}`} target="_blank" rel="noopener">⬇ Download result {img.order}</a>
+      </div>
+    </section>
+  );
+}
+
 /** One submitted request: status, review notes, results, resubmit. */
 export default function RequestCard({ request, onResubmit, onStatus }) {
   const { req, polling, error, refresh } = useRequestPolling(request.id, request);
@@ -117,7 +152,7 @@ export default function RequestCard({ request, onResubmit, onStatus }) {
         <button type="button" className="btn btn-quiet btn-small" onClick={refresh} disabled={polling}>↻ Refresh</button>
       </header>
 
-      {ACTIVE_STATUSES.includes(r.status) && <p className="wf-wait"><span className="slide-spinner" aria-hidden="true" /> {r.status === 'Processing' ? 'Generating your design — usually under two minutes.' : 'Queued for generation…'}</p>}
+      {ACTIVE_STATUSES.includes(r.status) && <p className="wf-wait"><span className="slide-spinner" aria-hidden="true" /> {['Processing', 'Generating'].includes(r.status) ? 'Generating your design — usually under two minutes.' : 'Queued for generation…'}</p>}
       {r.status === 'PendingReview' && <p className="wf-note">Our team reviews manual requests before generating. No image yet is normal — we will update this card.</p>}
       {r.status === 'ChangesRequested' && (
         <div className="wf-review" role="status">
@@ -140,7 +175,7 @@ export default function RequestCard({ request, onResubmit, onStatus }) {
         </dl>
       </details>
 
-      <ResultImages images={r.status === 'Completed' ? r.images : []} title={r.projectName} onExpired={refresh} />
+      <ResultImages images={r.status === 'Completed' ? r.images : []} title={r.projectName} beforeUrl={r.beforeUrl} onExpired={refresh} />
     </article>
   );
 }

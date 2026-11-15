@@ -11,7 +11,7 @@
  *
  * The customer is always derived from the bearer token — no customer id, role or
  * location is sent. SAS URLs live in memory only and are never logged.
- * Mocked until deployed: src/mocks/visualizationWorkflowMock.js (my-history is always live).
+ * All live on the backend (WLService AIVisualizationWorkflowFunctions); no mock.
  */
 import { api, mapRes } from './backendClient.js';
 import { BACKEND_ENDPOINTS } from './apiConfig.js';
@@ -23,9 +23,10 @@ const A = BACKEND_ENDPOINTS.ADMIN_AI_VISUALIZATION;
 const str = (v, d = '') => (v === undefined || v === null ? d : String(v));
 const num = (v, d) => { const n = Number(v); return Number.isFinite(n) ? n : d; };
 
-export const ACTIVE_STATUSES = ['Submitted', 'Queued', 'Processing'];
+// The backend worker sets 'Generating' while the model runs ('Processing' kept for older data).
+export const ACTIVE_STATUSES = ['Submitted', 'Queued', 'Processing', 'Generating'];
 export const STOP_STATUSES = ['Completed', 'Failed', 'Rejected', 'ChangesRequested', 'Cancelled'];
-export const ALL_STATUSES = ['Draft', 'Submitted', 'Queued', 'Processing', 'PendingReview', 'ChangesRequested', 'Completed', 'Failed', 'Rejected', 'Cancelled'];
+export const ALL_STATUSES = ['Draft', 'Submitted', 'Queued', 'Processing', 'Generating', 'PendingReview', 'ChangesRequested', 'Completed', 'Failed', 'Rejected', 'Cancelled'];
 
 // Status-specific messages from the workflow contract.
 export function workflowError(res, fallback = 'Something went wrong. Please try again.') {
@@ -47,6 +48,17 @@ const withError = (res) => (res.success ? res : { ...res, error: workflowError(r
 const toImage = (i) => ({ order: num(pick(i, 'imageOrder', 'order'), 0), url: str(pick(i, 'imageUrl', 'url', 'blobUri', 'blobUrl', 'thumbnailUrl')), thumb: str(pick(i, 'thumbnailUrl')), expiresOn: str(pick(i, 'expiresOn')) });
 
 /** Maps a request (customer or admin view) to the shape the UI uses. */
+/**
+ * First uploaded site photo — the "before" for the result slider. The backend sends assets as
+ * References [{ AssetType: "SitePhoto" | "ReferenceImage", BlobUrl }] (admin views: sitePhotos).
+ */
+function beforeUrlOf(p) {
+  const assets = [...(pick(p, 'references', 'assets') || []), ...(pick(p, 'sitePhotos') || []).map((a) => ({ ...a, assetType: 'SitePhoto' }))];
+  const site = assets.find((a) => /^site/i.test(str(pick(a, 'assetType', 'type'))));
+  const url = site ? str(pick(site, 'blobUrl', 'url', 'imageUrl')) : '';
+  return url;
+}
+
 export function toRequest(d) {
   const p = unwrap(d) || {};
   const images = unwrapList(pick(p, 'images', 'results', 'generatedImages') || [], 'images').map(toImage).filter((i) => i.url).sort((a, b) => a.order - b.order);
@@ -70,6 +82,7 @@ export function toRequest(d) {
     completedAt: str(pick(p, 'completedDate')),
     error: str(pick(p, 'errorMessage')),
     images,
+    beforeUrl: beforeUrlOf(p),
     // admin-only extras (absent for customers)
     customer: pick(p, 'customer') || null,
     location: str(pick(p, 'locationSnapshot')),
@@ -142,7 +155,19 @@ class AiWorkflowService {
   }
 
   status({ id, signal }) { return api.get(W.STATUS, { arg: id, signal }).then((r) => withError(mapRes(r, (d) => { const p = unwrap(d) || {}; return { status: str(pick(p, 'status')), reviewNotes: str(pick(p, 'reviewNotes')) }; }))); }
-  detail({ id, signal }) { return api.get(W.BY_ID, { arg: id, signal }).then((r) => withError(mapRes(r, toRequest))); }
+  /** Request detail; private Blob URLs (results, before-photo) get a read SAS so <img> can show them. */
+  async detail({ id, signal }) {
+    const r = withError(mapRes(await api.get(W.BY_ID, { arg: id, signal }), toRequest));
+    return r.success ? { ...r, data: await this.signUrls(r.data, signal) } : r;
+  }
+
+  async signUrls(req, signal) {
+    return {
+      ...req,
+      images: await Promise.all(req.images.map(async (img) => ({ ...img, url: await blobService.displayUrl(img.url, { signal }) }))),
+      beforeUrl: req.beforeUrl ? await blobService.displayUrl(req.beforeUrl, { signal }) : '',
+    };
+  }
   /**
    * GET /ai-visualization/my-history — the signed-in customer's requests (customer from the
    * login token, no customerId). Private Blob result URLs get a read SAS so <img> can show them.
@@ -150,10 +175,7 @@ class AiWorkflowService {
   async myHistory({ signal } = {}) {
     const r = withError(mapRes(await api.get(W.MY_HISTORY, { auth: true, signal }), (d) => unwrapList(d, 'items', 'requests').map(toRequest).filter((x) => x.id)));
     if (!r.success) return r;
-    const data = await Promise.all(r.data.map(async (req) => ({
-      ...req,
-      images: await Promise.all(req.images.map(async (img) => ({ ...img, url: await blobService.displayUrl(img.url, { signal }) }))),
-    })));
+    const data = await Promise.all(r.data.map((req) => this.signUrls(req, signal)));
     return { ...r, data };
   }
 

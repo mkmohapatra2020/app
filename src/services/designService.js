@@ -1,7 +1,9 @@
-/** AI Design Studio categories — GET /design-categories (mocked until deployed). */
-import { api, mapRes } from './backendClient.js';
-import { BACKEND_ENDPOINTS } from './apiConfig.js';
-import { pick, unwrap, unwrapList } from './adapters.js';
+/**
+ * AI Design Studio categories — a local catalogue (src/data/studioCategories.js). The backend has
+ * no category endpoint; the request carries the category's id, prompt template and business area.
+ */
+import { pick } from './adapters.js';
+import { STUDIO_CATEGORIES } from '../data/studioCategories.js';
 
 const str = (v, d = '') => (v === undefined || v === null ? d : String(v));
 
@@ -18,11 +20,10 @@ export const toCategory = (c) => ({
 });
 
 class DesignService {
-  categories({ signal } = {}) {
-    return api.get(BACKEND_ENDPOINTS.DESIGN.CATEGORIES, { signal }).then((r) => mapRes(r, (d) => {
-      const p = unwrap(d);
-      return (Array.isArray(p) ? p : unwrapList(p, 'categories')).map(toCategory).filter((c) => c.id && c.label).sort((a, b) => a.order - b.order);
-    }));
+  // eslint-disable-next-line class-methods-use-this, no-unused-vars
+  categories(_opts = {}) {
+    const data = STUDIO_CATEGORIES.map(toCategory).filter((c) => c.id && c.label).sort((a, b) => a.order - b.order);
+    return Promise.resolve({ success: true, status: 200, data });
   }
 }
 

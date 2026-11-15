@@ -13,27 +13,26 @@
  * delete its entry from HANDLERS below — no UI change is needed.
  */
 import { MOCK_MODE } from '../services/apiConfig.js';
-import { MOCK_CATEGORIES, PASS, workflowMockFor } from './visualizationWorkflowMock.js';
+/** A handler may return PASS to let the request go to the real API. */
+export const PASS = Symbol('pass-through');
 
 const delay = () => new Promise((r) => setTimeout(r, 250 + Math.random() * 350));
-const ok = (data, status = 200) => ({ success: true, status, data, mocked: true });
 
 // ---------- handlers: "METHOD /path" → (req) => ApiResponse ----------
-const HANDLERS = {
-  'GET /design-categories': () => ok(MOCK_CATEGORIES),
-};
+// The AI Design Studio workflow (/ai-visualization/*, /admin/ai-visualizations/*) is live on the
+// backend, and categories are a local catalogue (src/data/studioCategories.js), so nothing is mocked.
+const HANDLERS = {};
 
 /** Mock handler for this request, or null to call the real API. */
 export function mockFor(method, path) {
   if (MOCK_MODE === 'off') return null;
   const clean = String(path).split('?')[0];
-  const handler = HANDLERS[`${method.toUpperCase()} ${clean}`] || workflowMockFor(method, clean);
+  const handler = HANDLERS[`${method.toUpperCase()} ${clean}`];
   if (!handler) return null;
   return async (req) => { await delay(); return handler(req); };
 }
 
 /** Endpoints currently served by this file (shown in dev tools / docs). */
 export const MOCKED_ENDPOINTS = Object.keys(HANDLERS);
-export { PASS };
 
 if (import.meta.env.DEV && MOCK_MODE !== 'off') console.info('[mock api] serving', MOCKED_ENDPOINTS.length, 'planned endpoints from src/mocks/mockApi.js');
