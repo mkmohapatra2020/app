@@ -83,6 +83,8 @@ export function toRequest(d) {
     error: str(pick(p, 'errorMessage')),
     images,
     beforeUrl: beforeUrlOf(p),
+    // Image Generator pictures listed in my-history (not Studio requests: no detail/status routes).
+    source: /^imagegenerator$/i.test(str(pick(p, 'businessArea'))) ? 'image' : 'studio',
     // admin-only extras (absent for customers)
     customer: pick(p, 'customer') || null,
     location: str(pick(p, 'locationSnapshot')),
@@ -161,11 +163,19 @@ class AiWorkflowService {
     return r.success ? { ...r, data: await this.signUrls(r.data, signal) } : r;
   }
 
+  /** A viewable URL for a site photo: "blob://<container>/<blob>" gets a read SAS; URLs as for results. */
+  async photoUrl(url, signal) {
+    const m = /^blob:\/\/([^/]+)\/(.+)$/.exec(url);
+    if (!m) return blobService.displayUrl(url, { signal });
+    const r = await blobService.readUrl({ container: m[1], blobName: m[2], signal });
+    return r.success ? r.data : '';
+  }
+
   async signUrls(req, signal) {
     return {
       ...req,
       images: await Promise.all(req.images.map(async (img) => ({ ...img, url: await blobService.displayUrl(img.url, { signal }) }))),
-      beforeUrl: req.beforeUrl ? await blobService.displayUrl(req.beforeUrl, { signal }) : '',
+      beforeUrl: req.beforeUrl ? await this.photoUrl(req.beforeUrl, signal) : '',
     };
   }
   /**

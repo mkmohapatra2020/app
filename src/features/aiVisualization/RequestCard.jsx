@@ -32,13 +32,17 @@ export function useRequestPolling(id, initial) {
 
   const stop = useCallback(() => { clearTimeout(timer.current); ctrl.current?.abort(); setPolling(false); }, []);
 
+  // Image Generator pictures (my-history) are not Studio requests: there is no detail to load.
+  const isImage = initial?.source === 'image';
+
   const loadDetail = useCallback(async () => {
+    if (isImage) return null;
     const c = new AbortController(); ctrl.current = c;
     const d = await W.detail({ id, signal: c.signal });
     if (d.aborted) return null;
     if (d.success) { setReq(d.data); setError(''); return d.data; }
     setError(d.error); return null;
-  }, [id]);
+  }, [id, isImage]);
 
   const poll = useCallback(async () => {
     stop();
@@ -62,6 +66,7 @@ export function useRequestPolling(id, initial) {
   }, [id, loadDetail, stop]);
 
   useEffect(() => {
+    if (isImage) return undefined;
     let alive = true;
     (async () => {
       const d = await loadDetail();
@@ -149,7 +154,7 @@ export default function RequestCard({ request, onResubmit, onStatus }) {
           <h3>{r.projectName || 'AI design request'}</h3>
           <small className="muted">{r.submittedAt ? `Submitted ${fmtWhen(r.submittedAt)}` : `Created ${fmtWhen(r.createdAt)}`}{r.completedAt ? ` · Completed ${fmtWhen(r.completedAt)}` : ''}</small>
         </div>
-        <button type="button" className="btn btn-quiet btn-small" onClick={refresh} disabled={polling}>↻ Refresh</button>
+        {r.source !== 'image' && <button type="button" className="btn btn-quiet btn-small" onClick={refresh} disabled={polling}>↻ Refresh</button>}
       </header>
 
       {ACTIVE_STATUSES.includes(r.status) && <p className="wf-wait"><span className="slide-spinner" aria-hidden="true" /> {['Processing', 'Generating'].includes(r.status) ? 'Generating your design — usually under two minutes.' : 'Queued for generation…'}</p>}

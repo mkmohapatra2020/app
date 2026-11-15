@@ -76,7 +76,9 @@ function Requests({ list, loading, error, onRetry, onNew, onResubmit, onStatus }
             {Object.entries(byDay).map(([d, rs]) => (
               <div key={d} className="wf-day">
                 <h3 className="wf-day-label">{d}</h3>
-                {rs.map((r) => <RequestCard key={r.id} request={r} onResubmit={onResubmit} onStatus={onStatus} />)}
+                <div className="wf-day-cards">
+                  {rs.map((r) => <RequestCard key={r.id} request={r} onResubmit={onResubmit} onStatus={onStatus} />)}
+                </div>
               </div>
             ))}
           </section>

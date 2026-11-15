@@ -137,6 +137,17 @@
 .wf-results{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
 /* Result as a "Weekend transformation" card (reuses the home hero's .hero-ba styles, solid on light pages). */
 .wf-transform{background:var(--teak,#2B1A0B);max-width:760px;margin-top:6px;animation:none;}
+/* Compact inside the 3-per-row grid */
+.wf-day-cards .wf-transform,.wf-gallery .wf-transform{max-width:none;padding:10px;border-radius:16px;}
+.wf-day-cards .wf-transform .hero-ba-head,.wf-gallery .wf-transform .hero-ba-head{padding:0 2px 8px;flex-wrap:wrap;gap:2px 8px;}
+.wf-day-cards .wf-transform .hero-ba-badge,.wf-gallery .wf-transform .hero-ba-badge{font-size:.62rem;}
+/* The card already shows the project name above. */
+.wf-day-cards .wf-transform .hero-ba-title{display:none;}
+.wf-gallery .wf-transform .hero-ba-title{font-size:.92rem;}
+.wf-day-cards .wf-transform .hero-ba-tabs button,.wf-gallery .wf-transform .hero-ba-tabs button{min-height:34px;font-size:.74rem;padding:4px 10px;}
+.wf-day-cards .wf-transform .hero-ba-hint,.wf-gallery .wf-transform .hero-ba-hint{display:none;}
+.wf-day-cards .wf-transform .hero-ba-foot,.wf-gallery .wf-transform .hero-ba-foot{margin-top:8px;}
+.wf-day-cards .wf-transform-dl,.wf-gallery .wf-transform-dl{width:100%;justify-content:center;min-height:38px;font-size:.8rem;}
 .wf-transform .ba{border-radius:14px;}
 .wf-transform-dl{text-decoration:none;animation:none;}
 .wf-result{margin:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card);}
@@ -147,6 +158,12 @@
 .wf-day{display:grid;gap:12px;}
 .wf-day-label{margin:4px 0 0;font:600 .8rem 'Work Sans',sans-serif;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);}
 .wf-gallery{display:grid;gap:18px;}
+/* Requests and gallery: 3 cards per row on desktop, 2 on tablets, 1 on phones. */
+.wf-day-cards,.wf-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start;}
+@media (max-width:1100px){ .wf-day-cards,.wf-gallery{grid-template-columns:repeat(2,minmax(0,1fr));} }
+@media (max-width:640px){ .wf-day-cards,.wf-gallery{grid-template-columns:1fr;} }
+.wf-day-cards > .wf-card,.wf-gallery > .card{min-width:0;}
+.wf-day-cards .wf-card-head h3,.wf-gallery > .card h3{font-size:1rem;}
 .wf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
 .wf-grid .f-field input,.wf-grid .f-field select,.studio-step textarea{width:100%;}
 .wf-more{margin:6px 0 10px;}
