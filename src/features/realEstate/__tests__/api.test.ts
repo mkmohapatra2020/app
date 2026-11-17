@@ -78,9 +78,9 @@ describe('realEstateApi', () => {
   });
 
   it('only calls routes that exist in the live API', () => {
-    // No bookings list / booking by id / OCR batch list in the API.
+    // No bookings list / booking by id in the API. The OCR batch list exists (GET /realestate/ocr/batches).
     expect(Object.keys(realEstateApi.bookings)).toEqual(['create']);
-    expect('list' in realEstateOcrApi).toBe(false);
+    expect('list' in realEstateOcrApi).toBe(true);
   });
 
   it('loads the overview from GET /realestate/overview with the login token', async () => {

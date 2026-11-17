@@ -23,7 +23,7 @@ export function useRealEstateOcr(batchId: string, enabled: boolean) {
   }, []);
   const discard = useCallback(() => setDraft({}), []);
 
-  const run = useCallback(async (action: OcrAction, reason = ''): Promise<OcrBatch | null> => {
+  const run = useCallback(async (action: OcrAction, reason = '', projectId?: string | number | null): Promise<OcrBatch | null> => {
     const batch = q.data;
     if (!batch) return null;
     setPending(action);
@@ -41,7 +41,7 @@ export function useRealEstateOcr(batchId: string, enabled: boolean) {
         }
         case 'validate': next = await realEstateOcrApi.validate(batch.id); break;
         case 'approve': next = await realEstateOcrApi.approve(batch.id); break;
-        case 'import': next = await realEstateOcrApi.import(batch.id); break;
+        case 'import': next = await realEstateOcrApi.import(batch.id, projectId); break;
         case 'reject': next = await realEstateOcrApi.reject(batch.id, reason); break;
         default: return batch;
       }

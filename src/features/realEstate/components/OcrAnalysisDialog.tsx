@@ -6,7 +6,7 @@
  */
 import { Fragment, useEffect, useId, useRef, useState } from 'react';
 import { useT } from '../../../i18n/language.ts';
-import { OCR_AMOUNT_FIELDS, OCR_FIELDS, OCR_FIELD_HELP, OCR_FIELD_LABELS, type OcrBatch, type OcrDraft, type OcrField } from '../types/ocrTypes.ts';
+import { OCR_AMOUNT_FIELDS, OCR_FIELDS, OCR_FIELD_LABELS, type OcrBatch, type OcrDraft, type OcrField } from '../types/ocrTypes.ts';
 import { DOCUMENT_TYPES, type StoredBlob } from '../types/realEstateTypes.ts';
 import { allIssues, buildCorrections, cellInputId, cellState, cellValue, rowKey } from '../utils/ocr.ts';
 import BlobUploadField from './BlobUploadField.tsx';
@@ -71,6 +71,19 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
   const issues = allIssues(batch).filter((i) => i.rowIndex === null);
   const [attachOpen, setAttachOpen] = useState<string | null>(null);
   const locked = !editable || pending;
+  // "One by one": one customer (ledger row) at a time with Previous / Next; "All rows": the table.
+  const [view, setView] = useState<'one' | 'all'>('one');
+  const [step, setStep] = useState(0);
+  const total = batch.rows.length;
+  const current = total ? batch.rows[Math.min(step, total - 1)] : null;
+  const go = (n: number) => { setStep(Math.max(0, Math.min(total - 1, n))); setAttachOpen(null); };
+  const rowFlags = (row: OcrBatch['rows'][number]) => {
+    const key = rowKey(row);
+    const hasError = row.issues.some((i) => i.severity === 'Error');
+    const edited = Object.keys(draft[key] ?? {}).length > 0;
+    return { key, hasError, edited, docs: (attachments[key] ?? []).length };
+  };
+  const customerOf = (row: OcrBatch['rows'][number]) => cellValue(row.cells.customerName, draft[rowKey(row)]?.customerName).trim();
 
   // Focus moves in, Tab stays inside, Escape closes, focus returns on close.
   useEffect(() => {
@@ -104,7 +117,7 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
       <div className="re-dialog re-ocr-dialog" role="dialog" aria-modal="true" aria-labelledby={`${id}-t`} ref={boxRef}>
         <div className="re-ocr-dialog-head">
           <div>
-            <h2 id={`${id}-t`}>{t('Ledger analysis (GPT-6 Luna)')}</h2>
+            <h2 id={`${id}-t`}>{t('Ledger analysis')}</h2>
             <p className="re-sub">{t('Check each value, correct anything that is wrong, attach any documents, then submit.')}</p>
             <p className="re-ocr-dialog-meta">
               <span className="re-file-name">{fileName}</span>
@@ -112,6 +125,12 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
               <span className="re-sub">{t('{n} transactions', { n: batch.rows.length })}</span>
               {pct(batch.confidence) && <span className="re-sub">{t('Confidence {n}', { n: pct(batch.confidence)! })}</span>}
             </p>
+            {total > 0 && (
+              <div className="re-ocr-view" role="group" aria-label={t('View')}>
+                <button type="button" className={view === 'one' ? 'is-on' : ''} aria-pressed={view === 'one'} onClick={() => setView('one')}>{t('One by one')}</button>
+                <button type="button" className={view === 'all' ? 'is-on' : ''} aria-pressed={view === 'all'} onClick={() => setView('all')}>{t('All rows')}</button>
+              </div>
+            )}
           </div>
           <button type="button" className="re-dialog-x" ref={closeRef} onClick={onClose} disabled={pending} aria-label={t('Close')}>×</button>
         </div>
@@ -119,8 +138,87 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
         <div className="re-ocr-kv-list" role="region" aria-label={t('Extracted values')} tabIndex={-1}>
           {batch.error && <p className="f-alert f-alert-error" role="alert">{t('Extraction problem: {error}', { error: batch.error })}</p>}
           {issues.map((i, n) => <p key={n} className={`f-alert ${i.severity === 'Error' ? 'f-alert-error' : 'f-alert-info'}`}>{i.message}</p>)}
-          {batch.rows.length === 0 && !batch.error && <p className="re-sub">{t('GPT-6 Luna found no ledger rows on this page. Try a clearer, well-lit photo of a single page.')}</p>}
-          {batch.rows.length > 0 && (
+          {batch.rows.length === 0 && !batch.error && <p className="re-sub">{t('No ledger rows were found on this page. Try a clearer, well-lit photo of a single page.')}</p>}
+          {view === 'one' && current && (() => {
+            const { key, hasError } = rowFlags(current);
+            const docs = attachments[key] ?? [];
+            const label = t('Row {n}', { n: current.rowNumber || current.index + 1 });
+            const name = customerOf(current);
+            const isOpen = attachOpen === key && !locked;
+            return (
+              <section className="re-ocr-step" aria-label={t('Customer {i} of {n}', { i: step + 1, n: total })}>
+                <div className="re-ocr-step-nav">
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => go(step - 1)} disabled={step === 0}>← {t('Previous')}</button>
+                  <p aria-live="polite"><strong>{t('Customer {i} of {n}', { i: step + 1, n: total })}</strong></p>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => go(step + 1)} disabled={step >= total - 1}>{t('Next')} →</button>
+                </div>
+                <ol className="re-ocr-step-chips" aria-label={t('Jump to a customer')}>
+                  {batch.rows.map((r, n) => {
+                    const f = rowFlags(r);
+                    return (
+                      <li key={f.key}>
+                        <button type="button" className={`${n === step ? 'is-on' : ''}${f.hasError ? ' has-error' : f.edited ? ' is-edited' : ''}`} aria-current={n === step ? 'step' : undefined}
+                          title={customerOf(r) || t('Row {n}', { n: r.rowNumber || r.index + 1 })} onClick={() => go(n)}>{n + 1}</button>
+                      </li>
+                    );
+                  })}
+                </ol>
+                <div className={`re-ocr-step-card${hasError ? ' has-error' : ''}`}>
+                  <h3>
+                    {name || label}
+                    <small className="re-sub">{label}{pct(current.confidence) ? ` · ${t('Confidence {n}', { n: pct(current.confidence)! })}` : ''}</small>
+                  </h3>
+                  <div className="re-ocr-step-grid">
+                    {DIALOG_FIELDS.map((f) => {
+                      const state = cellState(current, f, draft[key]?.[f]);
+                      const rowIssue = current.issues.find((i) => i.field === f);
+                      const inputId = `step-${cellInputId(current.index, f)}`;
+                      return (
+                        <div key={f} className={`re-ocr-step-field re-cell-${state}${TONE[f] ? ` re-col-${TONE[f]}` : ''}`}>
+                          <label htmlFor={inputId}>{t(OCR_FIELD_LABELS[f])}</label>
+                          <input
+                            id={inputId} className="f-input" disabled={locked}
+                            inputMode={OCR_AMOUNT_FIELDS.includes(f) ? 'decimal' : undefined}
+                            value={cellValue(current.cells[f], draft[key]?.[f])}
+                            aria-invalid={state === 'error' || undefined}
+                            onChange={(e) => onEdit(key, f, e.target.value)}
+                          />
+                          {rowIssue && <small className={rowIssue.severity === 'Error' ? 'f-error' : 'f-hint'}>{rowIssue.message}</small>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {current.issues.filter((i) => !i.field).map((i, n) => <p key={n} className={`f-alert ${i.severity === 'Error' ? 'f-alert-error' : 'f-alert-info'}`}>{i.message}</p>)}
+                  <div className="re-ocr-step-docs">
+                    {docs.length > 0 && (
+                      <ul className="re-doc-list">
+                        {docs.map((a, i) => (
+                          <li key={`${a.blob.blobName}-${i}`}>
+                            <span className="re-badge re-badge-info">{t(DOCUMENT_TYPE_LABEL[a.documentType] ?? a.documentType)}</span>
+                            <span className="re-file-name" title={a.blob.fileName}>{a.blob.fileName}</span>
+                            {!locked && <button type="button" className="re-link-btn" onClick={() => onRemoveAttachment(key, i)} aria-label={t('Remove {name}', { name: a.blob.fileName })}>×</button>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {!locked && (
+                      <button type="button" className="btn btn-outline btn-sm" aria-expanded={isOpen} onClick={() => setAttachOpen(isOpen ? null : key)}>
+                        {isOpen ? t('Done') : `📎 ${t('Attach document')}`}
+                      </button>
+                    )}
+                    {isOpen && <AttachForm rowId={`${id}-s${key}`} label={label} localOnly={localFiles} onAttach={(a) => onAttach(key, a)} />}
+                  </div>
+                </div>
+                <div className="re-ocr-step-nav re-ocr-step-nav-bottom">
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => go(step - 1)} disabled={step === 0}>← {t('Previous')}</button>
+                  {step < total - 1
+                    ? <button type="button" className="btn btn-primary btn-sm" onClick={() => go(step + 1)}>{t('Next customer')} →</button>
+                    : <span className="re-sub">{t('Last customer — check the values, then Submit.')}</span>}
+                </div>
+              </section>
+            );
+          })()}
+          {view === 'all' && batch.rows.length > 0 && (
             <div className="re-table-wrap re-ocr-dlg-wrap" role="region" aria-label={t('Extracted ledger rows')} tabIndex={0}>
               <table className="re-table re-ocr-dlg-table">
                 <thead>
@@ -129,7 +227,6 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
                     {DIALOG_FIELDS.map((f) => (
                       <th scope="col" key={f} className={TONE[f] ? `re-col-${TONE[f]}` : undefined}>
                         {t(OCR_FIELD_LABELS[f])}
-                        {OCR_FIELD_HELP[f] && <small>{t(OCR_FIELD_HELP[f] as string)}</small>}
                       </th>
                     ))}
                     <th scope="col">{t('Documents')}</th>
@@ -144,15 +241,15 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
                     return (
                       <Fragment key={key}>
                         <tr className={isOpen ? 'is-open' : undefined}>
-                          <th scope="row" className="re-ocr-dlg-num">
-                            {row.rowNumber || row.index + 1}
+                          <th scope="row" className="re-ocr-dlg-num" data-row={t('Row {n}', { n: row.rowNumber || row.index + 1 })}>
+                            <span className="re-ocr-dlg-n">{row.rowNumber || row.index + 1}</span>
                             {pct(row.confidence) && <small title={t('Confidence {n}', { n: pct(row.confidence)! })}>{pct(row.confidence)}</small>}
                           </th>
                           {DIALOG_FIELDS.map((f) => {
                             const state = cellState(row, f, draft[key]?.[f]);
                             const rowIssue = row.issues.find((i) => i.field === f);
                             return (
-                              <td key={f} className={`re-cell-${state}${TONE[f] ? ` re-col-${TONE[f]}` : ''}`}>
+                              <td key={f} data-label={t(OCR_FIELD_LABELS[f])} className={`re-cell-${state}${TONE[f] ? ` re-col-${TONE[f]}` : ''}`}>
                                 <input
                                   id={`dlg-${cellInputId(row.index, f)}`} className="f-input" disabled={locked}
                                   aria-label={`${t(OCR_FIELD_LABELS[f])}, ${label}`}
@@ -166,7 +263,7 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
                               </td>
                             );
                           })}
-                          <td className="re-ocr-dlg-docs">
+                          <td className="re-ocr-dlg-docs" data-label={t('Documents')}>
                             {docs.length > 0 && (
                               <ul className="re-doc-list">
                                 {docs.map((a, i) => (

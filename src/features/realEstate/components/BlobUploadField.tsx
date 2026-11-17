@@ -36,7 +36,6 @@ export default function BlobUploadField({ label, purpose, hint, disabled, onUplo
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [retryable, setRetryable] = useState(false);
-  const [blobName, setBlobName] = useState('');
   const [over, setOver] = useState(false);
   const ctrl = useRef<AbortController | null>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -53,12 +52,11 @@ export default function BlobUploadField({ label, purpose, hint, disabled, onUplo
     ctrl.current?.abort();
     const c = new AbortController();
     ctrl.current = c;
-    setPhase('uploading'); setProgress(0); setError(''); setBlobName('');
+    setPhase('uploading'); setProgress(0); setError('');
     try {
       const blob = await uploadRealEstateFile(f, { purpose, onProgress: setProgress, signal: c.signal });
       if (c.signal.aborted) return;
       setPhase('done');
-      setBlobName(blob.blobName);
       onUploaded(blob);
     } catch (e) {
       if (c.signal.aborted) return;
@@ -71,7 +69,6 @@ export default function BlobUploadField({ label, purpose, hint, disabled, onUplo
   const choose = (f: File | null) => {
     setFile(f);
     setPhase('idle');
-    setBlobName('');
     const problem = f ? validateUploadFile(f, allowed, DEFAULT_MAX_BYTES, t) : null;
     setError(problem || '');
     if (f && !problem) {
@@ -116,7 +113,7 @@ export default function BlobUploadField({ label, purpose, hint, disabled, onUplo
         )}
         {phase === 'done' && localOnly && <small className="re-ok">✓ {t('{name} is ready (kept on this device, not uploaded)', { name: file?.name ?? '' })}</small>}
         {phase === 'done' && !localOnly && (
-          <small className="re-ok">✓ {t('Uploaded {name}', { name: file?.name ?? '' })} · {t('Stored as {blob} in the Real Estate / OCR container', { blob: blobName })}</small>
+          <small className="re-ok">✓ {t('File uploaded')}</small>
         )}
         {error && (
           <small className="f-error">

@@ -45,6 +45,14 @@ export const realEstateOcrApi = {
     return toOcrBatch(res);
   },
 
+  /** GET /realestate/ocr/batches — the signed-in user's import batches, newest first. */
+  list: async (signal?: AbortSignal): Promise<OcrBatch[]> => {
+    requireAuth();
+    const res = await apiGet<unknown>(OCR, { signal });
+    const items = Array.isArray(res) ? res : [];
+    return items.map(toOcrBatch).filter((b) => b.id !== '');
+  },
+
   /** GET /realestate/ocr/batches/:batchId */
   get: async (batchId: Id, signal?: AbortSignal): Promise<OcrBatch> => {
     requireAuth();
@@ -61,7 +69,11 @@ export const realEstateOcrApi = {
   /** POST …/approve — approval only; import is a separate, explicit action. */
   approve: (batchId: Id) => act(batchId, 'approve'),
   /** POST …/import — the server imports its own approved, validated rows. */
-  import: (batchId: Id) => act(batchId, 'import'),
+  /**
+   * POST …/import — `{ projectId }`: the project for customers, plots and bookings the import
+   * creates when a ledger row has no existing booking (optional when there is only one project).
+   */
+  import: (batchId: Id, projectId?: Id | null) => act(batchId, 'import', projectId !== undefined && projectId !== null && projectId !== '' ? { projectId: Number(projectId) } : {}),
   /** POST …/reject — `{ reason }` */
   reject: (batchId: Id, reason: string) => act(batchId, 'reject', { reason: reason.trim() }),
 };

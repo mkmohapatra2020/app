@@ -1,11 +1,14 @@
 /**
- * /real-estate/ocr — OCR import batches. The API has no batch list: this shows the batches
- * created or opened in this session, and any batch can be opened by its ID.
+ * /real-estate/ocr — the user's OCR import batches (GET /realestate/ocr/batches), plus any
+ * created or opened in this session that the list does not have yet. A batch can also be
+ * opened by its ID.
  */
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useT } from '../../../i18n/language.ts';
-import { EmptyView } from '../components/ApiStateView.tsx';
+import { realEstateOcrApi } from '../api/realEstateOcrApi.ts';
+import { EmptyView, LoadingState } from '../components/ApiStateView.tsx';
+import { useRealEstateQuery } from '../hooks/useRealEstateQuery.ts';
 import { Input } from '../components/FormFields.tsx';
 import RealEstateLayout, { RE_ROOT } from '../components/RealEstateLayout.tsx';
 import RealEstateStatusBadge from '../components/RealEstateStatusBadge.tsx';
@@ -18,17 +21,24 @@ export default function OcrBatchesPage() {
   const t = useT();
   const navigate = useNavigate();
   const [batchId, setBatchId] = useState('');
-  const recent = recentBatches();
+  const session = recentBatches();
+  // Saved batches from the backend; if that fails (e.g. not deployed yet) the session list still shows.
+  const saved = useRealEstateQuery((s) => realEstateOcrApi.list(s), []);
+  const recent: RecentBatch[] = useMemo(() => {
+    const fromApi: RecentBatch[] = (saved.data ?? []).map((b) => ({ id: b.id, fileName: b.fileName, status: String(b.status), createdAt: b.updatedAt || b.createdAt }));
+    const seen = new Set(fromApi.map((b) => String(b.id)));
+    return [...fromApi, ...session.filter((b) => !seen.has(String(b.id)))];
+  }, [saved.data, session]);
   const open = (e: FormEvent) => { e.preventDefault(); if (batchId.trim()) navigate(`${RE_ROOT}/ocr/${encodeURIComponent(batchId.trim())}`); };
   const url = (b: RecentBatch) => `${RE_ROOT}/ocr/${encodeURIComponent(String(b.id))}`;
 
   return (
     <RealEstateLayout title={t('Ledger OCR')} feature="OCR" crumbs={[[null, t('Ledger OCR')]]}
-      intro={t('Photograph a paper ledger (hisab khata). GPT-6 Luna reads it; you review every row before anything is imported.')}
+      intro={t('Photograph a paper ledger (hisab khata). It is read automatically; you review every row before anything is imported.')}
       actions={<Link className="btn btn-primary" to={`${RE_ROOT}/ocr/new`}>{t('New import')}</Link>}>
       <section className="re-card" aria-labelledby="re-batches">
-        <h2 id="re-batches">{t('Import batches in this session')}</h2>
-        {recent.length === 0 ? (
+        <h2 id="re-batches">{t('Your import batches')}</h2>
+        {saved.loading && recent.length === 0 ? <LoadingState text={t('Loading batches…')} /> : recent.length === 0 ? (
           <EmptyView title={t('No import batches yet')}><Link to={`${RE_ROOT}/ocr/new`}>{t('Upload a ledger photo to start.')}</Link></EmptyView>
         ) : (
           <div className="re-table-wrap" role="region" aria-label={t('Import batches')} tabIndex={0}>

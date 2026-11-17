@@ -276,3 +276,68 @@ thead .re-ocr-dlg-num{z-index:3;}
   .re-ocr-dialog-foot .re-actions{width:100%;}
   .re-ocr-dialog-foot .re-actions .btn{flex:1;}
 }
+
+/* ---------- Phones: Ledger OCR batch page, review popup ---------- */
+@media (max-width:640px){
+  /* Actions: two per line, same width. */
+  .re-card .re-actions .btn{flex:1 1 calc(50% - 5px);min-width:0;white-space:normal;line-height:1.2;padding-left:10px;padding-right:10px;}
+
+  /* Batch page rows: fields in two columns inside each row card. */
+  .re-ocr-table tr{display:grid;grid-template-columns:1fr 1fr;gap:2px 10px;padding:10px 0;}
+  .re-ocr-table tr > th[scope="row"],.re-ocr-table tr > td:nth-child(2){grid-column:1/-1;}
+  .re-ocr-table td{padding:6px 8px;min-width:0;}
+  .re-ocr-table td .f-input{width:100%;min-width:0;}
+
+  /* Review popup: each transaction is a labelled card, fields in two columns. */
+  .re-ocr-dlg-wrap{overflow:visible;}
+  .re-ocr-dlg-table{min-width:0;width:100%;}
+  .re-ocr-dlg-table tbody tr{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;padding:12px 10px;margin-bottom:12px;border:1px solid var(--line);border-radius:12px;background:var(--card,var(--surface,#fff));}
+  .re-ocr-dlg-table tbody tr.re-ocr-attach-row{margin-top:-10px;border-top:0;border-radius:0 0 12px 12px;}
+  .re-ocr-dlg-table tbody th.re-ocr-dlg-num{position:static;grid-column:1/-1;display:flex;align-items:baseline;gap:8px;width:auto;min-width:0;text-align:left;padding:0 0 4px;background:none;border:0;}
+  .re-ocr-dlg-table tbody th.re-ocr-dlg-num .re-ocr-dlg-n{display:none;}
+  .re-ocr-dlg-table tbody th.re-ocr-dlg-num::before{content:attr(data-row);font-size:1rem;}
+  .re-ocr-dlg-table tbody th.re-ocr-dlg-num small{display:inline;}
+  .re-ocr-dlg-table td{display:flex;flex-direction:column;align-items:stretch;gap:3px;padding:0;border:0;text-align:left;min-width:0;}
+  .re-ocr-dlg-table td[data-label]::before{content:attr(data-label);font-size:.74rem;font-weight:600;color:var(--ink-soft);}
+  .re-ocr-dlg-table td.re-ocr-dlg-docs{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:4px;}
+  .re-ocr-dlg-table td.re-ocr-dlg-docs::before{flex-basis:100%;}
+  .re-ocr-dlg-table .re-ocr-attach-row > td{grid-column:1/-1;padding:0;}
+  .re-ocr-dlg-table .re-ocr-attach-row > td::before{content:none;}
+  .re-ocr-attach-row .re-ocr-attach{position:static;max-width:none;}
+}
+
+/* ---------- Review popup: "One by one" (one customer at a time) ---------- */
+.re-ocr-view{display:inline-flex;margin-top:10px;border:1px solid var(--line);border-radius:100px;padding:3px;gap:2px;background:var(--bg-deep,rgba(0,0,0,.03));}
+.re-ocr-view button{border:0;background:transparent;color:var(--ink-soft);font:600 .82rem 'Work Sans',sans-serif;padding:6px 14px;border-radius:100px;cursor:pointer;min-height:34px;}
+.re-ocr-view button.is-on{background:var(--card,#fff);color:var(--heading);box-shadow:0 1px 3px rgba(0,0,0,.15);}
+.re-ocr-step{display:grid;gap:12px;}
+.re-ocr-step-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.re-ocr-step-nav p{margin:0;text-align:center;flex:1;}
+.re-ocr-step-nav-bottom{justify-content:space-between;}
+.re-ocr-step-chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;}
+.re-ocr-step-chips button{min-width:34px;height:34px;border-radius:100px;border:1px solid var(--line);background:var(--card,#fff);color:var(--ink);font:600 .82rem 'Work Sans',sans-serif;cursor:pointer;}
+.re-ocr-step-chips button.is-edited{border-color:var(--re-done);background:var(--re-done-bg);}
+.re-ocr-step-chips button.has-error{border-color:var(--re-bad);background:var(--re-bad-bg);color:var(--re-bad);}
+.re-ocr-step-chips button.is-on{background:var(--re-info,#1f6e7a);border-color:var(--re-info,#1f6e7a);color:#fff;}
+.re-ocr-step-card{border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;gap:12px;background:var(--card,#fff);}
+.re-ocr-step-card.has-error{border-color:var(--re-bad);}
+.re-ocr-step-card h3{margin:0;font-size:1.1rem;overflow-wrap:anywhere;}
+.re-ocr-step-card h3 small{display:block;margin-top:2px;font:400 .82rem 'Work Sans',sans-serif;}
+.re-ocr-step-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;}
+.re-ocr-step-field{display:grid;grid-template-rows:1fr auto;gap:4px;min-width:0;}
+.re-ocr-step-field label{display:flex;flex-direction:column;font-size:.8rem;font-weight:600;color:var(--ink-soft);}
+.re-ocr-step-field label small{font-weight:400;font-size:.72rem;}
+.re-ocr-step-field .f-input{width:100%;min-height:38px;padding:6px 10px;}
+.re-ocr-step-field.re-col-total .f-input{font-weight:600;}
+.re-ocr-step-field.re-col-commission .f-input{color:var(--re-commission);font-weight:600;}
+.re-ocr-step-field.re-col-property .f-input{color:var(--re-property);font-weight:600;}
+.re-ocr-step-field.re-cell-error .f-input{border-color:var(--re-bad);background:var(--re-bad-bg);}
+.re-ocr-step-field.re-cell-lowConfidence .f-input{border-color:var(--re-warn);background:var(--re-warn-bg);}
+.re-ocr-step-field.re-cell-edited .f-input{border-color:var(--re-done);background:var(--re-done-bg);}
+.re-ocr-step-docs{display:grid;gap:8px;justify-items:start;}
+.re-ocr-step-docs .re-ocr-attach{justify-self:stretch;}
+@media (max-width:420px){
+  .re-ocr-step-grid{grid-template-columns:1fr 1fr;gap:8px 10px;}
+  .re-ocr-step-nav .btn{padding-left:10px;padding-right:10px;}
+  .re-ocr-step-nav p{font-size:.88rem;}
+}

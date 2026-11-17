@@ -1,4 +1,4 @@
-/** Platform OCR import (GPT-6 Luna extraction, reviewed by a person before import). */
+/** Platform OCR import (AI extraction, reviewed by a person before import). */
 import type { Id } from './realEstateTypes.ts';
 
 export const OCR_STATUSES = ['Uploaded', 'Parsed', 'Validated', 'Approved', 'Imported', 'Rejected'] as const;
@@ -11,7 +11,7 @@ export type OcrStatus = (typeof OCR_STATUSES)[number];
  *   propertyAmount      — amount written in red
  */
 export const OCR_FIELDS = [
-  'transactionDate', 'customerName', 'plotNumber',
+  'transactionDate', 'customerName', 'phoneNumber', 'plotNumber',
   'totalAmountReceived', 'commissionAmount', 'propertyAmount',
   'paymentMode', 'referenceNumber', 'remarks',
 ] as const;
@@ -21,10 +21,11 @@ export const OCR_AMOUNT_FIELDS: OcrField[] = ['totalAmountReceived', 'commission
 export const OCR_FIELD_LABELS: Record<OcrField, string> = {
   transactionDate: 'Transaction date',
   customerName: 'Customer name',
+  phoneNumber: 'Phone / mobile number',
   plotNumber: 'Plot number',
   totalAmountReceived: 'Total received',
-  commissionAmount: 'Commission (lower black amount)',
-  propertyAmount: 'Property amount (red)',
+  commissionAmount: 'Commission amount',
+  propertyAmount: 'Property amount',
   paymentMode: 'Payment mode',
   referenceNumber: 'Reference number',
   remarks: 'Remarks',
@@ -43,6 +44,7 @@ export const OCR_FIELD_HELP: Partial<Record<OcrField, string>> = {
 export const OCR_API_FIELD: Record<OcrField, string> = {
   transactionDate: 'TransactionDate',
   customerName: 'CustomerName',
+  phoneNumber: 'PhoneNumber',
   plotNumber: 'PlotNumber',
   totalAmountReceived: 'TotalAmountReceived',
   commissionAmount: 'CommissionAmount',
@@ -58,7 +60,7 @@ export const LOW_CONFIDENCE = 0.8;
 export type OcrMatchStatus = 'Matched' | 'UnmatchedCustomer' | 'UnmatchedPlot' | 'Unmatched' | 'Ambiguous' | 'Pending';
 
 export interface OcrCell {
-  /** What GPT-6 Luna read ('' when absent or unreadable). */
+  /** What the AI read ('' when absent or unreadable). */
   extracted: string;
   /** Saved manual correction, if any. */
   corrected: string | null;

@@ -6,7 +6,7 @@
  */
 import { Link } from 'react-router-dom';
 import { useT } from '../../../i18n/language.ts';
-import { OCR_AMOUNT_FIELDS, OCR_FIELDS, OCR_FIELD_HELP, OCR_FIELD_LABELS, type OcrDraft, type OcrField, type OcrRow } from '../types/ocrTypes.ts';
+import { OCR_AMOUNT_FIELDS, OCR_FIELDS, OCR_FIELD_LABELS, type OcrDraft, type OcrField, type OcrRow } from '../types/ocrTypes.ts';
 import { cellInputId, cellState, cellValue, rowKey, type CellState } from '../utils/ocr.ts';
 import { RE_ROOT } from './RealEstateLayout.tsx';
 
@@ -18,16 +18,6 @@ const STATE_TEXT: Record<CellState, string> = {
   lowConfidence: 'Low confidence',
 };
 
-const MATCH_TEXT: Record<OcrRow['match']['status'], string> = {
-  Matched: 'Matched to booking',
-  UnmatchedCustomer: 'Customer not found',
-  UnmatchedPlot: 'Plot not found',
-  Unmatched: 'No matching booking',
-  Ambiguous: 'More than one possible booking',
-  Pending: 'Not matched yet',
-};
-
-const pct = (n: number | null) => (n === null ? '—' : `${Math.round(n * 100)}%`);
 const TONE: Partial<Record<OcrField, string>> = { totalAmountReceived: 'total', commissionAmount: 'commission', propertyAmount: 'property' };
 
 interface Props {
@@ -54,14 +44,12 @@ export default function OcrReviewTable({ rows, draft, editable, onEdit }: Props)
         <thead>
           <tr>
             <th scope="col">#</th>
-            <th scope="col">{t('Match')}</th>
+            <th scope="col">{t('Booking')}</th>
             {OCR_FIELDS.map((f) => (
               <th scope="col" key={f} className={TONE[f] ? `re-col-${TONE[f]}` : undefined}>
                 {t(OCR_FIELD_LABELS[f])}
-                {OCR_FIELD_HELP[f] && <small className="re-th-help">{t(OCR_FIELD_HELP[f] as string)}</small>}
               </th>
             ))}
-            <th scope="col" className="num">{t('Confidence')}</th>
           </tr>
         </thead>
         <tbody>
@@ -71,11 +59,11 @@ export default function OcrReviewTable({ rows, draft, editable, onEdit }: Props)
             return (
               <tr key={key} className={row.issues.some((i) => i.severity === 'Error') ? 're-row-error' : undefined}>
                 <th scope="row">{row.rowNumber}</th>
-                <td data-label={t('Match')}>
-                  <span className={`re-badge re-badge-${row.match.status === 'Matched' ? 'ok' : row.match.status === 'Pending' ? 'muted' : 'bad'}`}>{t(MATCH_TEXT[row.match.status])}</span>
-                  {row.match.status === 'Matched' && row.match.bookingId !== null && (
-                    <Link className="re-match-link" to={`${RE_ROOT}/bookings/${encodeURIComponent(String(row.match.bookingId))}`}>{row.match.label || t('View booking')}</Link>
-                  )}
+                <td data-label={t('Booking')} className="re-booking-cell">
+                  {/* The booking this row's payment went to (set by Import). */}
+                  {row.match.bookingId !== null
+                    ? <Link className="re-match-link" to={`${RE_ROOT}/bookings/${encodeURIComponent(String(row.match.bookingId))}`}>#{String(row.match.bookingId)}</Link>
+                    : <span className="re-sub">—</span>}
                   {rowIssues.map((i) => <small key={`${i.code}${i.message}`} className={i.severity === 'Error' ? 'f-error' : 're-warn'}>{t(i.message)}</small>)}
                 </td>
                 {OCR_FIELDS.map((f) => {
@@ -98,16 +86,10 @@ export default function OcrReviewTable({ rows, draft, editable, onEdit }: Props)
                           onChange={(e) => onEdit(key, f, e.target.value)}
                         />
                       ) : <span id={id} tabIndex={-1}>{value || '—'}</span>}
-                      <small className="re-cell-meta">
-                        <span className={`re-cell-dot re-cell-${state}`} aria-hidden="true" />{t(STATE_TEXT[state])}
-                        {cell.confidence !== null && <> · {pct(cell.confidence)}</>}
-                        {(state === 'corrected' || state === 'edited') && cell.extracted !== value && <> · {t('read as “{value}”', { value: cell.extracted || t('blank') })}</>}
-                      </small>
                       {issue && <small id={`${id}-err`} className={issue.severity === 'Error' ? 'f-error' : 're-warn'}>{issue.code && <b>{issue.code}: </b>}{t(issue.message)}</small>}
                     </td>
                   );
                 })}
-                <td data-label={t('Confidence')} className={`num ${row.confidence !== null && row.confidence < 0.8 ? 're-low' : ''}`}>{pct(row.confidence)}</td>
               </tr>
             );
           })}

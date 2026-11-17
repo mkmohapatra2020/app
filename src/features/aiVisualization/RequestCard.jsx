@@ -40,7 +40,20 @@ export function useRequestPolling(id, initial) {
     const c = new AbortController(); ctrl.current = c;
     const d = await W.detail({ id, signal: c.signal });
     if (d.aborted) return null;
-    if (d.success) { setReq(d.data); setError(''); return d.data; }
+   if (d.success) {
+      // Never let a detail without images/photo wipe the ones the list already gave this card.
+      let merged = d.data;
+      setReq((prev) => {
+        merged = {
+          ...d.data,
+          images: d.data.images?.length ? d.data.images : (prev?.images || []),
+          beforeUrl: d.data.beforeUrl || prev?.beforeUrl || '',
+        };
+        return merged;
+      });
+      setError('');
+      return merged;
+    }
     setError(d.error); return null;
   }, [id, isImage]);
 
@@ -142,7 +155,7 @@ function TransformationCard({ images, title, beforeUrl }) {
 
 /** One submitted request: status, review notes, results, resubmit. */
 export default function RequestCard({ request, onResubmit, onStatus }) {
-  const { req, polling, error, refresh } = useRequestPolling(request.id, request);
+  const { req, error, refresh } = useRequestPolling(request.id, request);
   const r = req || request;
   // Tell the list when the status moves, so the card is regrouped (e.g. In progress → Completed).
   useEffect(() => { if (r.status && r.status !== request.status) onStatus?.(r); }, [r.status]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -152,9 +165,7 @@ export default function RequestCard({ request, onResubmit, onStatus }) {
         <div>
           <div className="wf-tags"><StatusChip status={r.status} />{r.category && <span className="pill">{r.category}</span>}<span className="pill pill-quiet">{r.mode}</span></div>
           <h3>{r.projectName || 'AI design request'}</h3>
-          <small className="muted">{r.submittedAt ? `Submitted ${fmtWhen(r.submittedAt)}` : `Created ${fmtWhen(r.createdAt)}`}{r.completedAt ? ` · Completed ${fmtWhen(r.completedAt)}` : ''}</small>
         </div>
-        {r.source !== 'image' && <button type="button" className="btn btn-quiet btn-small" onClick={refresh} disabled={polling}>↻ Refresh</button>}
       </header>
 
       {ACTIVE_STATUSES.includes(r.status) && <p className="wf-wait"><span className="slide-spinner" aria-hidden="true" /> {['Processing', 'Generating'].includes(r.status) ? 'Generating your design — usually under two minutes.' : 'Queued for generation…'}</p>}
@@ -169,17 +180,6 @@ export default function RequestCard({ request, onResubmit, onStatus }) {
       {r.status === 'Rejected' && <div className="wf-review is-bad"><strong>This request was not approved</strong>{r.reviewNotes && <p>{r.reviewNotes}</p>}</div>}
       {r.status === 'Failed' && <p className="enq-error" role="alert">{r.error || 'The design could not be generated.'} Our team can retry it for you.</p>}
       {error && <p className="enq-error" role="alert">{error}</p>}
-
-      <details className="wf-details">
-        <summary>Prompt and details</summary>
-        <dl>
-          {r.prompt && <div><dt>Idea</dt><dd>{r.prompt}</dd></div>}
-          {r.additionalDetail && <div><dt>Additional detail</dt><dd>{r.additionalDetail}</dd></div>}
-          {r.maxBudget ? <div><dt>Maximum budget</dt><dd>{fmtMoney(r.maxBudget, r.currency)}</dd></div> : null}
-          <div><dt>Photos</dt><dd>{r.sitePhotoCount} site · {r.referenceCount} reference</dd></div>
-        </dl>
-      </details>
-
       <ResultImages images={r.status === 'Completed' ? r.images : []} title={r.projectName} beforeUrl={r.beforeUrl} onExpired={refresh} />
     </article>
   );

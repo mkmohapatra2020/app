@@ -13,9 +13,12 @@ import ConfirmDialog from '../components/ConfirmDialog.tsx';
 import OcrBatchActions, { type OcrAction } from '../components/OcrBatchActions.tsx';
 import OcrConfirmSummary from '../components/OcrConfirmSummary.tsx';
 import OcrIssueList from '../components/OcrIssueList.tsx';
-import OcrReviewTable, { OcrLegend } from '../components/OcrReviewTable.tsx';
+import OcrReviewTable from '../components/OcrReviewTable.tsx';
 import RealEstateLayout, { RE_ROOT } from '../components/RealEstateLayout.tsx';
 import RealEstateStatusBadge from '../components/RealEstateStatusBadge.tsx';
+import { SelectInput } from '../components/FormFields.tsx';
+import { realEstateApi } from '../api/realEstateApi.ts';
+import { useRealEstateQuery } from '../hooks/useRealEstateQuery.ts';
 import { useRealEstateOcr } from '../hooks/useRealEstateOcr.ts';
 import { allIssues, batchBlockers, isEditable } from '../utils/ocr.ts';
 
@@ -23,7 +26,7 @@ const OCR_STEPS = ['Uploaded', 'Parsed', 'Validated', 'Approved', 'Imported'];
 
 const CONFIRM: Partial<Record<OcrAction, { title: string; label: string; tone: 'primary' | 'danger'; text: string }>> = {
   approve: { title: 'Approve this batch?', label: 'Approve', tone: 'primary', text: 'Approval does not import anything. Import is a separate step after approval.' },
-  import: { title: 'Import approved rows?', label: 'Import', tone: 'primary', text: 'Each approved row becomes a payment in the matched booking’s ledger. This cannot be undone from here.' },
+  import: { title: 'Import approved rows?', label: 'Import', tone: 'primary', text: 'Each row becomes a payment. Customers, plots and bookings that do not exist yet are created. This cannot be undone from here.' },
   reject: { title: 'Reject this batch?', label: 'Reject batch', tone: 'danger', text: 'Nothing from this batch will be imported.' },
 };
 
@@ -40,11 +43,16 @@ export default function OcrReviewPage() {
   const ocr = useRealEstateOcr(batchId, access.has('OCR'));
   const [confirm, setConfirm] = useState<OcrAction | null>(null);
   const [reason, setReason] = useState('');
+  // Import creates missing customers, plots and bookings in this project.
+  const projects = useRealEstateQuery((s) => realEstateApi.projects.list(undefined, s), [], { enabled: access.has('OCR') });
+  const projectList = projects.data ?? [];
+  const [projectId, setProjectId] = useState('');
+  const chosenProject = projectId || (projectList.length === 1 ? String(projectList[0].id) : '');
   const batch = ocr.batch;
 
   const act = async (a: OcrAction) => {
     if (CONFIRM[a] && confirm !== a) { setConfirm(a); return; }
-    const next = await ocr.run(a, reason);
+    const next = await ocr.run(a, reason, a === 'import' ? chosenProject : undefined);
     setConfirm(null);
     if (!next) return;
     setReason('');
@@ -85,7 +93,7 @@ export default function OcrReviewPage() {
           {issues.length > 0 && <section className="re-card"><OcrIssueList issues={issues} rows={batch.rows} /></section>}
 
           {batch.status === 'Uploaded' && batch.rows.length === 0 && (
-            <EmptyView icon="🧾" title={t('Not extracted yet')}>{t('Choose “Extract rows” to read this ledger page with GPT-6 Luna.')}</EmptyView>
+            <EmptyView icon="🧾" title={t('Not extracted yet')}>{t('Choose “Extract rows” to read this ledger page.')}</EmptyView>
           )}
           {batch.rows.length > 0 && (
             <section className="re-card" aria-labelledby="re-rows">
@@ -93,7 +101,6 @@ export default function OcrReviewPage() {
                 <h2 id="re-rows">{t('Extracted rows ({n})', { n: batch.rows.length })}</h2>
                 {blockers && blockers.unsavedEdits > 0 && <button type="button" className="btn btn-outline btn-sm" onClick={ocr.discard}>{t('Discard edits')}</button>}
               </div>
-              <OcrLegend />
               <OcrReviewTable rows={batch.rows} draft={ocr.draft} editable={isEditable(batch) && ocr.pending === null} onEdit={ocr.edit} />
             </section>
           )}
@@ -109,10 +116,20 @@ export default function OcrReviewPage() {
       {confirm && CONFIRM[confirm] && (
         <ConfirmDialog
           open title={t(CONFIRM[confirm]!.title)} confirmLabel={t(CONFIRM[confirm]!.label)} tone={CONFIRM[confirm]!.tone}
-          pending={ocr.pending === confirm} confirmDisabled={confirm === 'reject' && !reason.trim()} onConfirm={() => void act(confirm)} onCancel={() => { setConfirm(null); setReason(''); }}
+          pending={ocr.pending === confirm} confirmDisabled={(confirm === 'reject' && !reason.trim()) || (confirm === 'import' && !chosenProject)} onConfirm={() => void act(confirm)} onCancel={() => { setConfirm(null); setReason(''); }}
         >
           <p>{t(CONFIRM[confirm]!.text)}</p>
           {(confirm === 'approve' || confirm === 'import') && batch && <OcrConfirmSummary batch={batch} draft={ocr.draft} />}
+          {confirm === 'import' && (
+            projects.loading ? <p className="re-sub">{t('Loading projects…')}</p>
+            : projectList.length === 0 ? <p className="f-alert f-alert-error" role="alert">{t('Create a project first (Projects and plots): new customers, plots and bookings are added to a project.')}</p>
+            : (
+              <SelectInput label={t('Project for new customers, plots and bookings')} value={chosenProject} onChange={(e) => setProjectId(e.target.value)}
+                placeholder={projectList.length > 1 ? t('Choose a project') : undefined}
+                hint={t('Customers not found are created, with their plot and booking, in this project. Existing customers get the payment on their booking.')}
+                options={projectList.map((p) => ({ value: String(p.id), label: p.phase ? `${p.name} · ${p.phase}` : p.name }))} />
+            )
+          )}
           {confirm === 'reject' && (
             <label className="f-field">
               <span className="f-label">{t('Reason')}</span>

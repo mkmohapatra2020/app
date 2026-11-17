@@ -141,14 +141,16 @@ describe('OCR review', () => {
     const input = $('input[aria-label="Row 2 Total received"]') as HTMLInputElement;
     expect(input.value).toBe('1O000');
     // A missing commission stays empty — never filled from another amount.
-    expect(($('input[aria-label="Row 2 Commission (lower black amount)"]') as HTMLInputElement).value).toBe('');
+    expect(($('input[aria-label="Row 2 Commission amount"]') as HTMLInputElement).value).toBe('');
     await change($('input[aria-label="Row 2 Plot number"]'), 'B-10');
     expect(onEdit).toHaveBeenCalledWith('1', 'plotNumber', 'B-10');
-    await change($('input[aria-label="Row 1 Property amount (red)"]'), '24000');
+    await change($('input[aria-label="Row 1 Property amount"]'), '24000');
     expect(onEdit).toHaveBeenCalledWith('0', 'propertyAmount', '24000');
-    // Matching state is shown, and the matched booking link comes from the backend id.
-    expect(document.body.textContent).toContain('Plot not found');
+    // Booking column: the booking number from the backend, linked; "—" when there is none.
+    expect($('a.re-match-link')?.textContent).toBe('#77');
     expect($('a.re-match-link')?.getAttribute('href')).toBe('/real-estate/bookings/77');
+    // No per-cell "Extracted · 88%" lines.
+    expect(document.querySelector('.re-cell-meta')).toBeNull();
   });
 
   it('is read-only once approved', async () => {

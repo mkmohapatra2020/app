@@ -173,7 +173,7 @@ export default function OcrUploadPage() {
           <h2 id="re-ocr-up">{t('1. Upload')}</h2>
           <ol className="re-steps">
             <li>{t('Upload a clear, well-lit photo of one ledger page (JPG, PNG or WebP).')}</li>
-            <li>{t('GPT-6 Luna reads it and shows every transaction in a table. Correct anything that is wrong, attach documents, and submit.')}</li>
+            <li>{t('It is read automatically and every transaction is shown, one customer at a time. Correct anything that is wrong, attach documents, and submit.')}</li>
             <li>{t('Validate, approve, and import. Nothing is saved to the ledger until you import.')}</li>
           </ol>
           <BlobUploadField key={fieldKey} label={t('Ledger file')} purpose="OcrLedger" localOnly={STATIC} disabled={saved || busy !== null} onFile={chooseFile} onUploaded={setBlob} />
@@ -183,7 +183,7 @@ export default function OcrUploadPage() {
           {error && !open && <p className="f-alert f-alert-error" role="alert">{error}</p>}
           {!analysed && !localSaved && (
             <button type="button" className="btn btn-primary" disabled={(DIRECT ? !file : !blob) || busy !== null} onClick={() => void analyse()}>
-              {busy === 'analyse' ? t('Analysing with GPT-6 Luna…') : t('Analyse with GPT-6 Luna')}
+              {busy === 'analyse' ? t('Analysing the ledger…') : t('Analyse ledger')}
             </button>
           )}
           {busy === 'analyse' && <p className="re-sub" aria-live="polite">{t('Reading the ledger page can take up to a minute or two. Please keep this page open.')}</p>}
@@ -207,7 +207,7 @@ export default function OcrUploadPage() {
                 <button type="button" className="btn btn-outline" onClick={startOver}>{t('New import')}</button>
               </div>
             </div>
-          ) : !batch ? <p className="re-sub">{t('After the upload, choose “Analyse with GPT-6 Luna”. The result opens in a popup.')}</p> : (
+          ) : !batch ? <p className="re-sub">{t('After the upload, choose “Analyse ledger”. The result opens in a popup.')}</p> : (
             <>
               <dl className="re-facts">
                 {saved && <div><dt>{t('Batch ID')}</dt><dd>{String(batch.id)}</dd></div>}

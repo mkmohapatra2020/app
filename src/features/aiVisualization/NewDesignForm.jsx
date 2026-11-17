@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import useResource from '../../hooks/useResource.js';
 import { designService } from '../../services/designService.js';
 import { aiWorkflowService as W } from '../../services/aiWorkflowService.js';
+import { membershipService } from '../../services/membershipService.js';
 import { preparePhoto } from '../../utils/photo.js';
 import { fmtMoney } from './RequestCard.jsx';
 
@@ -116,6 +117,12 @@ export default function NewDesignForm({ resume, onSubmitted }) {
         const d = { ...r.data, existingSite: 0, existingRefs: 0 };
         writeDraftId(d.id);
         setDraft(d);
+        // The backend's draft response has no quota: show the remaining AI credits from membership.
+        if (d.remainingQuota === null || d.remainingQuota === undefined) {
+          membershipService.myAiCredits().then((c) => {
+            if (c.success && Number.isFinite(c.data?.remaining)) setDraft((x) => (x && x.id === d.id ? { ...x, remainingQuota: c.data.remaining } : x));
+          });
+        }
         setForm((f) => ({ ...f, mode: f.mode || d.mode }));
         return d;
       });
@@ -184,7 +191,9 @@ export default function NewDesignForm({ resume, onSubmitted }) {
   const mode = form.mode || draft?.mode || 'Auto';
   const quotaKnown = !!draft && draft.remainingQuota !== null && draft.remainingQuota !== undefined;
   const noQuota = quotaKnown && draft.remainingQuota <= 0 && mode === 'Auto';
-  const canSubmit = !!draft && !Object.keys(errors).length && !uploading && !failedUploads && !submitting && !noQuota && (quotaKnown || draft?.resumed) // resumed drafts: the server re-checks quota (402);
+  // Quota may be unknown (the draft response has none and the credits lookup can fail): the server
+  // re-checks credits on submit and answers "No AI design credits remaining", which is shown.
+  const canSubmit = !!draft && !Object.keys(errors).length && !uploading && !failedUploads && !submitting && !noQuota;
 
   // Structured details + a readable summary in additionalDetail.
   const buildPayload = () => {

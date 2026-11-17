@@ -4,7 +4,7 @@
  */
 import { field, isObj } from '../../../api/errors.ts';
 import { REAL_ESTATE_FEATURES, type Booking, type Customer, type Id, type LedgerTransaction, type OverviewTotals, type Paged, type Partner, type Plot, type Project, type RealEstateAccess, type RealEstateDocument, type RealEstateFeature, type UploadGrant } from '../types/realEstateTypes.ts';
-import { OCR_API_FIELD, OCR_FIELDS, type OcrBatch, type OcrCell, type OcrField, type OcrMatchStatus, type OcrRow, type OcrValidationIssue, OCR_STATUSES } from '../types/ocrTypes.ts';
+import { OCR_API_FIELD, OCR_FIELDS, type OcrBatch, type OcrCell, type OcrField, type OcrMatchStatus, type OcrRow, type OcrValidationIssue, OCR_STATUSES, OCR_AMOUNT_FIELDS } from '../types/ocrTypes.ts';
 
 /** First defined value among the keys (each read as camelCase or PascalCase). */
 const pick = (o: unknown, ...keys: string[]): unknown => {
@@ -263,16 +263,20 @@ export function toOcrRow(o: unknown, index = 0): OcrRow {
  * Confidence, IsCorrected } (Platform.OCR.OcrField). Group them into rows.
  */
 export function rowsFromFields(fields: unknown[]): OcrRow[] {
-  const byRow = new Map<number, { cells: Partial<Record<OcrField, OcrCell>>; conf: number[] }>();
+  const byRow = new Map<number, { cells: Partial<Record<OcrField, OcrCell>>; conf: number[]; bookingId?: Id | null }>();
   for (const f of fields) {
-    const { rowIndex, field } = parseFieldPath(str(pick(f, 'name', 'fieldName')));
+    const path = str(pick(f, 'name', 'fieldName'));
+    const { rowIndex, field } = parseFieldPath(path);
     if (rowIndex === null) continue;
     const row = byRow.get(rowIndex) ?? { cells: {}, conf: [] };
     byRow.set(rowIndex, row);
+    if (/\.BookingId$/i.test(path)) { row.bookingId = idOrNull(pick(f, 'value')); continue; }
     const confidence = toConfidence(pick(f, 'confidence'));
     if (confidence !== null) row.conf.push(confidence);
     if (!field) continue;
-    const value = str(pick(f, 'value'));
+    const raw = str(pick(f, 'value'));
+    // Amounts come back as "650000.0": show them as "650000".
+    const value = OCR_AMOUNT_FIELDS.includes(field) && /^-?\d+\.0+$/.test(raw) ? raw.replace(/\.0+$/, '') : raw;
     const corrected = pick(f, 'isCorrected') === true;
     row.cells[field] = { extracted: value, corrected: corrected ? value : null, confidence };
   }
@@ -281,7 +285,8 @@ export function rowsFromFields(fields: unknown[]): OcrRow[] {
     const cells = {} as Record<OcrField, OcrCell>;
     for (const f of OCR_FIELDS) cells[f] = r.cells[f] ?? { extracted: '', corrected: null, confidence: null };
     const confidence = r.conf.length ? Math.round((r.conf.reduce((a, b) => a + b, 0) / r.conf.length) * 100) / 100 : null;
-    return { id: index, index, rowNumber: position + 1, cells, confidence, issues: [], match: { status: 'Pending' as OcrMatchStatus, bookingId: null, label: '' } };
+    const bookingId = r.bookingId ?? null;
+    return { id: index, index, rowNumber: position + 1, cells, confidence, issues: [], match: { status: (bookingId !== null ? 'Matched' : 'Pending') as OcrMatchStatus, bookingId, label: '' } };
   });
 }
 

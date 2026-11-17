@@ -86,13 +86,13 @@ describe('OCR review', () => {
   it('renders the three amount labels with the correct ledger explanations (4)', async () => {
     view = await render(<MemoryRouter><OcrReviewTable rows={toOcrBatch(batchJson()).rows} draft={{}} editable onEdit={() => {}} /></MemoryRouter>);
     const heads = [...document.querySelectorAll('thead th')].map((th) => th.textContent);
-    expect(heads).toContain('Total receivedFrom the previous column');
-    expect(heads).toContain('Commission (lower black amount)Lower amount written in black, after Payment Details');
-    expect(heads).toContain('Property amount (red)Amount written in red');
+    // Plain column names (no hint lines), with the customer's phone after the name.
+    expect(heads).toEqual(expect.arrayContaining(['Total received', 'Commission amount', 'Property amount', 'Phone / mobile number']));
+    expect(heads.indexOf('Phone / mobile number')).toBe(heads.indexOf('Customer name') + 1);
     // Values land in their own column — the red amount is never shown as commission.
-    expect(($('input[aria-label="Row 1 Property amount (red)"]') as HTMLInputElement).value).toBe('95000');
-    expect(($('input[aria-label="Row 1 Commission (lower black amount)"]') as HTMLInputElement).value).toBe('5000');
-    expect(($('input[aria-label="Row 2 Commission (lower black amount)"]') as HTMLInputElement).value).toBe('');
+    expect(($('input[aria-label="Row 1 Property amount"]') as HTMLInputElement).value).toBe('95000');
+    expect(($('input[aria-label="Row 1 Commission amount"]') as HTMLInputElement).value).toBe('5000');
+    expect(($('input[aria-label="Row 2 Commission amount"]') as HTMLInputElement).value).toBe('');
   });
 
   it('totals each amount column separately for the confirmation', async () => {
@@ -112,7 +112,7 @@ describe('OCR review', () => {
     view = await render(<MemoryRouter><OcrIssueList issues={issues} rows={b.rows} /><OcrReviewTable rows={b.rows} draft={{}} editable onEdit={() => {}} /></MemoryRouter>);
     expect($('.re-issues')?.textContent).toContain('NEG_AMOUNT');
     await click([...document.querySelectorAll('.re-issues button')][0]);
-    expect(document.activeElement?.getAttribute('aria-label')).toBe('Row 2 Property amount (red)');
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Row 2 Property amount');
   });
 });
 
@@ -198,14 +198,16 @@ describe('OCR analysis popup', () => {
         attachments={{ 0: [{ blob: BLOB, documentType: 'PaymentReceipt' }] }}
         editable pending={false} error="" onEdit={onEdit} onAttach={() => {}} onRemoveAttachment={onRemove} onSubmit={onSubmit} onClose={() => {}} />,
     );
-    expect($('[role="dialog"] h2')?.textContent).toBe('Ledger analysis (GPT-6 Luna)');
+    expect($('[role="dialog"] h2')?.textContent).toBe('Ledger analysis');
     expect($('[role="dialog"] img')).toBeNull();
+    // Opens one customer at a time; switch to the full table.
+    await click([...document.querySelectorAll('.re-ocr-view button')].find((b) => b.textContent === 'All rows')!);
     const heads = [...document.querySelectorAll('.re-ocr-dlg-table thead th')].map((th) => th.firstChild?.textContent);
-    expect(heads).toEqual(['#', 'Transaction date', 'Customer name', 'Plot number', 'Total received', 'Commission (lower black amount)', 'Property amount (red)', 'Payment mode', 'Reference number', 'Documents']);
+    expect(heads).toEqual(['#', 'Transaction date', 'Customer name', 'Phone / mobile number', 'Plot number', 'Total received', 'Commission amount', 'Property amount', 'Payment mode', 'Reference number', 'Documents']);
     const rows = document.querySelectorAll('.re-ocr-dlg-table tbody tr');
     expect(rows).toHaveLength(2);
     const values = [...rows[0].querySelectorAll('td input')].map((i) => (i as HTMLInputElement).value);
-    expect(values.slice(1, 6)).toEqual(['Ramesh', 'A-1', '100000', '5500', '95000']);
+    expect(values.slice(1, 7)).toEqual(['Ramesh', '', 'A-1', '100000', '5500', '95000']);
     expect(rows[0].querySelector('td.re-col-property')).not.toBeNull();
     // Documents column: attached file listed, removable.
     const docs = rows[0].querySelector('.re-ocr-dlg-docs')!;
@@ -230,11 +232,30 @@ describe('OCR analysis popup', () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
+  it('shows one customer at a time with Previous / Next and numbered chips', async () => {
+    const onEdit = vi.fn();
+    const b = toOcrBatch(batchJson({ status: 'Parsed' }));
+    view = await render(<OcrAnalysisDialog batch={b} fileName="p.jpg" draft={{}} attachments={{}} editable pending={false} error="" onEdit={onEdit} onAttach={() => {}} onRemoveAttachment={() => {}} onSubmit={() => {}} onClose={() => {}} />);
+    expect($('.re-ocr-dlg-table')).toBeNull();
+    expect($('.re-ocr-step-nav p')?.textContent).toBe('Customer 1 of 2');
+    expect($('.re-ocr-step-card h3')?.textContent).toContain('Ramesh');
+    expect(document.querySelectorAll('.re-ocr-step-chips button')).toHaveLength(2);
+    const next = [...document.querySelectorAll('.re-ocr-step-nav button')].find((x) => x.textContent?.startsWith('Next'))!;
+    await click(next);
+    expect($('.re-ocr-step-nav p')?.textContent).toBe('Customer 2 of 2');
+    expect($('.re-ocr-step-card h3')?.textContent).toContain('Sita');
+    expect(($('.re-ocr-step-nav button:last-child') as HTMLButtonElement).disabled).toBe(true);
+    await change($('.re-ocr-step-card input'), '2026-02-01');
+    expect(onEdit).toHaveBeenCalledWith('1', 'transactionDate', '2026-02-01');
+    await click(document.querySelectorAll('.re-ocr-step-chips button')[0]);
+    expect($('.re-ocr-step-nav p')?.textContent).toBe('Customer 1 of 2');
+  });
+
   it('locks values and attachments once the batch can no longer be edited', async () => {
     const b = toOcrBatch(batchJson({ status: 'Approved' }));
     view = await render(<OcrAnalysisDialog batch={b} fileName="x.pdf" draft={{}} attachments={{}} editable={false} pending={false} error="" onEdit={() => {}} onAttach={() => {}} onRemoveAttachment={() => {}} onSubmit={() => {}} onClose={() => {}} />);
-    expect([...document.querySelectorAll('.re-ocr-dlg-table td input')].every((i) => (i as HTMLInputElement).disabled)).toBe(true);
-    expect($('.re-ocr-dlg-docs button')).toBeNull();
+    expect([...document.querySelectorAll('.re-ocr-step-card input')].every((i) => (i as HTMLInputElement).disabled)).toBe(true);
+    expect($('.re-ocr-step-docs button')).toBeNull();
     expect(([...document.querySelectorAll('.re-ocr-dialog-foot button')].find((x) => x.textContent === 'Submit') as HTMLButtonElement).disabled).toBe(true);
   });
 });
@@ -314,5 +335,58 @@ describe('WLService workflow rules', () => {
     view = await render(<ConfirmDialog open title="Reject this batch?" confirmLabel="Reject batch" confirmDisabled onConfirm={() => {}} onCancel={() => {}} />);
     const btn = [...document.querySelectorAll('.re-dialog button')].find((b) => b.textContent === 'Reject batch') as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
+  });
+});
+
+describe('import with a project', () => {
+  it('sends { projectId } to /import when a project is given, {} otherwise', async () => {
+    signIn();
+    const calls = stubApi(() => ({ status: 200, data: { Success: true, Data: { Id: 16, Status: 4, Issues: [] } } }));
+    const { realEstateOcrApi } = await import('../api/realEstateOcrApi.ts');
+    await realEstateOcrApi.import(16, '3');
+    await realEstateOcrApi.import(16);
+    expect(calls.map((c) => [c.url, c.body])).toEqual([['/realestate/ocr/batches/16/import', { projectId: 3 }], ['/realestate/ocr/batches/16/import', {}]]);
+  });
+});
+
+describe('phone / mobile number column', () => {
+  it('reads PhoneNumber from the backend fields and corrects it as ledgerRows[n].PhoneNumber', async () => {
+    const { correctionKey, buildCorrections } = await import('../utils/ocr.ts');
+    const b = toOcrBatch({ Id: 1, Status: 1, Fields: [
+      { Name: 'ledgerRows[1].CustomerName', Value: 'Rohita Gouda', Confidence: 0.9 },
+      { Name: 'ledgerRows[1].PhoneNumber', Value: '9556084878', Confidence: 0.9 },
+    ] });
+    expect(b.rows[0].cells.phoneNumber.extracted).toBe('9556084878');
+    expect(correctionKey(1, 'phoneNumber')).toBe('ledgerRows[1].PhoneNumber');
+    expect(buildCorrections(b.rows, { 1: { phoneNumber: '9556084879' } })).toEqual([{ fieldName: 'ledgerRows[1].PhoneNumber', value: '9556084879' }]);
+  });
+});
+
+describe('booking number from Import', () => {
+  it('reads ledgerRows[n].BookingId as the row booking and shows amounts without ".0"', () => {
+    const b = toOcrBatch({ Id: 16, Status: 4, Fields: [
+      { Name: 'ledgerRows[1].CustomerName', Value: 'Rohita Gowda', Confidence: 0.9 },
+      { Name: 'ledgerRows[1].TotalAmountReceived', Value: '650000.0', Confidence: 0.9 },
+      { Name: 'ledgerRows[1].BookingId', Value: '42', Confidence: 1 },
+      { Name: 'ledgerRows[2].CustomerName', Value: 'Sita', Confidence: 0.9 },
+    ] });
+    expect(b.rows[0].match).toMatchObject({ status: 'Matched' });
+    expect(String(b.rows[0].match.bookingId)).toBe('42');
+    expect(b.rows[0].cells.totalAmountReceived.extracted).toBe('650000');
+    expect(b.rows[1].match.bookingId).toBeNull();
+  });
+});
+
+describe('saved import batches', () => {
+  it('lists the user batches from GET /realestate/ocr/batches (numeric status, dates)', async () => {
+    signIn();
+    const calls = stubApi(() => ({ status: 200, data: { Success: true, Data: [
+      { Id: 17, FileName: 'page-2.jpeg', Status: 4, Confidence: 0.83, CreatedDate: '2026-11-17T09:00:00', ModifiedDate: '2026-11-17T09:05:00' },
+      { Id: 16, FileName: 'page-1.jpeg', Status: 3, Confidence: null, CreatedDate: '2026-11-16T09:00:00', ModifiedDate: null },
+    ] } }));
+    const { realEstateOcrApi } = await import('../api/realEstateOcrApi.ts');
+    const list = await realEstateOcrApi.list();
+    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual(['GET /realestate/ocr/batches']);
+    expect(list.map((b) => [b.id, b.fileName, b.status])).toEqual([[17, 'page-2.jpeg', 'Imported'], [16, 'page-1.jpeg', 'Approved']]);
   });
 });
