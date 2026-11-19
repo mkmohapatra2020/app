@@ -43,7 +43,7 @@ export default function DocumentsPanel({ bookingId, initial = [] }: { bookingId:
             <li key={`${String(d.id)}-${i}`}>
               <span className="re-badge re-badge-info">{t(DOCUMENT_TYPE_LABEL[d.documentType] ?? d.documentType)}</span>
               {/* Only a URL the backend returned is linked — the UI never builds storage URLs. */}
-              {d.documentUrl ? <a href={d.documentUrl} target="_blank" rel="noopener noreferrer">{d.fileName || t('Open')}</a> : <span>{d.fileName || '—'}</span>}
+              {d.documentUrl ? <a href={d.documentUrl} target="_blank" rel="noopener noreferrer">{d.fileName || t('Open')}</a> : <span>{d.fileName || 'N/A'}</span>}
               {d.uploadedDate && <small className="re-sub">{date(d.uploadedDate)}</small>}
             </li>
           ))}

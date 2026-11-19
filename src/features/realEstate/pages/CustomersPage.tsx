@@ -25,8 +25,8 @@ export function CustomerRow({ c }: { c: Customer }) {
   return (
     <tr>
       <td data-label={t('Name')}><strong>{c.name}</strong>{c.address && <small className="re-sub">{c.address}</small>}</td>
-      <td data-label={t('Phone')}>{c.phone || '—'}</td>
-      <td data-label={t('Email')}>{c.email || '—'}</td>
+      <td data-label={t('Phone')}>{c.phone || 'N/A'}</td>
+      <td data-label={t('Email')}>{c.email || 'N/A'}</td>
       <td data-label={t('Aadhaar')} className="re-mono">{maskAadhaar(c.aadhaarNumber)}</td>
       <td data-label={t('PAN')} className="re-mono">{maskPan(c.panNumber)}</td>
     </tr>

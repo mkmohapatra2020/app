@@ -52,7 +52,7 @@ export default function PlotsPage() {
   const canBook = access.has('Bookings');
 
   return (
-    <RealEstateLayout title={t('Plots')} feature="Plots" crumbs={[[`${RE_ROOT}/projects`, t('Projects')], [null, t('Plots')]]} intro={t('Plot inventory for this project. Only available plots can be booked.')}>
+    <RealEstateLayout title={t('Plots')} feature="Plots" back={`${RE_ROOT}/projects`} crumbs={[[`${RE_ROOT}/projects`, t('Projects')], [null, t('Plots')]]} intro={t('Plot inventory for this project. Only available plots can be booked.')}>
       <div className="re-split">
         <section className="re-card" aria-labelledby="re-plots">
           <div className="re-card-head">
@@ -71,9 +71,9 @@ export default function PlotsPage() {
                   {rows.map((p) => (
                     <tr key={String(p.id)}>
                       <td data-label={t('Plot')}><strong>{p.plotNumber}</strong></td>
-                      <td data-label={t('Area')} className="num">{p.area ?? '—'} {t(areaUnit(p.areaUnit))}</td>
-                      <td data-label={t('Facing')}>{p.facing ? t(p.facing) : '—'}</td>
-                      <td data-label={t('Road width')} className="num">{p.roadWidth !== null ? t('{n} ft', { n: p.roadWidth }) : '—'}</td>
+                      <td data-label={t('Area')} className="num">{p.area ?? 'N/A'} {t(areaUnit(p.areaUnit))}</td>
+                      <td data-label={t('Facing')}>{p.facing ? t(p.facing) : 'N/A'}</td>
+                      <td data-label={t('Road width')} className="num">{p.roadWidth !== null ? t('{n} ft', { n: p.roadWidth }) : 'N/A'}</td>
                       <td data-label={t('Status')}><RealEstateStatusBadge status={String(p.status)} /></td>
                       <td>
                         {canBook && p.status === 'Available'

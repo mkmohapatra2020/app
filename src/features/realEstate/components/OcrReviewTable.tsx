@@ -63,7 +63,8 @@ export default function OcrReviewTable({ rows, draft, editable, onEdit }: Props)
                   {/* The booking this row's payment went to (set by Import). */}
                   {row.match.bookingId !== null
                     ? <Link className="re-match-link" to={`${RE_ROOT}/bookings/${encodeURIComponent(String(row.match.bookingId))}`}>#{String(row.match.bookingId)}</Link>
-                    : <span className="re-sub">—</span>}
+                    : <span className="re-sub">N/A</span>}
+                  {(row.documents ?? []).map((d) => <small key={d.blobName} className="re-sub re-row-doc" title={d.documentType}>📎 {d.fileName || d.blobName.split('/').pop()}</small>)}
                   {rowIssues.map((i) => <small key={`${i.code}${i.message}`} className={i.severity === 'Error' ? 'f-error' : 're-warn'}>{t(i.message)}</small>)}
                 </td>
                 {OCR_FIELDS.map((f) => {
@@ -85,7 +86,7 @@ export default function OcrReviewTable({ rows, draft, editable, onEdit }: Props)
                           inputMode={isAmount ? 'decimal' : undefined} placeholder={f === 'transactionDate' ? 'YYYY-MM-DD' : isAmount ? '—' : undefined}
                           onChange={(e) => onEdit(key, f, e.target.value)}
                         />
-                      ) : <span id={id} tabIndex={-1}>{value || '—'}</span>}
+                      ) : <span id={id} tabIndex={-1}>{value || 'N/A'}</span>}
                       {issue && <small id={`${id}-err`} className={issue.severity === 'Error' ? 'f-error' : 're-warn'}>{issue.code && <b>{issue.code}: </b>}{t(issue.message)}</small>}
                     </td>
                   );

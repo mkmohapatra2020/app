@@ -70,7 +70,7 @@ describe('open to all signed-in users (current setting)', () => {
     await flush();
     expect(document.querySelector('[data-testid="content"]')).not.toBeNull();
     expect(document.body.textContent).not.toContain("isn't enabled");
-    expect(document.querySelectorAll('.re-tab')).toHaveLength(6);
+    expect(document.querySelectorAll('.re-tab')).toHaveLength(5);
   });
 });
 

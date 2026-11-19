@@ -341,3 +341,15 @@ thead .re-ocr-dlg-num{z-index:3;}
   .re-ocr-step-nav .btn{padding-left:10px;padding-right:10px;}
   .re-ocr-step-nav p{font-size:.88rem;}
 }
+
+/* Bookings page: the new-booking form fills the card (3 columns on wide screens). */
+.re-booking-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.re-booking-grid .re-new-customer { grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 18px; }
+.re-back { margin: 0 0 14px; }
+.re-new-customer { border: 1px dashed var(--line, #d8cfb8); border-radius: 12px; padding: 12px 14px 4px; margin: 0 0 14px; display: grid; gap: 4px; }
+.re-new-customer legend { font-weight: 600; padding: 0 6px; }
+
+/* New booking popup */
+.re-dialog.re-booking-dialog{max-width:980px;max-height:calc(100dvh - 32px);overflow:auto;}
+.re-booking-dialog .re-card-head{align-items:center;}
+.re-booking-docs .re-doc-list{grid-column:1/-1;}

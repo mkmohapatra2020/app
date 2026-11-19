@@ -3,8 +3,8 @@
  * and tolerates missing fields so a partial response never crashes a screen.
  */
 import { field, isObj } from '../../../api/errors.ts';
-import { REAL_ESTATE_FEATURES, type Booking, type Customer, type Id, type LedgerTransaction, type OverviewTotals, type Paged, type Partner, type Plot, type Project, type RealEstateAccess, type RealEstateDocument, type RealEstateFeature, type UploadGrant } from '../types/realEstateTypes.ts';
-import { OCR_API_FIELD, OCR_FIELDS, type OcrBatch, type OcrCell, type OcrField, type OcrMatchStatus, type OcrRow, type OcrValidationIssue, OCR_STATUSES, OCR_AMOUNT_FIELDS } from '../types/ocrTypes.ts';
+import { REAL_ESTATE_FEATURES, type Booking, type Customer, type Id, type BookingDetails, type BookingLedgerRow, type LedgerTransaction, type OverviewTotals, type PaymentRow, type Paged, type Partner, type Plot, type Project, type RealEstateAccess, type RealEstateDocument, type RealEstateFeature, type UploadGrant } from '../types/realEstateTypes.ts';
+import { OCR_API_FIELD, OCR_FIELDS, type OcrBatch, type OcrCell, type OcrField, type OcrMatchStatus, type OcrRow, type OcrRowDocument, type OcrValidationIssue, OCR_STATUSES, OCR_AMOUNT_FIELDS } from '../types/ocrTypes.ts';
 
 /** First defined value among the keys (each read as camelCase or PascalCase). */
 const pick = (o: unknown, ...keys: string[]): unknown => {
@@ -128,6 +128,40 @@ export const toTransaction = (o: unknown): LedgerTransaction => ({
   paymentMode: str(pick(o, 'paymentMode', 'mode')),
   referenceNumber: str(pick(o, 'referenceNumber', 'reference')),
   remarks: str(pick(o, 'remarks', 'description')),
+});
+
+export const toPaymentRow = (o: unknown): PaymentRow => ({
+  ...toTransaction(o),
+  customerName: str(pick(o, 'customerName')),
+  customerPhone: str(pick(o, 'customerPhone')),
+  plotNumber: str(pick(o, 'plotNumber')),
+});
+
+export const toBookingLedgerRow = (o: unknown): BookingLedgerRow => ({
+  bookingId: id(o, 'bookingId'),
+  bookingDate: str(pick(o, 'bookingDate')),
+  bookingAmount: num(pick(o, 'bookingAmount')),
+  agreedValue: num(pick(o, 'agreedValue')),
+  status: str(pick(o, 'bookingStatus', 'status')),
+  customerId: idOrNull(pick(o, 'customerId')),
+  customerName: str(pick(o, 'customerName')),
+  customerPhone: str(pick(o, 'customerPhone')),
+  customerAddress: str(pick(o, 'customerAddress')),
+  plotNumber: str(pick(o, 'plotNumber')),
+  area: numOrNull(pick(o, 'area')),
+  areaUnit: str(pick(o, 'areaUnit')),
+  projectName: str(pick(o, 'projectName')),
+  totalPaid: num(pick(o, 'totalPaid')),
+  totalCommission: num(pick(o, 'totalCommission')),
+  totalProperty: num(pick(o, 'totalProperty')),
+  transactionCount: num(pick(o, 'transactionCount')),
+  lastPaymentDate: str(pick(o, 'lastPaymentDate')),
+});
+
+export const toBookingDetails = (o: unknown): BookingDetails => ({
+  booking: toBookingLedgerRow(pick(o, 'booking') ?? {}),
+  customerEmail: str(pick(o, 'customerEmail')),
+  documents: arr(pick(o, 'documents')).map((d) => toDocument(d)),
 });
 
 /** Optional aggregate endpoint: every value stays null unless reported. */
@@ -262,8 +296,18 @@ export function toOcrRow(o: unknown, index = 0): OcrRow {
  * The backend stores extraction as flat fields — { Name: "ledgerRows[0].CustomerName", Value,
  * Confidence, IsCorrected } (Platform.OCR.OcrField). Group them into rows.
  */
+/** "ledgerRows[n].Documents" value: a JSON array of { blobName, documentType, fileName }. */
+export function parseRowDocuments(value: string): OcrRowDocument[] {
+  try {
+    const list = JSON.parse(value) as unknown;
+    return arr(list).map((d) => ({ blobName: str(pick(d, 'blobName')), documentType: str(pick(d, 'documentType')), fileName: str(pick(d, 'fileName')) })).filter((d) => d.blobName);
+  } catch {
+    return [];
+  }
+}
+
 export function rowsFromFields(fields: unknown[]): OcrRow[] {
-  const byRow = new Map<number, { cells: Partial<Record<OcrField, OcrCell>>; conf: number[]; bookingId?: Id | null }>();
+  const byRow = new Map<number, { cells: Partial<Record<OcrField, OcrCell>>; conf: number[]; bookingId?: Id | null; documents?: OcrRowDocument[] }>();
   for (const f of fields) {
     const path = str(pick(f, 'name', 'fieldName'));
     const { rowIndex, field } = parseFieldPath(path);
@@ -271,6 +315,7 @@ export function rowsFromFields(fields: unknown[]): OcrRow[] {
     const row = byRow.get(rowIndex) ?? { cells: {}, conf: [] };
     byRow.set(rowIndex, row);
     if (/\.BookingId$/i.test(path)) { row.bookingId = idOrNull(pick(f, 'value')); continue; }
+    if (/\.Documents$/i.test(path)) { row.documents = parseRowDocuments(str(pick(f, 'value'))); continue; }
     const confidence = toConfidence(pick(f, 'confidence'));
     if (confidence !== null) row.conf.push(confidence);
     if (!field) continue;
@@ -286,7 +331,7 @@ export function rowsFromFields(fields: unknown[]): OcrRow[] {
     for (const f of OCR_FIELDS) cells[f] = r.cells[f] ?? { extracted: '', corrected: null, confidence: null };
     const confidence = r.conf.length ? Math.round((r.conf.reduce((a, b) => a + b, 0) / r.conf.length) * 100) / 100 : null;
     const bookingId = r.bookingId ?? null;
-    return { id: index, index, rowNumber: position + 1, cells, confidence, issues: [], match: { status: (bookingId !== null ? 'Matched' : 'Pending') as OcrMatchStatus, bookingId, label: '' } };
+    return { id: index, index, rowNumber: position + 1, cells, confidence, issues: [], match: { status: (bookingId !== null ? 'Matched' : 'Pending') as OcrMatchStatus, bookingId, label: '' }, documents: r.documents ?? [] };
   });
 }
 

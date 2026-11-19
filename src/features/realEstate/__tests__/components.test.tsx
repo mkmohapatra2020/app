@@ -44,7 +44,7 @@ describe('booking form', () => {
     view = await render(<BookingForm customers={customers} plots={plots} pending={false} error={null} onSubmit={onSubmit} />);
     await click($('button[type="submit"]'));
     const errors = [...document.querySelectorAll('.f-error')].map((e) => e.textContent);
-    expect(errors).toEqual(['Customer is required.', 'Plot is required.', 'Booking amount is required.', 'Agreed value is required.']);
+    expect(errors).toEqual(['Customer is required.', 'Plot is required.', 'Booking amount is required.', 'Property value is required.']);
     expect($('[role="dialog"]')).toBeNull();
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -66,7 +66,7 @@ describe('booking form', () => {
     expect($('[role="dialog"]')?.textContent).toContain('A-1');
     expect(onSubmit).not.toHaveBeenCalled();
     await click([...document.querySelectorAll('[role="dialog"] button')].find((b) => b.textContent === 'Create booking')!);
-    expect(onSubmit).toHaveBeenCalledWith({ customerId: 1, plotId: 10, bookingAmount: 50000, agreedValue: 1400000 });
+    expect(onSubmit).toHaveBeenCalledWith({ customerId: 1, plotId: 10, bookingAmount: 50000, agreedValue: 1400000 }, undefined, { commissionAmount: null, paymentMode: 'UPI', documents: [] });
   });
 
   it('rule checks: unavailable plot, amounts', () => {
@@ -99,7 +99,7 @@ describe('sensitive identity numbers', () => {
   it('masks Aadhaar and PAN', () => {
     expect(maskAadhaar('2345 6789 0123')).toBe('XXXX XXXX 0123');
     expect(maskPan('abcde1234f')).toBe('XXXXXX234F');
-    expect(maskAadhaar('')).toBe('—');
+    expect(maskAadhaar('')).toBe('N/A');
     expect(maskPan('AB1')).toBe('XXXXXXXXXX');
   });
   it('never renders full values in the customer list', async () => {

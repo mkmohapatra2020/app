@@ -93,7 +93,10 @@ export interface OcrRow {
     bookingId: Id | null;
     label: string;
   };
+  /** Files attached to this row on upload ("ledgerRows[n].Documents"); Import saves them to the row's booking. */
+  documents?: OcrRowDocument[];
 }
+export interface OcrRowDocument { blobName: string; documentType: string; fileName: string }
 
 export interface OcrBatch {
   id: Id;

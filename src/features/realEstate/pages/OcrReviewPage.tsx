@@ -66,7 +66,7 @@ export default function OcrReviewPage() {
   const stepIndex = batch ? OCR_STEPS.indexOf(String(batch.status)) : -1;
 
   return (
-    <RealEstateLayout title={t('Review ledger import')} feature="OCR" crumbs={[[`${RE_ROOT}/ocr`, t('Ledger OCR')], [null, t('Review')]]}>
+    <RealEstateLayout title={t('Review ledger import')} feature="OCR" back={`${RE_ROOT}/ocr`} crumbs={[[`${RE_ROOT}/ocr`, t('Ledger OCR')], [null, t('Review')]]}>
       {ocr.loading && <LoadingState text={t('Loading batch…')} />}
       {ocr.error && <ErrorView error={ocr.error} onRetry={ocr.reload} />}
       {batch && (

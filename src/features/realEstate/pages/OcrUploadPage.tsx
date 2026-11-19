@@ -15,7 +15,6 @@ import { isApiError, toApiError } from '../../../api/errors.ts';
 import { useT } from '../../../i18n/language.ts';
 import { useToast } from '../../../context/ToastContext.jsx';
 import { analyseLedgerFile, LedgerAnalysisError, LEDGER_OCR_MODE } from '../api/ledgerVisionApi.ts';
-import { realEstateApi } from '../api/realEstateApi.ts';
 import { realEstateOcrApi } from '../api/realEstateOcrApi.ts';
 import { ocrInputType } from '../api/realEstateUpload.ts';
 import BlobUploadField from '../components/BlobUploadField.tsx';
@@ -25,7 +24,7 @@ import RealEstateLayout, { RE_ROOT } from '../components/RealEstateLayout.tsx';
 import RealEstateStatusBadge from '../components/RealEstateStatusBadge.tsx';
 import type { OcrBatch, OcrDraft, OcrField } from '../types/ocrTypes.ts';
 import type { StoredBlob } from '../types/realEstateTypes.ts';
-import { allValuesAsCorrections, buildCorrections, isEditable } from '../utils/ocr.ts';
+import { allValuesAsCorrections, buildCorrections, documentCorrections, isEditable } from '../utils/ocr.ts';
 import { buildLocalImport, downloadLocalImport, saveLocalImport, type LocalImport } from '../utils/localImports.ts';
 import { rememberBatch } from '../utils/recent.ts';
 
@@ -57,29 +56,13 @@ export default function OcrUploadPage() {
     return t(err.kind === 'server' || err.kind === 'unknown' ? fallback : err.message);
   };
 
-  /**
-   * Save each transaction's attached documents to the booking the backend matched that row to.
-   * Returns how many could not be saved (row not matched to a booking, or the save failed).
-   */
-  const saveAttachments = async (result: OcrBatch): Promise<number> => {
-    let missed = 0;
-    for (const [key, list] of Object.entries(attachments)) {
-      const bookingId = result.rows.find((r) => String(r.index) === key)?.match.bookingId;
-      for (const a of list) {
-        if (bookingId === null || bookingId === undefined || bookingId === '') { missed += 1; continue; }
-        try { await realEstateApi.documents.create({ bookingId, documentType: a.documentType, blob: a.blob }); } catch { missed += 1; }
-      }
-    }
-    return missed;
-  };
-  const finish = async (result: OcrBatch, fallbackId: OcrBatch['id']) => {
-    const missed = await saveAttachments(result);
+  const finish = async (result: OcrBatch, fallbackId: OcrBatch['id'], documents: number) => {
     keep(result);
     setDraft({});
     setAttachments({});
     setOpen(false);
     toast(t('Ledger data submitted'));
-    if (missed) toast(t(missed === 1 ? '{n} document was not saved: its row is not matched to a booking yet.' : '{n} documents were not saved: their rows are not matched to a booking yet.', { n: missed }));
+    if (documents) toast(t(documents === 1 ? '1 document will be saved to its booking when the ledger is imported.' : '{n} documents will be saved to their bookings when the ledger is imported.', { n: documents }));
     navigate(`${RE_ROOT}/ocr/${encodeURIComponent(String(result.id || fallbackId))}`);
   };
 
@@ -127,6 +110,7 @@ export default function OcrUploadPage() {
   const submit = async () => {
     if (!batch) return;
     setBusy('submit'); setError('');
+    const docCount = Object.values(attachments).reduce((n, l) => n + l.length, 0);
     try {
       if (STATIC) {
         const rec = buildLocalImport(batch, draft, attachments, DIALOG_FIELDS, file?.name || batch.fileName);
@@ -141,18 +125,20 @@ export default function OcrUploadPage() {
         const created = await realEstateOcrApi.create(blob);
         if (created.id === '') throw new Error('The import batch could not be created. Please try again.');
         rememberBatch({ ...created, fileName: created.fileName || blob.fileName });
-        const all = allValuesAsCorrections(batch.rows, draft, DIALOG_FIELDS);
+        const docs = documentCorrections(attachments);
+        const all = [...allValuesAsCorrections(batch.rows, draft, DIALOG_FIELDS), ...docs];
         // WLService validates while saving corrections (→ Validated); /validate only accepts Parsed.
         let v = all.length ? await realEstateOcrApi.submitCorrections(created.id, all) : await realEstateOcrApi.validate(created.id);
         if (v.id === '' || v.rows.length === 0) v = await realEstateOcrApi.get(created.id);
-        await finish(v, created.id);
+        await finish(v, created.id, docCount);
         return;
       }
-      const corrections = buildCorrections(batch.rows, draft);
+      // Attached files go with the corrections (stored on the batch, saved to bookings at Import).
+      const corrections = [...buildCorrections(batch.rows, draft), ...documentCorrections(attachments)];
       // WLService validates while saving corrections (→ Validated); /validate only accepts Parsed.
       let b = corrections.length ? await realEstateOcrApi.submitCorrections(batch.id, corrections) : await realEstateOcrApi.validate(batch.id);
       if (b.id === '' || b.rows.length === 0) b = await realEstateOcrApi.get(batch.id);
-      await finish(b, batch.id);
+      await finish(b, batch.id, docCount);
     } catch (e) {
       setError(message(e, 'The data could not be submitted. Please try again.'));
     } finally {
@@ -166,7 +152,7 @@ export default function OcrUploadPage() {
   const analysed = !!batch && batch.status !== 'Uploaded';
 
   return (
-    <RealEstateLayout title={t('Import a ledger page')} feature="OCR" crumbs={[[`${RE_ROOT}/ocr`, t('Ledger OCR')], [null, t('New import')]]}
+    <RealEstateLayout title={t('Import a ledger page')} feature="OCR" back={`${RE_ROOT}/ocr`} crumbs={[[`${RE_ROOT}/ocr`, t('Ledger OCR')], [null, t('New import')]]}
       intro={t('Nothing is added to the ledger until you review, approve and import the rows.')}>
       <div className="re-split">
         <section className="re-card" aria-labelledby="re-ocr-up">

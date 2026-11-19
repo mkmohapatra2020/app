@@ -12,8 +12,8 @@
  */
 import { apiGet, apiPost, pathId } from '../../../api/apiClient.ts';
 import { requireAuth } from '../../../api/authApi.ts';
-import type { Booking, BookingInput, Customer, CustomerInput, DocumentInput, Id, LedgerTransaction, OverviewTotals, Partner, PartnerInput, Plot, PlotInput, Project, ProjectInput, RealEstateDocument, TransactionInput } from '../types/realEstateTypes.ts';
-import { toBooking, toCustomer, toDocument, toList, toOverview, toPartner, toPlot, toProject, toTransaction } from './normalize.ts';
+import type { Booking, BookingDetails, BookingInput, BookingLedgerRow, Customer, CustomerInput, DocumentInput, Id, LedgerTransaction, OverviewTotals, Paged, PaymentRow, Partner, PartnerInput, Plot, PlotInput, Project, ProjectInput, RealEstateDocument, TransactionInput } from '../types/realEstateTypes.ts';
+import { toBooking, toCustomer, toDocument, toList, toOverview, toPartner, toBookingDetails, toBookingLedgerRow, toPaged, toPaymentRow, toPlot, toProject, toTransaction } from './normalize.ts';
 
 export const RE_BASE = '/realestate';
 
@@ -76,6 +76,8 @@ export const realEstateApi = {
   },
 
   bookings: {
+    /** GET /realestate/bookings/:bookingId — booking, customer, plot, payment totals and documents. */
+    get: async (bookingId: Id, signal?: AbortSignal): Promise<BookingDetails> => toBookingDetails(await get(`/bookings/${pathId(bookingId, 'booking id')}`, signal)),
     /** POST /realestate/bookings — createBookingRequest. 409 when the plot is unavailable. */
     create: async (b: BookingInput): Promise<Booking> => toBooking(await post('/bookings', {
       customerId: b.customerId, plotId: b.plotId, bookingAmount: b.bookingAmount, agreedValue: b.agreedValue,
@@ -83,6 +85,12 @@ export const realEstateApi = {
   },
 
   ledger: {
+    /** GET /realestate/transactions?view=payments&page=&pageSize= — every payment, newest first. */
+    payments: async (page: number, pageSize: number, signal?: AbortSignal): Promise<Paged<PaymentRow>> =>
+      toPaged(await get('/transactions', signal, { view: 'payments', page, pageSize }), toPaymentRow, page, pageSize),
+    /** GET /realestate/transactions?page=&pageSize= — one row per booking with its total paid, newest booking first. */
+    bookings: async (page: number, pageSize: number, signal?: AbortSignal): Promise<Paged<BookingLedgerRow>> =>
+      toPaged(await get('/transactions', signal, { page, pageSize }), toBookingLedgerRow, page, pageSize),
     /** GET /realestate/bookings/:bookingId/transactions */
     list: async (bookingId: Id, signal?: AbortSignal): Promise<LedgerTransaction[]> => toList(await get(`/bookings/${pathId(bookingId, 'booking id')}/transactions`, signal), toTransaction),
     /**

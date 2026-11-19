@@ -137,6 +137,39 @@ export interface LedgerTransaction {
   referenceNumber: string;
   remarks: string;
 }
+/** One payment in the all-payments list (GET /realestate/transactions?view=payments). */
+export interface PaymentRow extends LedgerTransaction {
+  customerName: string;
+  customerPhone: string;
+  plotNumber: string;
+}
+/** One booking in the ledger list (GET /realestate/transactions): customer, plot and total paid. */
+export interface BookingLedgerRow {
+  bookingId: Id;
+  bookingDate: string;
+  bookingAmount: number;
+  agreedValue: number;
+  status: string;
+  customerId: Id | null;
+  customerName: string;
+  customerPhone: string;
+  customerAddress: string;
+  plotNumber: string;
+  area: number | null;
+  areaUnit: string;
+  projectName: string;
+  totalPaid: number;
+  totalCommission: number;
+  totalProperty: number;
+  transactionCount: number;
+  lastPaymentDate: string;
+}
+/** GET /realestate/bookings/:id — the booking, its customer's email and its documents (with view links). */
+export interface BookingDetails {
+  booking: BookingLedgerRow;
+  customerEmail: string;
+  documents: RealEstateDocument[];
+}
 export interface TransactionInput {
   /** yyyy-mm-dd from the form; sent as ISO (…T00:00:00Z). */
   transactionDate: string;

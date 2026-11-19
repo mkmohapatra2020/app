@@ -12,6 +12,19 @@ export const cellInputId = (rowIndex: number, field: OcrField) => `ocr-r${rowInd
 /** Correction key the API expects, e.g. "ledgerRows[1].CommissionAmount". */
 export const correctionKey = (rowIndex: number, field: OcrField) => `ledgerRows[${rowIndex}].${OCR_API_FIELD[field]}`;
 
+/**
+ * Files attached to rows on upload, as "ledgerRows[n].Documents" values (a JSON list per row).
+ * They are stored with the batch; Import saves them to the booking each row goes to.
+ */
+export function documentCorrections(attachments: Record<string, { blob: { blobName: string; fileName: string }; documentType: string }[]>): OcrCorrection[] {
+  return Object.entries(attachments)
+    .filter(([, list]) => list.length > 0)
+    .map(([key, list]) => ({
+      fieldName: `ledgerRows[${key}].Documents`,
+      value: JSON.stringify(list.map((a) => ({ blobName: a.blob.blobName, documentType: a.documentType, fileName: a.blob.fileName }))),
+    }));
+}
+
 /** Value shown in the review table: unsaved edit > saved correction > extracted. */
 export function cellValue(cell: OcrCell, draft?: string): string {
   if (draft !== undefined) return draft;

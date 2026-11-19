@@ -10,15 +10,20 @@ import { AuthProvider } from '../../../auth/AuthContext.tsx';
 import ProtectedRoute from '../../../auth/ProtectedRoute.tsx';
 import { toOcrBatch } from '../api/normalize.ts';
 import { ErrorView } from '../components/ApiStateView.tsx';
+import BookingLedgerTable from '../components/BookingLedgerTable.tsx';
+import BookingLedgerView from '../components/BookingLedgerView.tsx';
+import PaymentsTable from '../components/PaymentsTable.tsx';
+import BookingForm from '../components/BookingForm.tsx';
 import OcrAnalysisDialog from '../components/OcrAnalysisDialog.tsx';
 import OcrConfirmSummary from '../components/OcrConfirmSummary.tsx';
 import OcrIssueList from '../components/OcrIssueList.tsx';
 import OcrReviewTable from '../components/OcrReviewTable.tsx';
 import TransactionForm, { toTransactionInput } from '../components/TransactionForm.tsx';
 import { useRealEstateOcr } from '../hooks/useRealEstateOcr.ts';
+import { RealEstateAccessProvider } from '../access/RealEstateAccessProvider.tsx';
 import RealEstateRoutes from '../routes/realEstateRoutes.tsx';
 import type { TransactionInput } from '../types/realEstateTypes.ts';
-import { allIssues, batchTotals } from '../utils/ocr.ts';
+import { allIssues, batchTotals, documentCorrections } from '../utils/ocr.ts';
 import { change, click, flush, ok, render, signIn, stubApi, type Rendered } from './helpers.tsx';
 
 const original = apiClient.defaults.adapter;
@@ -147,6 +152,113 @@ describe('error states', () => {
     expect($('[role="alert"] h3')?.textContent).toBe(title);
     if (action) expect(document.body.textContent).toContain(action);
     expect(document.body.textContent).not.toMatch(/undefined|stack|Error:/);
+  });
+});
+
+describe('booking ledger list', () => {
+  it('lists bookings from GET /realestate/transactions 10 per page, with a Transaction details link', async () => {
+    signIn();
+    const row = (id: number) => ({ BookingId: id, BookingDate: '2026-04-17T00:00:00', BookingAmount: 50000, AgreedValue: 900000, BookingStatus: 'Confirmed', CustomerId: id, CustomerName: `Buyer ${id}`, CustomerPhone: '9876543210', CustomerAddress: 'Bhubaneswar', PlotNumber: `P${id}`, Area: 1200, AreaUnit: 'SqFt', ProjectName: 'Green city', TotalPaid: 1000 * id, TransactionCount: 2 });
+    const calls = stubApi((c) => {
+      const page = Number((c.params as { page?: number })?.page ?? 1);
+      const ids = page === 1 ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [11, 12];
+      return ok({ Items: ids.map(row), TotalCount: 12, Page: page, PageSize: 10 });
+    });
+    view = await render(<MemoryRouter><BookingLedgerTable /></MemoryRouter>);
+    await flush();
+    expect(calls.find((c) => c.url === '/realestate/transactions')?.params).toMatchObject({ page: 1, pageSize: 10 });
+    expect(document.querySelectorAll('tbody tr')).toHaveLength(10);
+    const heads = [...document.querySelectorAll('thead th')].map((th) => th.textContent);
+    expect(heads.slice(0, 7)).toEqual(['Booking date', 'Booking number', 'Customer name', 'Phone', 'Address', 'Plot and area', 'Total paid']);
+    const first = document.querySelector('tbody tr')!;
+    expect(first.textContent).toContain('#1');
+    expect(first.textContent).toContain('Bhubaneswar');
+    expect(first.textContent).toContain('P1 · 1200');
+    const link = first.querySelector('a')!;
+    expect(link.textContent).toBe('Transaction details →');
+    expect(link.getAttribute('href')).toBe('/real-estate/bookings/1');
+    expect(document.body.textContent).toContain('Page 1 of 2');
+    await click([...document.querySelectorAll('.re-pager button')].find((b) => b.textContent?.includes('Next'))!);
+    await flush();
+    expect(calls.filter((c) => c.url === '/realestate/transactions').pop()?.params).toMatchObject({ page: 2, pageSize: 10 });
+    expect(document.querySelectorAll('tbody tr')).toHaveLength(2);
+  });
+
+  it('transaction details show the booking, its payments and its documents', async () => {
+    signIn();
+    stubApi((c) => {
+      if (c.url === '/realestate/bookings/6') return ok({ Booking: { BookingId: 6, BookingDate: '2026-04-17T00:00:00', AgreedValue: 2000000, BookingAmount: 0, BookingStatus: 'Confirmed', CustomerName: 'Bhagaban Pradhan', CustomerPhone: '9437000000', CustomerAddress: 'Puri', PlotNumber: '48', Area: 20, AreaUnit: 'Decimal', ProjectName: 'Green city', TotalPaid: 1020000 }, CustomerEmail: null,
+        Documents: [{ Id: 3, DocumentType: 'PaymentReceipt', FileName: 'receipt.jpg', UploadedDate: '2026-04-18T00:00:00', DocumentUrl: 'https://example.test/receipt.jpg?sig=1' }] });
+      if (c.url === '/realestate/bookings/6/transactions') return ok([{ Id: 9, BookingId: 6, TransactionDate: '2026-04-17T00:00:00', Amount: 1020000, CommissionAmount: 25000, PropertyAmount: 625000, PaymentMode: 'LedgerImport', ReferenceNumber: 'OCR-17-6' }]);
+      if (c.url === '/realestate/access') return ok({ Enabled: true, Features: ['Ledger', 'Bookings'] });
+      return ok({});
+    });
+    view = await render(<AuthProvider><MemoryRouter><RealEstateAccessProvider><BookingLedgerView bookingId="6" /></RealEstateAccessProvider></MemoryRouter></AuthProvider>);
+    await flush(6);
+    const text = document.body.textContent ?? '';
+    expect(text).toContain('Bhagaban Pradhan');
+    expect(text).toContain('Puri');
+    expect(text).toContain('OCR-17-6');
+    expect(document.querySelector('a[href="https://example.test/receipt.jpg?sig=1"]')?.textContent).toBe('receipt.jpg');
+  });
+});
+
+describe('all payments list', () => {
+  it('lists payments from GET /realestate/transactions?view=payments with the requested columns and a View link', async () => {
+    signIn();
+    const calls = stubApi(() => ok({ Items: [{ Id: 9, BookingId: 6, TransactionDate: '2026-04-17T00:00:00', Amount: 1020000, CommissionAmount: 25000, PropertyAmount: 625000, PaymentMode: 'LedgerImport', ReferenceNumber: 'OCR-17-6', CustomerName: 'Bhagaban Pradhan' }], TotalCount: 1, Page: 1, PageSize: 10 }));
+    view = await render(<MemoryRouter><PaymentsTable /></MemoryRouter>);
+    await flush();
+    expect(calls.find((c) => c.url === '/realestate/transactions')?.params).toMatchObject({ view: 'payments', page: 1, pageSize: 10 });
+    expect([...document.querySelectorAll('thead th')].map((th) => th.textContent)).toEqual(['Date', 'Booking number', 'Customer name', 'Property amount', 'Commission', 'Total paid', 'Action']);
+    const row = document.querySelector('tbody tr')!;
+    expect(row.textContent).toContain('#6');
+    expect(row.textContent).toContain('Bhagaban Pradhan');
+    const link = row.querySelector('a')!;
+    expect(link.textContent).toBe('View →');
+    expect(link.getAttribute('href')).toBe('/real-estate/bookings/6');
+  });
+});
+
+describe('payment slips attached on ledger upload', () => {
+  it('are sent with the batch as "ledgerRows[n].Documents" and read back per row', () => {
+    const corrections = documentCorrections({ '3': [{ blob: { blobName: '7/abc_receipt.jpg', fileName: 'receipt.jpg' } as never, documentType: 'PaymentReceipt' }], '4': [] });
+    expect(corrections).toEqual([{ fieldName: 'ledgerRows[3].Documents', value: JSON.stringify([{ blobName: '7/abc_receipt.jpg', documentType: 'PaymentReceipt', fileName: 'receipt.jpg' }]) }]);
+    const batch = toOcrBatch({ Id: 5, Status: 2, Fields: [
+      { Name: 'ledgerRows[3].CustomerName', Value: 'Lata Jena', Confidence: 0.9 },
+      { Name: 'ledgerRows[3].Documents', Value: corrections[0].value, Confidence: 1 },
+    ] });
+    expect(batch.rows[0].documents).toEqual([{ blobName: '7/abc_receipt.jpg', documentType: 'PaymentReceipt', fileName: 'receipt.jpg' }]);
+    expect(batch.rows[0].confidence).toBe(0.9);
+  });
+});
+
+describe('new booking with a new customer', () => {
+  it('"+ Add a new customer" asks for name and mobile, and passes them with the booking', async () => {
+    const onSubmit = vi.fn(async () => true);
+    view = await render(<BookingForm customers={[]} plots={[{ id: 4, projectId: 1, plotNumber: 'A-4', area: 1200, areaUnit: 'SqFt', facing: '', roadWidth: null, status: 'Available' } as never]} canAddCustomer pending={false} error={null} onSubmit={onSubmit} />);
+    const selects = document.querySelectorAll('select');
+    await change(selects[0], '__new__');
+    expect(document.querySelector('.re-new-customer')).not.toBeNull();
+    await click($('button[type="submit"]'));
+    expect(document.querySelectorAll('.re-new-customer [aria-invalid="true"], .re-new-customer .f-error').length).toBeGreaterThan(0);
+    const inputs = document.querySelectorAll<HTMLInputElement>('.re-new-customer input');
+    await change(inputs[0], 'Lata Jena');
+    await change(inputs[1], '9876543210');
+    await change(document.querySelectorAll('select')[1], '4');
+    const amounts = document.querySelectorAll<HTMLInputElement>('input[type="number"]');
+    await change(amounts[0], '50000');
+    await change(amounts[1], '900000');
+    await change(amounts[2], '20000');
+    const mode = [...document.querySelectorAll('select')].find((el) => [...el.options].some((o) => o.value === 'Cheque'))!;
+    await change(mode, 'Cash');
+    await click($('button[type="submit"]'));
+    expect(document.body.textContent).toContain('A new customer Lata Jena (9876543210) will be added.');
+    expect(document.body.textContent).toContain('The booking amount is recorded as the first payment (Cash, commission');
+    await click([...document.querySelectorAll('button')].find((b) => b.textContent === 'Create booking')!);
+    await flush();
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ plotId: 4, bookingAmount: 50000, agreedValue: 900000 }), expect.objectContaining({ name: 'Lata Jena', phone: '9876543210' }),
+      { commissionAmount: 20000, paymentMode: 'Cash', documents: [] });
   });
 });
 

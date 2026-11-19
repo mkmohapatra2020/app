@@ -58,11 +58,11 @@ export function validateCustomer(v: CustomerForm, t: T = enT): Errors<keyof Cust
 export interface BookingForm { customerId: string; plotId: string; bookingAmount: string; agreedValue: string }
 /** `plot` is the selected plot, when known, so an unavailable one is refused before submit. */
 export function validateBooking(v: BookingForm, plot?: Pick<Plot, 'status'> | null, t: T = enT): Errors<keyof BookingForm> {
-  const e = required<keyof BookingForm>(v, [['customerId', 'Customer'], ['plotId', 'Plot'], ['bookingAmount', 'Booking amount'], ['agreedValue', 'Agreed value']], t);
+  const e = required<keyof BookingForm>(v, [['customerId', 'Customer'], ['plotId', 'Plot'], ['bookingAmount', 'Booking amount'], ['agreedValue', 'Property value']], t);
   if (!e.plotId && plot && plot.status !== 'Available') e.plotId = t("This plot is {status} and can't be booked.", { status: t(String(plot.status)).toLowerCase() });
   if (!e.bookingAmount && !isPositive(v.bookingAmount)) e.bookingAmount = t('Booking amount must be more than 0.');
-  if (!e.agreedValue && !isPositive(v.agreedValue)) e.agreedValue = t('Agreed value must be more than 0.');
-  if (!e.bookingAmount && !e.agreedValue && amount(v.bookingAmount) > amount(v.agreedValue)) e.bookingAmount = t("Booking amount can't exceed the agreed value.");
+  if (!e.agreedValue && !isPositive(v.agreedValue)) e.agreedValue = t('Property value must be more than 0.');
+  if (!e.bookingAmount && !e.agreedValue && amount(v.bookingAmount) > amount(v.agreedValue)) e.bookingAmount = t("Booking amount can't exceed the property value.");
   return e;
 }
 

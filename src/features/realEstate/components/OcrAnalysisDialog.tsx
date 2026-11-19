@@ -19,7 +19,7 @@ const TONE: Partial<Record<OcrField, string>> = { totalAmountReceived: 'total', 
 export const DIALOG_FIELDS: OcrField[] = OCR_FIELDS.filter((f) => f !== 'remarks');
 const pct = (n: number | null) => (n === null ? null : `${Math.round(n * 100)}%`);
 
-/** A document uploaded for one transaction; saved to its booking on submit. */
+/** A document uploaded for one transaction; stored with the batch and saved to the row's booking at Import. */
 export interface RowAttachment {
   blob: StoredBlob;
   documentType: string;

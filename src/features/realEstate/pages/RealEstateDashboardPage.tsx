@@ -17,7 +17,7 @@ function Tile({ label, value, tone = '', to, hint }: { label: string; value: str
   return (
     <div className={`re-stat ${tone}`}>
       <dt>{label}</dt>
-      <dd>{value === null ? '—' : to ? <Link to={to}>{value}</Link> : value}</dd>
+      <dd>{value === null ? 'N/A' : to ? <Link to={to}>{value}</Link> : value}</dd>
       {(hint || value === null) && <small className="re-sub">{hint || t('Not available yet')}</small>}
     </div>
   );
@@ -55,11 +55,11 @@ export default function RealEstateDashboardPage() {
           <dl className="re-stats" aria-label={t('Summary')}>
             <Tile label={projectLabel} value={projectCount} to={`${RE_ROOT}/projects`} />
             <Tile label={t('Total plots')} value={o?.totalPlots ?? null} to={`${RE_ROOT}/projects`} hint={plotHint} />
-            <Tile label={t('Customers')} value={customerCount} to={`${RE_ROOT}/customers`} />
+            <Tile label={t('Customers')} value={customerCount} to={`${RE_ROOT}/bookings`} />
             <Tile label={t('Bookings')} value={o?.bookings ?? null} to={`${RE_ROOT}/bookings`} hint={o?.activeBookings != null ? t('{n} active', { n: o.activeBookings }) : undefined} />
           </dl>
           <dl className="re-stats re-stats-ledger" aria-label={t('Ledger totals')}>
-            {o?.totalAgreedValue != null && <Tile label={t('Total agreed value')} value={amount(o.totalAgreedValue)} />}
+            {o?.totalAgreedValue != null && <Tile label={t('Total property value')} value={amount(o.totalAgreedValue)} />}
             <Tile label={t('Total received')} value={amount(o?.totalReceived)} tone="re-stat-good" />
             <Tile label={t('Total commission')} value={amount(o?.totalCommission)} tone="re-stat-commission" />
             <Tile label={t('Total property amount')} value={amount(o?.totalProperty)} tone="re-stat-property" />
@@ -71,9 +71,8 @@ export default function RealEstateDashboardPage() {
           <section className="re-card" aria-labelledby="re-next">
             <h2 id="re-next">{t('Quick actions')}</h2>
             <div className="re-actions">
-              {access.has('Customers') && <Link className="btn btn-outline" to={`${RE_ROOT}/customers`}>{t('Add a customer')}</Link>}
               {access.has('Bookings') && <Link className="btn btn-outline" to={`${RE_ROOT}/bookings`}>{t('New booking')}</Link>}
-              {access.has('Ledger') && <Link className="btn btn-outline" to={`${RE_ROOT}/ledger`}>{t('Record a payment')}</Link>}
+              {access.has('Ledger') && <Link className="btn btn-outline" to={`${RE_ROOT}/ledger`}>{t('Transaction and documents details')}</Link>}
               {access.has('OCR') && <Link className="btn btn-primary" to={`${RE_ROOT}/ocr/new`}>{t('Import a ledger page')}</Link>}
             </div>
           </section>

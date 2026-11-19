@@ -3,14 +3,14 @@ import { getLanguage, type Lang } from '../../../i18n/language.ts';
 import type { LedgerTotals, LedgerTransaction } from '../types/realEstateTypes.ts';
 
 const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 });
-export const money = (n: number | null | undefined): string => (n === null || n === undefined || !Number.isFinite(n) ? '—' : inr.format(n));
+export const money = (n: number | null | undefined): string => (n === null || n === undefined || !Number.isFinite(n) ? 'N/A' : inr.format(n));
 
 // Most browsers ship no Odia date data (they fall back to "Aug 14, 2026"), so Odia month names are built in.
 const OR_MONTHS = ['ଜାନୁଆରୀ', 'ଫେବୃଆରୀ', 'ମାର୍ଚ୍ଚ', 'ଅପ୍ରେଲ', 'ମେ', 'ଜୁନ୍', 'ଜୁଲାଇ', 'ଅଗଷ୍ଟ', 'ସେପ୍ଟେମ୍ବର', 'ଅକ୍ଟୋବର', 'ନଭେମ୍ବର', 'ଡିସେମ୍ବର'];
 
 /** "14 Aug 2026" / "14 ଅଗଷ୍ଟ 2026", following the chosen language. */
 export function date(v: string, lang: Lang = getLanguage()): string {
-  if (!v) return '—';
+  if (!v) return 'N/A';
   const d = new Date(v);
   if (Number.isNaN(d.getTime())) return v;
   if (lang === 'or') return `${String(d.getDate()).padStart(2, '0')} ${OR_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
@@ -24,7 +24,7 @@ export const areaUnit = (code: string) => AREA_UNIT_LABEL[code] ?? code;
 /** Aadhaar → "XXXX XXXX 1234". Anything too short to mask safely is fully hidden. */
 export function maskAadhaar(v: string): string {
   const digits = String(v ?? '').replace(/\D/g, '');
-  if (!digits) return '—';
+  if (!digits) return 'N/A';
   if (digits.length < 8) return 'XXXX XXXX XXXX';
   return `XXXX XXXX ${digits.slice(-4)}`;
 }
@@ -32,7 +32,7 @@ export function maskAadhaar(v: string): string {
 /** PAN → "XXXXXX234F" (last four shown). */
 export function maskPan(v: string): string {
   const s = String(v ?? '').replace(/\s/g, '').toUpperCase();
-  if (!s) return '—';
+  if (!s) return 'N/A';
   if (s.length < 8) return 'XXXXXXXXXX';
   return `${'X'.repeat(s.length - 4)}${s.slice(-4)}`;
 }

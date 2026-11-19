@@ -7,7 +7,7 @@ import type { LedgerTotals, LedgerTransaction } from '../types/realEstateTypes.t
 import { date, money } from '../utils/format.ts';
 import RealEstateStatusBadge from './RealEstateStatusBadge.tsx';
 
-const opt = (n: number | null) => (n === null ? '—' : money(n));
+const opt = (n: number | null) => (n === null ? 'N/A' : money(n));
 
 /** `agreedKnown` false: the agreed value isn't available, so agreed / outstanding are not shown. */
 export function LedgerSummary({ totals, agreedKnown = true }: { totals: LedgerTotals; agreedKnown?: boolean }) {
@@ -15,7 +15,7 @@ export function LedgerSummary({ totals, agreedKnown = true }: { totals: LedgerTo
   const due = totals.outstanding > 0;
   return (
     <dl className="re-stats re-stats-ledger" aria-label={t('Ledger summary')}>
-      {agreedKnown && <div className="re-stat"><dt>{t('Total agreed value')}</dt><dd>{money(totals.agreedValue)}</dd></div>}
+      {agreedKnown && <div className="re-stat"><dt>{t('Total property value')}</dt><dd>{money(totals.agreedValue)}</dd></div>}
       <div className="re-stat re-stat-good"><dt>{t('Total received')}</dt><dd>{money(totals.totalReceived)}</dd></div>
       <div className="re-stat re-stat-commission"><dt>{t('Total commission')}</dt><dd>{money(totals.totalCommission)}</dd></div>
       <div className="re-stat re-stat-property"><dt>{t('Total property amount')}</dt><dd>{money(totals.totalProperty)}</dd></div>
@@ -53,9 +53,9 @@ export default function LedgerTable({ transactions }: { transactions: LedgerTran
               <td data-label={t('Total received')} className="num re-amount-in">{money(tx.amount)}</td>
               <td data-label={t('Commission')} className="num re-col-commission">{opt(tx.commissionAmount)}</td>
               <td data-label={t('Property amount')} className="num re-col-property">{opt(tx.propertyAmount)}</td>
-              <td data-label={t('Mode')}><RealEstateStatusBadge status={tx.paymentMode || '—'} /></td>
-              <td data-label={t('Reference')}>{tx.referenceNumber || '—'}</td>
-              <td data-label={t('Remarks')}>{tx.remarks || '—'}</td>
+              <td data-label={t('Mode')}><RealEstateStatusBadge status={tx.paymentMode || 'N/A'} /></td>
+              <td data-label={t('Reference')}>{tx.referenceNumber || 'N/A'}</td>
+              <td data-label={t('Remarks')}>{tx.remarks || 'N/A'}</td>
             </tr>
           ))}
         </tbody>

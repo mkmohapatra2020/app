@@ -4,7 +4,7 @@
  * not granted). Routes are also protected by ProtectedRoute (sign-in) in App.jsx.
  */
 import { useEffect, useRef, type ReactNode } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import PageShell from '../../../components/common/PageShell.jsx';
 import { useT } from '../../../i18n/language.ts';
 import { useRealEstateAccess } from '../access/RealEstateAccessProvider.tsx';
@@ -18,12 +18,11 @@ export const RE_ROOT = '/real-estate';
 export const TABS: { to: string; label: string; icon: string; feature: RealEstateFeature | null; also?: string[] }[] = [
   { to: RE_ROOT, label: 'Overview', icon: '📊', feature: null },
   { to: `${RE_ROOT}/projects`, label: 'Projects and plots', icon: '🏘️', feature: 'Projects' },
-  { to: `${RE_ROOT}/customers`, label: 'Customers and bookings', icon: '👥', feature: 'Customers', also: [`${RE_ROOT}/bookings`] },
-  { to: `${RE_ROOT}/ledger`, label: 'Ledger transactions', icon: '📒', feature: 'Ledger' },
+  { to: `${RE_ROOT}/bookings`, label: 'Customer and booking details', icon: '👥', feature: 'Bookings' },
+  { to: `${RE_ROOT}/ledger`, label: 'Transaction and documents details', icon: '📒', feature: 'Ledger', also: [`${RE_ROOT}/bookings/`] },
   { to: `${RE_ROOT}/ocr`, label: 'Ledger OCR', icon: '🧾', feature: 'OCR' },
-  { to: `${RE_ROOT}/documents`, label: 'Documents and images', icon: '🗂️', feature: 'Bookings' },
 ];
-const under = (path: string, base: string) => path === base || path.startsWith(`${base}/`);
+const under = (path: string, base: string) => (base.endsWith('/') ? path.startsWith(base) : path === base || path.startsWith(`${base}/`));
 
 interface Props {
   title: string;
@@ -31,11 +30,19 @@ interface Props {
   /** Feature the screen needs; omitted for the dashboard. */
   feature?: RealEstateFeature;
   crumbs?: [string | null, string][];
+  /** Shows "← Back": goes to the previous page, or to this path when there is none (opened from a link). */
+  back?: string;
   actions?: ReactNode;
   children: ReactNode;
 }
 
-export default function RealEstateLayout({ title, intro, feature, crumbs = [], actions, children }: Props) {
+export default function RealEstateLayout({ title, intro, feature, crumbs = [], back, actions, children }: Props) {
+  const navigate = useNavigate();
+  const goBack = () => {
+    const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    if (idx > 0) navigate(-1);
+    else if (back) navigate(back);
+  };
   const access = useRealEstateAccess();
   const t = useT();
   const { pathname } = useLocation();
@@ -85,11 +92,14 @@ export default function RealEstateLayout({ title, intro, feature, crumbs = [], a
         <nav className="re-tabs" aria-label={t('Real Estate')} ref={tabsRef}>
           {TABS.filter((tab) => !tab.feature || access.has(tab.feature)).map((tab) => (
             <NavLink key={tab.to} to={tab.to} end={tab.to === RE_ROOT} title={t(tab.label)}
-              className={({ isActive }) => `re-tab${isActive || tab.also?.some((p) => under(pathname, p)) ? ' is-active' : ''}`}>
+              className={({ isActive }) => `re-tab${(isActive && !TABS.some((o) => o !== tab && o.also?.some((p) => under(pathname, p)))) || tab.also?.some((p) => under(pathname, p)) ? ' is-active' : ''}`}>
               <span className="re-tab-icon" aria-hidden="true">{tab.icon}</span><span className="re-tab-label">{t(tab.label)}</span>
             </NavLink>
           ))}
         </nav>
+      )}
+      {access.enabled && back && (
+        <button type="button" className="btn btn-outline btn-sm re-back" onClick={goBack}>← {t('Back')}</button>
       )}
       {body}
     </PageShell>

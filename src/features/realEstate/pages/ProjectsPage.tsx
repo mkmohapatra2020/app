@@ -116,7 +116,7 @@ export default function ProjectsPage() {
                     {p.phase && <span className="pill">{p.phase}</span>}
                     {p.status && <span className={`re-badge re-badge-${active ? 'ok' : 'muted'}`}>{t(p.status)}</span>}
                   </div>
-                  <p className="re-project-place"><span aria-hidden="true">📍</span>{[p.location, p.district, p.state].filter(Boolean).join(', ') || '—'}</p>
+                  <p className="re-project-place"><span aria-hidden="true">📍</span>{[p.location, p.district, p.state].filter(Boolean).join(', ') || 'N/A'}</p>
                   {partner && partnerOptions.length > 1 && <p className="re-sub">{t('Partner: {name}', { name: partner })}</p>}
                   {access.has('Plots') && (
                     <Link className="btn btn-outline re-project-open" to={`${RE_ROOT}/projects/${encodeURIComponent(String(p.id))}/plots`}>
