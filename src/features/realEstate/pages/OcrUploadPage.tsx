@@ -1,7 +1,7 @@
 /**
- * /real-estate/ocr/new — upload a ledger page, have GPT-6 Luna analyse it, check the extracted
- * key → value pairs in a popup next to the screenshot, then submit to the backend (batch +
- * corrections + validation). Approval and import stay separate steps on the review page.
+ * /real-estate/ocr — upload a ledger page, have it read, check every value in a popup, then
+ * Submit → "Are you sure?" → OK sends the corrections and imports the page in ONE call
+ * (POST …/import with the corrections: the server saves, validates, approves and imports).
  *
  * LEDGER_OCR_MODE 'static' (default, no backend yet): the file stays on this device, the site's own
  *   /api/ledger-ocr reads it, and Submit saves the reviewed rows on this device (+ JSON download).
@@ -10,26 +10,30 @@
  * LEDGER_OCR_MODE 'backend': create batch → backend parse → corrections for edits only.
  */
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { isApiError, toApiError } from '../../../api/errors.ts';
 import { useT } from '../../../i18n/language.ts';
 import { useToast } from '../../../context/ToastContext.jsx';
 import { analyseLedgerFile, LedgerAnalysisError, LEDGER_OCR_MODE } from '../api/ledgerVisionApi.ts';
+import { realEstateApi } from '../api/realEstateApi.ts';
 import { realEstateOcrApi } from '../api/realEstateOcrApi.ts';
 import { ocrInputType } from '../api/realEstateUpload.ts';
 import BlobUploadField from '../components/BlobUploadField.tsx';
+import ConfirmDialog from '../components/ConfirmDialog.tsx';
+import UnfinishedImports from '../components/UnfinishedImports.tsx';
+import { SelectInput } from '../components/FormFields.tsx';
+import { useRealEstateQuery } from '../hooks/useRealEstateQuery.ts';
 import { localBlob } from '../components/BlobUploadField.tsx';
 import OcrAnalysisDialog, { DIALOG_FIELDS, type RowAttachment, type RowAttachments } from '../components/OcrAnalysisDialog.tsx';
-import RealEstateLayout, { RE_ROOT } from '../components/RealEstateLayout.tsx';
+import RealEstateLayout from '../components/RealEstateLayout.tsx';
 import RealEstateStatusBadge from '../components/RealEstateStatusBadge.tsx';
 import type { OcrBatch, OcrDraft, OcrField } from '../types/ocrTypes.ts';
 import type { StoredBlob } from '../types/realEstateTypes.ts';
-import { allValuesAsCorrections, buildCorrections, documentCorrections, isEditable, ledgerErrors } from '../utils/ocr.ts';
+import { allValuesAsCorrections, buildCorrections, documentCorrections, isEditable, ledgerErrors, rowKey } from '../utils/ocr.ts';
 import { buildLocalImport, downloadLocalImport, saveLocalImport, type LocalImport } from '../utils/localImports.ts';
 import { rememberBatch } from '../utils/recent.ts';
 
 const INPUT_LABEL: Record<string, string> = { ScannedLedgerPage: 'Scanned ledger page', Pdf: 'PDF', Excel: 'Excel' };
-type Busy = 'analyse' | 'submit' | null;
+type Busy = 'analyse' | 'submit' | 'continue' | null;
 const STATIC = LEDGER_OCR_MODE === 'static';
 /** The page reads the file itself via /api/ledger-ocr (static and direct modes). */
 const DIRECT = LEDGER_OCR_MODE !== 'backend';
@@ -37,8 +41,9 @@ const DIRECT = LEDGER_OCR_MODE !== 'backend';
 export default function OcrUploadPage() {
   const t = useT();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
+  // A ledger page is imported once: the user's imported batches, to stop the same file being used again.
+  const myBatches = useRealEstateQuery((s) => realEstateOcrApi.list(s), [], { enabled: !STATIC });
   const [blob, setBlob] = useState<StoredBlob | null>(null);
   const [batch, setBatch] = useState<OcrBatch | null>(null);
   const [draft, setDraft] = useState<OcrDraft>({});
@@ -48,22 +53,53 @@ export default function OcrUploadPage() {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState('');
+  // "Are you sure?" before Submit; OK imports. New customers / plots / bookings go into this project.
+  const [confirming, setConfirming] = useState(false);
+  const [projectId, setProjectId] = useState('');
+  const projects = useRealEstateQuery((s) => realEstateApi.projects.list(null, s), [], { enabled: !STATIC && open });
+  const projectOptions = (projects.data ?? []).map((p) => ({ value: String(p.id), label: p.phase ? `${p.name} · ${p.phase}` : p.name }));
+  const chosenProject = projectId || (projectOptions.length === 1 ? projectOptions[0].value : '');
   const saved = !!batch && batch.id !== '';
-  const batchUrl = saved ? `${RE_ROOT}/ocr/${encodeURIComponent(String(batch!.id))}` : '';
+  const chosenName = (file?.name || blob?.fileName || '').trim();
+  const alreadyImported = chosenName ? (myBatches.data ?? []).find((b) => String(b.status) === 'Imported' && b.fileName.trim() === chosenName) ?? null : null;
   const message = (e: unknown, fallback: string) => {
     if (e instanceof LedgerAnalysisError) return t(e.message);
     const err = isApiError(e) ? e : toApiError(e);
     return t(err.kind === 'server' || err.kind === 'unknown' ? fallback : err.message);
   };
 
-  const finish = async (result: OcrBatch, fallbackId: OcrBatch['id'], documents: number) => {
+  const finish = (result: OcrBatch, fallbackId: OcrBatch['id'], documents: number) => {
     keep(result);
     setDraft({});
     setAttachments({});
     setOpen(false);
-    toast(t('Ledger data submitted'));
-    if (documents) toast(t(documents === 1 ? '1 document will be saved to its booking when the ledger is imported.' : '{n} documents will be saved to their bookings when the ledger is imported.', { n: documents }));
-    navigate(`${RE_ROOT}/ocr/${encodeURIComponent(String(result.id || fallbackId))}`);
+    if (String(result.status) === 'Imported') {
+      toast(t('Ledger imported: {n} transactions', { n: result.rows.length }));
+      if (documents) toast(t(documents === 1 ? '1 document saved to its booking.' : '{n} documents saved to their bookings.', { n: documents }));
+    } else {
+      toast(t('Ledger data submitted'));
+    }
+    // Stay on Ledger OCR, ready for the next page; the unfinished list drops this batch.
+    void fallbackId;
+    startOver();
+    myBatches.reload();
+  };
+
+  /**
+   * After corrections/validation: approve and import straight away. If the server still finds a
+   * problem, stop and show it in the popup (the batch keeps whatever step it reached).
+   */
+  const importNow = async (validated: OcrBatch, id: OcrBatch['id']): Promise<OcrBatch> => {
+    let b = validated;
+    if (String(b.status) !== 'Validated' || b.issueCount > 0) {
+      keep(b);
+      throw new LedgerAnalysisError(b.issueCount > 0 ? 'The server found problems in some rows. Fix them and submit again.' : 'The ledger could not be validated. Please try again.');
+    }
+    b = await realEstateOcrApi.approve(id);
+    keep(b.id === '' ? { ...validated, status: 'Approved' } : b);
+    b = await realEstateOcrApi.import(id, chosenProject || null);
+    if (b.id === '' || b.rows.length === 0) b = await realEstateOcrApi.get(id);
+    return b;
   };
 
   const keep = (b: OcrBatch) => { rememberBatch({ ...b, fileName: b.fileName || blob?.fileName || '' }); setBatch(b); };
@@ -74,6 +110,37 @@ export default function OcrUploadPage() {
   const startOver = () => { setFile(null); setBlob(null); setBatch(null); setDraft({}); setAttachments({}); setLocalSaved(null); setError(''); setFieldKey((k) => k + 1); };
 
   /** Direct: read the local file with the model. Backend: create the batch (once), then parse. */
+  const [opening, setOpening] = useState<OcrBatch['id'] | null>(null);
+  /**
+   * "Continue" on an unfinished batch: load it (read the page first if it was never read) and reopen
+   * the analysis popup. Documents already saved on its rows are shown again as attachments.
+   */
+  const continueBatch = async (b: OcrBatch) => {
+    setBusy('continue'); setOpening(b.id); setError('');
+    try {
+      let full = await realEstateOcrApi.get(b.id);
+      if (String(full.status) === 'Uploaded') {
+        setBusy('analyse');
+        full = await realEstateOcrApi.parse(b.id);
+        if (full.id === '' || full.rows.length === 0) full = await realEstateOcrApi.get(b.id);
+      }
+      setFile(null);
+      setBlob(null);
+      setLocalSaved(null);
+      keep(full);
+      setDraft({});
+      setAttachments(Object.fromEntries(full.rows.filter((r) => (r.documents ?? []).length > 0).map((r) => [
+        rowKey(r),
+        (r.documents ?? []).map((d) => ({ documentType: d.documentType || 'PaymentReceipt', blob: { blobName: d.blobName, fileName: d.fileName || d.blobName.split('/').pop() || '', container: '', contentType: '', size: 0 } })),
+      ])));
+      setOpen(true);
+    } catch (e) {
+      setError(message(e, 'This batch could not be opened. Please try again.'));
+    } finally {
+      setBusy(null); setOpening(null);
+    }
+  };
+
   const analyse = async () => {
     if (DIRECT ? !file : !blob) return;
     setBusy('analyse'); setError('');
@@ -131,19 +198,20 @@ export default function OcrUploadPage() {
         // WLService validates while saving corrections (→ Validated); /validate only accepts Parsed.
         let v = all.length ? await realEstateOcrApi.submitCorrections(created.id, all) : await realEstateOcrApi.validate(created.id);
         if (v.id === '' || v.rows.length === 0) v = await realEstateOcrApi.get(created.id);
-        await finish(v, created.id, docCount);
+        setBatch((cur) => (cur ? { ...cur, id: created.id } : cur));
+        finish(await importNow(v, created.id), created.id, docCount);
         return;
       }
-      // Attached files go with the corrections (stored on the batch, saved to bookings at Import).
+      // One call: corrections (+ attached files, saved to bookings) → validate → approve → import.
       const corrections = [...buildCorrections(batch.rows, draft), ...documentCorrections(attachments)];
-      // WLService validates while saving corrections (→ Validated); /validate only accepts Parsed.
-      let b = corrections.length ? await realEstateOcrApi.submitCorrections(batch.id, corrections) : await realEstateOcrApi.validate(batch.id);
+      let b = await realEstateOcrApi.import(batch.id, chosenProject || null, corrections);
       if (b.id === '' || b.rows.length === 0) b = await realEstateOcrApi.get(batch.id);
-      await finish(b, batch.id, docCount);
+      finish(b, batch.id, docCount);
     } catch (e) {
       setError(message(e, 'The data could not be submitted. Please try again.'));
     } finally {
       setBusy(null);
+      setConfirming(false);
     }
   };
 
@@ -153,23 +221,28 @@ export default function OcrUploadPage() {
   const analysed = !!batch && batch.status !== 'Uploaded';
 
   return (
-    <RealEstateLayout title={t('Import a ledger page')} feature="OCR" back={`${RE_ROOT}/ocr`} crumbs={[[`${RE_ROOT}/ocr`, t('Ledger OCR')], [null, t('New import')]]}
-      intro={t('Nothing is added to the ledger until you review, approve and import the rows.')}>
+    <RealEstateLayout title={t('Ledger OCR')} feature="OCR" crumbs={[[null, t('Ledger OCR')]]}
+      intro={t('Upload a photo of a ledger page, check every row, then import it. Nothing is added until you press OK.')}>
       <div className="re-split">
         <section className="re-card" aria-labelledby="re-ocr-up">
           <h2 id="re-ocr-up">{t('1. Upload')}</h2>
           <ol className="re-steps">
             <li>{t('Upload a clear, well-lit photo of one ledger page (JPG, PNG or WebP).')}</li>
             <li>{t('It is read automatically and every transaction is shown, one customer at a time. Correct anything that is wrong, attach documents, and submit.')}</li>
-            <li>{t('Validate, approve, and import. Nothing is saved to the ledger until you import.')}</li>
+            <li>{t('Press Submit, choose the project and press OK: the rows are imported in one step.')}</li>
           </ol>
           <BlobUploadField key={fieldKey} label={t('Ledger file')} purpose="OcrLedger" localOnly={STATIC} disabled={saved || busy !== null} onFile={chooseFile} onUploaded={setBlob} />
           {blob && !saved && !STATIC && (
             <p className="re-sub">{t('Input type: {type}', { type: t(INPUT_LABEL[ocrInputType(blob.contentType)]) })}</p>
           )}
+          {alreadyImported && !saved && (
+            <p className="f-alert f-alert-error" role="alert">
+              {t('This file was already imported (batch {id}). The same ledger page can be imported only once.', { id: String(alreadyImported.id) })}
+            </p>
+          )}
           {error && !open && <p className="f-alert f-alert-error" role="alert">{error}</p>}
           {!analysed && !localSaved && (
-            <button type="button" className="btn btn-primary" disabled={(DIRECT ? !file : !blob) || busy !== null} onClick={() => void analyse()}>
+            <button type="button" className="btn btn-primary" disabled={(DIRECT ? !file : !blob) || busy !== null || (!!alreadyImported && !saved)} onClick={() => void analyse()}>
               {busy === 'analyse' ? t('Analysing the ledger…') : t('Analyse ledger')}
             </button>
           )}
@@ -204,21 +277,42 @@ export default function OcrUploadPage() {
               </dl>
               <div className="re-actions">
                 {analysed && <button type="button" className="btn btn-primary" onClick={() => setOpen(true)}>{t('Show analysis')}</button>}
-                {saved && <Link className="btn btn-outline" to={batchUrl}>{t('Open batch')}</Link>}
               </div>
             </>
           )}
         </section>
       </div>
 
+      {!STATIC && (
+        <UnfinishedImports batches={myBatches.data ?? []} currentId={open ? batch?.id ?? null : null} onChanged={myBatches.reload}
+          onContinue={(b) => void continueBatch(b)} opening={opening} />
+      )}
+
       {open && batch && (
         <OcrAnalysisDialog
           batch={batch} fileName={file?.name || batch.fileName || blob?.fileName || ''}
           draft={draft} attachments={attachments} editable={isEditable(batch)} pending={busy === 'submit'} error={error}
           onEdit={edit} onAttach={attach} onRemoveAttachment={unattach}
-          onSubmit={() => void submit()} onClose={() => { setOpen(false); setError(''); }} localFiles={STATIC}
+          onSubmit={() => { setError(''); if (STATIC) void submit(); else setConfirming(true); }} onClose={() => { setOpen(false); setError(''); }} localFiles={STATIC}
         />
       )}
+      <ConfirmDialog
+        open={confirming && !!batch}
+        title={t('Submit and import?')}
+        confirmLabel={t('OK')}
+        pending={busy === 'submit'}
+        confirmDisabled={!chosenProject}
+        onConfirm={() => void submit()}
+        onCancel={() => setConfirming(false)}
+      >
+        <p>{t('Are you sure you want to submit? All {n} transactions will be imported: customers, plots and bookings are found or created, and the payments are recorded.', { n: batch?.rows.length ?? 0 })}</p>
+        <SelectInput label={t('Project')} required value={chosenProject} onChange={(e) => setProjectId(e.target.value)}
+          placeholder={projects.loading ? t('Loading projects…') : t('Choose a project')} options={projectOptions}
+          hint={t('New customers, plots and bookings from this page are added to this project.')} />
+        {projects.error && <p className="f-alert f-alert-error">{t('Projects could not be loaded. Close this and try again.')}</p>}
+        {projects.data && projectOptions.length === 0 && <p className="f-alert f-alert-info">{t('Add a project under Projects and plots first.')}</p>}
+        {busy === 'submit' && <p className="re-sub" aria-live="polite">{t('Importing… please keep this page open.')}</p>}
+      </ConfirmDialog>
     </RealEstateLayout>
   );
 }

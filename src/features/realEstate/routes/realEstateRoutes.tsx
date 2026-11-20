@@ -11,12 +11,9 @@ import '../i18n/or.ts';
 const Dashboard = lazy(() => import('../pages/RealEstateDashboardPage.tsx'));
 const Projects = lazy(() => import('../pages/ProjectsPage.tsx'));
 const Plots = lazy(() => import('../pages/PlotsPage.tsx'));
-const Bookings = lazy(() => import('../pages/BookingsPage.tsx'));
 const BookingLedger = lazy(() => import('../pages/BookingLedgerPage.tsx'));
 const Ledger = lazy(() => import('../pages/LedgerTransactionsPage.tsx'));
-const OcrBatches = lazy(() => import('../pages/OcrBatchesPage.tsx'));
 const OcrUpload = lazy(() => import('../pages/OcrUploadPage.tsx'));
-const OcrReview = lazy(() => import('../pages/OcrReviewPage.tsx'));
 const NotFound = lazy(() => import('../../../pages/NotFoundPage.jsx'));
 
 /** Paths relative to /real-estate (documented in src/features/realEstate/README.md). */
@@ -35,15 +32,18 @@ export default function RealEstateRoutes() {
         <Route path="projects" element={<Projects />} />
         <Route path="projects/:projectId/plots" element={<Plots />} />
         {/* Customers are added from the booking form; documents live on each booking's transaction details. */}
-        <Route path="customers" element={<Navigate to="/real-estate/bookings" replace />} />
-        <Route path="bookings" element={<Bookings />} />
+        {/* Customers and bookings are listed with their payments under Booking and transaction details. */}
+        <Route path="customers" element={<Navigate to="/real-estate/ledger" replace />} />
+        <Route path="bookings" element={<Navigate to="/real-estate/ledger" replace />} />
         <Route path="bookings/:bookingId" element={<BookingLedger />} />
         <Route path="bookings/:bookingId/ledger" element={<BookingLedger />} />
         <Route path="ledger" element={<Ledger />} />
         <Route path="documents" element={<Navigate to="/real-estate/ledger" replace />} />
-        <Route path="ocr" element={<OcrBatches />} />
-        <Route path="ocr/new" element={<OcrUpload />} />
-        <Route path="ocr/:batchId" element={<OcrReview />} />
+        {/* Ledger OCR opens on the upload page; unfinished batches are listed below it. */}
+        <Route path="ocr" element={<OcrUpload />} />
+        <Route path="ocr/new" element={<Navigate to="/real-estate/ocr" replace />} />
+        {/* Batches are continued in the Ledger OCR popup; old batch links open Ledger OCR. */}
+        <Route path="ocr/:batchId" element={<Navigate to="/real-estate/ocr" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

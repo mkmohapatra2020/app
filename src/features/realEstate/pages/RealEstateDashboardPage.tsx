@@ -55,8 +55,8 @@ export default function RealEstateDashboardPage() {
           <dl className="re-stats" aria-label={t('Summary')}>
             <Tile label={projectLabel} value={projectCount} to={`${RE_ROOT}/projects`} />
             <Tile label={t('Total plots')} value={o?.totalPlots ?? null} to={`${RE_ROOT}/projects`} hint={plotHint} />
-            <Tile label={t('Customers')} value={customerCount} to={`${RE_ROOT}/bookings`} />
-            <Tile label={t('Bookings')} value={o?.bookings ?? null} to={`${RE_ROOT}/bookings`} hint={o?.activeBookings != null ? t('{n} active', { n: o.activeBookings }) : undefined} />
+            <Tile label={t('Customers')} value={customerCount} to={`${RE_ROOT}/ledger`} />
+            <Tile label={t('Bookings')} value={o?.bookings ?? null} to={`${RE_ROOT}/ledger`} hint={o?.activeBookings != null ? t('{n} active', { n: o.activeBookings }) : undefined} />
           </dl>
           <dl className="re-stats re-stats-ledger" aria-label={t('Ledger totals')}>
             {o?.totalAgreedValue != null && <Tile label={t('Property value')} value={amount(o.totalAgreedValue)} />}
@@ -76,7 +76,7 @@ export default function RealEstateDashboardPage() {
             <div className="re-actions">
               {access.has('Bookings') && access.has('Ledger') && <Link className="btn btn-outline" to={`${RE_ROOT}/ledger?new=1`}>{t('New booking')}</Link>}
               {access.has('Ledger') && <Link className="btn btn-outline" to={`${RE_ROOT}/ledger`}>{t('Booking and transaction details')}</Link>}
-              {access.has('OCR') && <Link className="btn btn-primary" to={`${RE_ROOT}/ocr/new`}>{t('Import a ledger page')}</Link>}
+              {access.has('OCR') && <Link className="btn btn-primary" to={`${RE_ROOT}/ocr`}>{t('Import a ledger page')}</Link>}
             </div>
           </section>
         </>

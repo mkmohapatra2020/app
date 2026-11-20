@@ -68,12 +68,15 @@ export const realEstateOcrApi = {
   validate: (batchId: Id) => act(batchId, 'validate'),
   /** POST …/approve — approval only; import is a separate, explicit action. */
   approve: (batchId: Id) => act(batchId, 'approve'),
-  /** POST …/import — the server imports its own approved, validated rows. */
   /**
-   * POST …/import — `{ projectId }`: the project for customers, plots and bookings the import
-   * creates when a ledger row has no existing booking (optional when there is only one project).
+   * POST …/import — `{ projectId, corrections? }`. projectId: the project for customers, plots and
+   * bookings the import creates. For a Parsed / Validated batch the server first saves the
+   * corrections, validates and approves, then imports — one call from review to Imported.
    */
-  import: (batchId: Id, projectId?: Id | null) => act(batchId, 'import', projectId !== undefined && projectId !== null && projectId !== '' ? { projectId: Number(projectId) } : {}),
+  import: (batchId: Id, projectId?: Id | null, corrections?: OcrCorrection[]) => act(batchId, 'import', {
+    ...(projectId !== undefined && projectId !== null && projectId !== '' ? { projectId: Number(projectId) } : {}),
+    ...(corrections && corrections.length ? { corrections } : {}),
+  }),
   /** POST …/reject — `{ reason }` */
   reject: (batchId: Id, reason: string) => act(batchId, 'reject', { reason: reason.trim() }),
 };

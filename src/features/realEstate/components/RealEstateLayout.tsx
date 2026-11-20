@@ -18,7 +18,6 @@ export const RE_ROOT = '/real-estate';
 export const TABS: { to: string; label: string; icon: string; feature: RealEstateFeature | null; also?: string[] }[] = [
   { to: RE_ROOT, label: 'Overview', icon: '📊', feature: null },
   { to: `${RE_ROOT}/projects`, label: 'Projects and plots', icon: '🏘️', feature: 'Projects' },
-  { to: `${RE_ROOT}/bookings`, label: 'Customer and booking details', icon: '👥', feature: 'Bookings' },
   { to: `${RE_ROOT}/ledger`, label: 'Booking and transaction details', icon: '📒', feature: 'Ledger', also: [`${RE_ROOT}/bookings/`] },
   { to: `${RE_ROOT}/ocr`, label: 'Ledger OCR', icon: '🧾', feature: 'OCR' },
 ];

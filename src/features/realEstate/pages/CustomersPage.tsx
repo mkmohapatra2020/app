@@ -80,7 +80,7 @@ export default function CustomersPage() {
 
   return (
     <RealEstateLayout title={t('Customers and bookings')} feature="Customers" crumbs={[[null, t('Customers')]]} intro={t('Land buyers registered under a partner, and their plot bookings.')}
-      actions={access.has('Bookings') ? <Link className="btn btn-primary" to={`${RE_ROOT}/bookings`}>{t('Bookings')} →</Link> : undefined}>
+      actions={access.has('Bookings') ? <Link className="btn btn-primary" to={`${RE_ROOT}/ledger`}>{t('Bookings')} →</Link> : undefined}>
       <div className="re-split">
         <section className="re-card" aria-labelledby="re-customers">
           <div className="re-card-head">

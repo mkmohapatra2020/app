@@ -96,7 +96,8 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
     const first = boxRef.current?.querySelector<HTMLElement>('.re-ocr-dlg-table input:not([disabled])');
     (first ?? closeRef.current)?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !pending) { e.preventDefault(); onClose(); }
+      // Ignore Escape while a dialog is open on top (e.g. the submit confirmation).
+      if (e.key === 'Escape' && !pending && document.querySelectorAll('.re-dialog-backdrop').length === 1) { e.preventDefault(); onClose(); }
       if (e.key === 'Tab' && boxRef.current) {
         const items = [...boxRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]):not([type="file"]), select:not([disabled]), a[href]')];
         if (!items.length) return;

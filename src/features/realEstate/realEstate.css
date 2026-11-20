@@ -14,8 +14,12 @@
 .re-tab{flex:none;white-space:nowrap;scroll-snap-align:start;padding:8px 12px;border-radius:100px;color:var(--ink-soft);text-decoration:none;font-weight:600;font-size:.88rem;min-height:40px;display:inline-flex;align-items:center;}
 .re-tab{gap:6px;}
 .re-tab-icon{font-size:1.05em;line-height:1;}
-/* Below 1180px (where the full labels stop fitting): inactive tabs show only their icon (name kept for screen readers and as a tooltip), so the whole row stays visible. */
-@media (max-width:1179px){
+/* Wide screens: the four tabs share the row evenly (no empty space after the last one). */
+@media (min-width:760px){
+  .re-tab{flex:1 1 0;justify-content:center;}
+}
+/* Below 760px (where the full labels stop fitting): inactive tabs show only their icon (name kept for screen readers and as a tooltip), so the whole row stays visible. */
+@media (max-width:759px){
   .re-tab:not(.is-active){padding:8px 11px;}
   .re-tab:not(.is-active) .re-tab-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
   .re-tab-icon{font-size:1.2em;}
@@ -369,3 +373,4 @@ thead .re-ocr-dlg-num{z-index:3;}
 .re-doc-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
 .re-doc-upload{display:grid;grid-template-columns:minmax(200px,280px) 1fr;gap:14px 18px;align-items:start;}
 @media (max-width:640px){.re-doc-upload{grid-template-columns:1fr;}.re-doc-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+.re-row-actions{display:flex;gap:8px;flex-wrap:wrap;}

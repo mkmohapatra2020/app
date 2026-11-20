@@ -1,16 +1,13 @@
 /** UI behaviour: badges, booking validation, ledger totals, OCR review, masking. */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
 import BookingForm from '../components/BookingForm.tsx';
-import OcrBatchActions from '../components/OcrBatchActions.tsx';
-import OcrReviewTable from '../components/OcrReviewTable.tsx';
 import RealEstateStatusBadge, { statusTone } from '../components/RealEstateStatusBadge.tsx';
 import { toOcrBatch } from '../api/normalize.ts';
 import { CustomerRow } from '../pages/CustomersPage.tsx';
 import type { OcrBatch, OcrDraft } from '../types/ocrTypes.ts';
 import type { Customer, Plot } from '../types/realEstateTypes.ts';
 import { ledgerTotals, maskAadhaar, maskPan } from '../utils/format.ts';
-import { batchBlockers, buildCorrections, canImport, cellState } from '../utils/ocr.ts';
+import { buildCorrections, canImport, cellState } from '../utils/ocr.ts';
 import { validateBooking } from '../utils/validation.ts';
 import { change, click, render, type Rendered } from './helpers.tsx';
 
@@ -137,29 +134,6 @@ describe('OCR review', () => {
     expect(cellState(r1, 'remarks', 'paid in full')).toBe('edited');
   });
 
-  it('cells are editable and edits reach the draft', async () => {
-    const onEdit = vi.fn();
-    view = await render(<MemoryRouter><OcrReviewTable rows={batch().rows} draft={{}} editable onEdit={onEdit} /></MemoryRouter>);
-    const input = $('input[aria-label="Row 2 Total received"]') as HTMLInputElement;
-    expect(input.value).toBe('1O000');
-    // A missing commission stays empty — never filled from another amount.
-    expect(($('input[aria-label="Row 2 Commission amount"]') as HTMLInputElement).value).toBe('');
-    await change($('input[aria-label="Row 2 Plot number"]'), 'B-10');
-    expect(onEdit).toHaveBeenCalledWith('1', 'plotNumber', 'B-10');
-    await change($('input[aria-label="Row 1 Property amount"]'), '24000');
-    expect(onEdit).toHaveBeenCalledWith('0', 'propertyAmount', '24000');
-    // Booking column: the booking number from the backend, linked; "—" when there is none.
-    expect($('a.re-match-link')?.textContent).toBe('#77');
-    expect($('a.re-match-link')?.getAttribute('href')).toBe('/real-estate/bookings/77');
-    // No per-cell "Extracted · 88%" lines.
-    expect(document.querySelector('.re-cell-meta')).toBeNull();
-  });
-
-  it('is read-only once approved', async () => {
-    view = await render(<MemoryRouter><OcrReviewTable rows={batch().rows} draft={{}} editable={false} onEdit={() => {}} /></MemoryRouter>);
-    expect(document.querySelectorAll('input')).toHaveLength(0);
-  });
-
   it('builds only real corrections', () => {
     const b = batch();
     const draft: OcrDraft = { 0: { totalAmountReceived: '25000', remarks: ' first ' }, 1: { totalAmountReceived: '10000', commissionAmount: '500', propertyAmount: '9500', customerName: 'Sita Devi' } };
@@ -171,26 +145,13 @@ describe('OCR review', () => {
     ]);
   });
 
-  it('keeps Import disabled while validation issues remain', async () => {
-    const approvedWithIssues = batch({ status: 'Approved' });
-    expect(canImport(approvedWithIssues, {})).toBe(false);
-    expect(batchBlockers(approvedWithIssues).reasons).toEqual(['1 validation issue', '1 row not matched to a booking']);
-    view = await render(<OcrBatchActions batch={approvedWithIssues} draft={{}} pending={null} onAction={() => {}} />);
-    expect(($('[data-action="import"]') as HTMLButtonElement).disabled).toBe(true);
-    expect(($('[data-action="approve"]') as HTMLButtonElement).disabled).toBe(true);
-    expect($('#ocr-blockers')?.textContent).toContain('validation issue');
+  it('allows Import only when every row passes the field checks', () => {
+    // Row 2's total received is "1O000" (letter O).
+    const validated = batch({ status: 'Validated' });
+    expect(canImport(validated, {})).toBe(false);
+    expect(canImport(validated, { 1: { totalAmountReceived: '10000' } })).toBe(true);
+    expect(canImport({ ...validated, status: 'Imported' }, { 1: { totalAmountReceived: '10000' } })).toBe(false);
   });
 
-  it('enables Import only for a clean, approved batch with no unsaved edits', async () => {
-    const clean = toOcrBatch({ ...raw({ status: 'Approved' }), ledgerRows: [raw().ledgerRows[0]], validationIssues: [] });
-    expect(canImport(clean, {})).toBe(true);
-    expect(canImport(clean, { 0: { totalAmountReceived: '1' } })).toBe(false);
-    expect(canImport({ ...clean, status: 'Validated' }, {})).toBe(false);
-    const onAction = vi.fn();
-    view = await render(<OcrBatchActions batch={clean} draft={{}} pending={null} onAction={onAction} />);
-    const btn = $('[data-action="import"]') as HTMLButtonElement;
-    expect(btn.disabled).toBe(false);
-    await click(btn);
-    expect(onAction).toHaveBeenCalledWith('import');
-  });
+
 });

@@ -17,6 +17,16 @@ const expectKind = async (p: Promise<unknown>, kind: string) => {
   expect((e as ApiError).kind).toBe(kind);
 };
 
+describe('direct import', () => {
+  it('sends the project and the corrections in one import call', async () => {
+    signIn();
+    const calls = stubApi(() => ok({ Id: 4, Status: 4, Fields: [] }));
+    await realEstateOcrApi.import(4, '2', [{ fieldName: 'ledgerRows[1].PropertyAmount', value: '630000' }]);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({ method: 'POST', url: '/realestate/ocr/batches/4/import', body: { projectId: 2, corrections: [{ fieldName: 'ledgerRows[1].PropertyAmount', value: '630000' }] } });
+  });
+});
+
 describe('documents', () => {
   it('sends a booking id taken from the URL ("6") as a number', async () => {
     signIn();

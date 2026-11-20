@@ -51,10 +51,12 @@ export function validateLedgerValues(values: Partial<Record<OcrField, string>>, 
   if (!total) e.totalAmountReceived = t('Total received is required.');
   else if (!AMOUNT.test(total) || !(toNumber(total) > 0)) e.totalAmountReceived = t('Total received must be a number more than 0.');
 
-  for (const f of ['commissionAmount', 'propertyAmount'] as const) {
-    const a = v(f);
-    if (a && !AMOUNT.test(a)) e[f] = t('Enter a number (0 or more).');
-  }
+  const commission = v('commissionAmount');
+  if (commission && !AMOUNT.test(commission)) e.commissionAmount = t('Enter a number (0 or more).');
+
+  const property = v('propertyAmount');
+  if (!property) e.propertyAmount = t('Property amount is required.');
+  else if (!AMOUNT.test(property) || !(toNumber(property) > 0)) e.propertyAmount = t('Property amount must be a number more than 0.');
 
   if (!v('customerName')) e.customerName = t('Customer name is required.');
   if (!v('plotNumber')) e.plotNumber = t('Plot number is required.');
@@ -174,6 +176,17 @@ export const canValidate = (batch: OcrBatch, draft: OcrDraft) => batch.status ==
 /** Approval needs a validated batch with no errors, unmatched rows or unsaved edits. */
 export const canApprove = (batch: OcrBatch, draft: OcrDraft) => batch.status === 'Validated' && batch.rows.length > 0 && clear(batchBlockers(batch, draft));
 /** Import is separate from approval: only an approved batch, still clean. */
-export const canImport = (batch: OcrBatch, draft: OcrDraft) => batch.status === 'Approved' && batch.rows.length > 0 && clear(batchBlockers(batch, draft));
+/**
+ * Import is one call that saves edits, validates, approves and imports, so it is offered for any
+ * reviewed batch (Parsed, Validated or Approved) whose rows pass the popup's field checks.
+ * An Approved batch can no longer take edits.
+ */
+export const canImport = (batch: OcrBatch, draft: OcrDraft) =>
+  ['Parsed', 'Validated', 'Approved'].includes(String(batch.status)) && batch.rows.length > 0
+  && Object.keys(ledgerErrors(batch.rows, draft)).length === 0
+  && (String(batch.status) !== 'Approved' || buildCorrections(batch.rows, draft).length === 0);
+/** How many fields fail the checks (current values = unsaved edit > correction > extracted). */
+export const fieldErrorCount = (batch: Pick<OcrBatch, 'rows'>, draft: OcrDraft) =>
+  Object.values(ledgerErrors(batch.rows, draft)).reduce((n, e) => n + Object.keys(e).length, 0);
 export const canReject = (batch: OcrBatch) => ACTIVE.includes(String(batch.status));
 export const isEditable = (batch: OcrBatch) => ['Parsed', 'Validated'].includes(String(batch.status));

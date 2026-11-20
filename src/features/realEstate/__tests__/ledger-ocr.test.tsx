@@ -13,13 +13,10 @@ import { ErrorView } from '../components/ApiStateView.tsx';
 import BookingLedgerTable from '../components/BookingLedgerTable.tsx';
 import BookingLedgerView from '../components/BookingLedgerView.tsx';
 import PaymentsTable from '../components/PaymentsTable.tsx';
+import UnfinishedImports from '../components/UnfinishedImports.tsx';
 import BookingForm from '../components/BookingForm.tsx';
 import OcrAnalysisDialog from '../components/OcrAnalysisDialog.tsx';
-import OcrConfirmSummary from '../components/OcrConfirmSummary.tsx';
-import OcrIssueList from '../components/OcrIssueList.tsx';
-import OcrReviewTable from '../components/OcrReviewTable.tsx';
 import TransactionForm, { toTransactionInput } from '../components/TransactionForm.tsx';
-import { useRealEstateOcr } from '../hooks/useRealEstateOcr.ts';
 import { RealEstateAccessProvider } from '../access/RealEstateAccessProvider.tsx';
 import RealEstateRoutes from '../routes/realEstateRoutes.tsx';
 import type { TransactionInput } from '../types/realEstateTypes.ts';
@@ -87,57 +84,13 @@ const batchJson = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-describe('OCR review', () => {
-  it('renders the three amount labels with the correct ledger explanations (4)', async () => {
-    view = await render(<MemoryRouter><OcrReviewTable rows={toOcrBatch(batchJson()).rows} draft={{}} editable onEdit={() => {}} /></MemoryRouter>);
-    const heads = [...document.querySelectorAll('thead th')].map((th) => th.textContent);
-    // Plain column names (no hint lines), with the customer's phone after the name.
-    expect(heads).toEqual(expect.arrayContaining(['Total received', 'Commission amount', 'Property amount', 'Phone / mobile number']));
-    expect(heads.indexOf('Phone / mobile number')).toBe(heads.indexOf('Customer name') + 1);
-    // Values land in their own column — the red amount is never shown as commission.
-    expect(($('input[aria-label="Row 1 Property amount"]') as HTMLInputElement).value).toBe('95000');
-    expect(($('input[aria-label="Row 1 Commission amount"]') as HTMLInputElement).value).toBe('5000');
-    expect(($('input[aria-label="Row 2 Commission amount"]') as HTMLInputElement).value).toBe('');
+describe('OCR totals', () => {
+  it('totals each amount column separately', () => {
+    expect(batchTotals(toOcrBatch(batchJson()))).toEqual({ rows: 2, totalReceived: 120000, totalCommission: 5000, totalProperty: 114000 });
   });
-
-  it('totals each amount column separately for the confirmation', async () => {
-    const b = toOcrBatch(batchJson());
-    expect(batchTotals(b)).toEqual({ rows: 2, totalReceived: 120000, totalCommission: 5000, totalProperty: 114000 });
-    view = await render(<OcrConfirmSummary batch={b} draft={{}} />);
-    const text = $('[data-testid="ocr-confirm-summary"]')?.textContent ?? '';
-    expect(text).toContain('₹1,20,000.00');
-    expect(text).toContain('₹5,000.00');
-    expect(text).toContain('₹1,14,000.00');
-  });
-
-  it('shows issue code, message, row and field, and focuses the field', async () => {
+  it('attaches row issues to their row and field', () => {
     const b = toOcrBatch(batchJson({ status: 'Parsed', validationIssues: [{ code: 'NEG_AMOUNT', message: 'Amount cannot be negative', fieldName: 'ledgerRows[1].PropertyAmount' }] }));
-    const issues = allIssues(b);
-    expect(issues[0]).toMatchObject({ code: 'NEG_AMOUNT', rowIndex: 1, field: 'propertyAmount', severity: 'Error' });
-    view = await render(<MemoryRouter><OcrIssueList issues={issues} rows={b.rows} /><OcrReviewTable rows={b.rows} draft={{}} editable onEdit={() => {}} /></MemoryRouter>);
-    expect($('.re-issues')?.textContent).toContain('NEG_AMOUNT');
-    await click([...document.querySelectorAll('.re-issues button')][0]);
-    expect(document.activeElement?.getAttribute('aria-label')).toBe('Row 2 Property amount');
-  });
-});
-
-function OcrProbe({ onReady }: { onReady: (o: ReturnType<typeof useRealEstateOcr>) => void }) {
-  onReady(useRealEstateOcr('7', true));
-  return null;
-}
-
-describe('approval and import are separate', () => {
-  it('approving never calls import (6)', async () => {
-    signIn();
-    const calls = stubApi((c) => ok(batchJson({ status: c.url.endsWith('/approve') ? 'Approved' : 'Validated' })));
-    let ocr: ReturnType<typeof useRealEstateOcr> | null = null;
-    view = await render(<OcrProbe onReady={(o) => { ocr = o; }} />);
-    await flush();
-    await ocr!.run('approve');
-    await flush();
-    expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual(['GET /realestate/ocr/batches/7', 'POST /realestate/ocr/batches/7/approve']);
-    expect(calls.some((c) => c.url.endsWith('/import'))).toBe(false);
-    expect(ocr!.batch?.status).toBe('Approved');
+    expect(allIssues(b)[0]).toMatchObject({ code: 'NEG_AMOUNT', rowIndex: 1, field: 'propertyAmount', severity: 'Error' });
   });
 });
 
@@ -221,6 +174,44 @@ describe('all payments list', () => {
     const link = row.querySelector('a')!;
     expect(link.textContent).toBe('View →');
     expect(link.getAttribute('href')).toBe('/real-estate/bookings/6');
+  });
+});
+
+describe('unfinished imports', () => {
+  it('lists only batches not yet imported or rejected, with Continue and Reject (reason required)', async () => {
+    signIn();
+    const calls = stubApi(() => ok({ batchId: 22, status: 'Rejected' }));
+    const onChanged = vi.fn();
+    const list = [
+      toOcrBatch({ Id: 23, Status: 4, FileName: 'a.jpeg' }),
+      toOcrBatch({ Id: 22, Status: 1, FileName: 'a.jpeg' }),
+      toOcrBatch({ Id: 21, Status: 5, FileName: 'a.jpeg' }),
+      toOcrBatch({ Id: 20, Status: 2, FileName: 'b.jpeg' }),
+    ];
+    view = await render(<MemoryRouter><UnfinishedImports batches={list} currentId={20} onChanged={onChanged} /></MemoryRouter>);
+    const rows = document.querySelectorAll('tbody tr');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].textContent).toContain('22');
+    expect(rows[0].querySelector('a')?.getAttribute('href')).toBe('/real-estate/ocr/22');
+    // With onContinue (the Ledger OCR page), Continue reopens the popup instead of linking.
+    const onContinue = vi.fn();
+    view.unmount();
+    view = await render(<MemoryRouter><UnfinishedImports batches={list} currentId={20} onChanged={onChanged} onContinue={onContinue} /></MemoryRouter>);
+    await click([...document.querySelectorAll('tbody tr button')].find((b) => b.textContent?.startsWith('Continue'))!);
+    expect(onContinue).toHaveBeenCalledWith(expect.objectContaining({ id: 22 }));
+    await click([...document.querySelectorAll('tbody tr button')].find((b) => b.textContent === 'Reject')!);
+    const confirm = [...document.querySelectorAll('[role="dialog"] button')].find((b) => b.textContent === 'Reject batch') as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);
+    await change(document.querySelector('[role="dialog"] textarea'), 'Duplicate of 23');
+    await click(confirm);
+    await flush();
+    expect(calls.find((c) => c.url === '/realestate/ocr/batches/22/reject')?.body).toEqual({ reason: 'Duplicate of 23' });
+    expect(onChanged).toHaveBeenCalled();
+  });
+
+  it('shows nothing when every batch is finished', async () => {
+    view = await render(<MemoryRouter><UnfinishedImports batches={[toOcrBatch({ Id: 23, Status: 4 })]} onChanged={() => {}} /></MemoryRouter>);
+    expect(document.querySelector('#re-unfinished')).toBeNull();
   });
 });
 
@@ -363,10 +354,12 @@ describe('OCR analysis popup', () => {
   });
 
   it('validates the ledger values like the backend (and what Import needs)', () => {
-    expect(validateLedgerValues({ transactionDate: '2026-02-30', totalAmountReceived: '0', customerName: '', plotNumber: '', commissionAmount: '-5' })).toEqual({
+    expect(validateLedgerValues({ transactionDate: '2026-02-30', totalAmountReceived: '0', customerName: '', plotNumber: '', commissionAmount: '-5', propertyAmount: '0' })).toEqual({
       transactionDate: 'Enter the date as YYYY-MM-DD, e.g. 2026-04-17.', totalAmountReceived: 'Total received must be a number more than 0.',
-      commissionAmount: 'Enter a number (0 or more).', customerName: 'Customer name is required.', plotNumber: 'Plot number is required.',
+      commissionAmount: 'Enter a number (0 or more).', propertyAmount: 'Property amount must be a number more than 0.',
+      customerName: 'Customer name is required.', plotNumber: 'Plot number is required.',
     });
+    expect(validateLedgerValues({ transactionDate: '2026-04-17', totalAmountReceived: '1000', customerName: 'Lata', plotNumber: '49' }).propertyAmount).toBe('Property amount is required.');
     expect(validateLedgerValues({ transactionDate: '2026-04-17', totalAmountReceived: '6,50,000', customerName: 'Lata', plotNumber: '49', phoneNumber: '+91 98765 43210', propertyAmount: '630000.50' })).toEqual({});
   });
 

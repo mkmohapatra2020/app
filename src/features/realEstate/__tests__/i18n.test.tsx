@@ -35,7 +35,7 @@ const dynamicKeys = [
   'Extract rows', 'Save corrections', 'Validate rows', 'Approve batch', 'Import approved rows', 'Reject batch',
   'Business name', 'Contact person', 'Phone', 'Partner', 'Project name', 'Location', 'District', 'State', 'Plot number', 'Area', 'Area unit',
   'Name', 'Customer', 'Plot', 'Booking amount', 'Agreed value', 'Transaction date', 'Total received', 'Payment mode',
-  'Overview', 'Projects and plots', 'Customer and booking details', 'Booking and transaction details', 'Ledger OCR',
+  'Overview', 'Projects and plots', 'Booking and transaction details', 'Ledger OCR',
   'Commission (lower black amount)', 'Property amount (red)', 'From the previous column', 'Lower amount written in black, after Payment Details', 'Amount written in red',
   'Matching hint, not an id', 'Error', 'Warning', 'Agreement', 'Payment receipt', 'Identity proof', 'Site photo', 'Ledger page',
   'Scanned ledger page', 'PDF', 'Excel', 'Active', 'Inactive', 'Extract rows', 'Review and approve', 'Import', 'View',
