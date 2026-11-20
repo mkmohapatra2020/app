@@ -25,6 +25,60 @@ export function documentCorrections(attachments: Record<string, { blob: { blobNa
     }));
 }
 
+/** Field errors for one ledger row, keyed by field. Empty when the row can be submitted. */
+export type RowErrors = Partial<Record<OcrField, string>>;
+
+const AMOUNT = /^\d{1,3}(,\d{2,3})*(\.\d+)?$|^\d+(\.\d+)?$/;
+const toNumber = (v: string) => Number(v.replace(/,/g, ''));
+
+/**
+ * The checks the popup runs before Submit. They match the backend's ledger validator and also
+ * catch what would make Import fail (a new booking needs both a customer name and a plot number).
+ */
+export function validateLedgerValues(values: Partial<Record<OcrField, string>>, t: T = enT): RowErrors {
+  const e: RowErrors = {};
+  const v = (f: OcrField) => (values[f] ?? '').trim();
+
+  const date = v('transactionDate');
+  if (!date) e.transactionDate = t('Transaction date is required.');
+  else {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+    const d = m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])) : null;
+    if (!m || !d || d.getUTCFullYear() !== +m[1] || d.getUTCMonth() !== +m[2] - 1 || d.getUTCDate() !== +m[3]) e.transactionDate = t('Enter the date as YYYY-MM-DD, e.g. 2026-04-17.');
+  }
+
+  const total = v('totalAmountReceived');
+  if (!total) e.totalAmountReceived = t('Total received is required.');
+  else if (!AMOUNT.test(total) || !(toNumber(total) > 0)) e.totalAmountReceived = t('Total received must be a number more than 0.');
+
+  for (const f of ['commissionAmount', 'propertyAmount'] as const) {
+    const a = v(f);
+    if (a && !AMOUNT.test(a)) e[f] = t('Enter a number (0 or more).');
+  }
+
+  if (!v('customerName')) e.customerName = t('Customer name is required.');
+  if (!v('plotNumber')) e.plotNumber = t('Plot number is required.');
+
+  const phone = v('phoneNumber');
+  if (phone) {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 10 || digits.length > 12) e.phoneNumber = t('Enter a 10-digit mobile number.');
+  }
+  return e;
+}
+
+/** Errors for every row (current values = unsaved edit > correction > extracted), keyed by row key. */
+export function ledgerErrors(rows: OcrRow[], draft: OcrDraft, fields: readonly OcrField[] = OCR_FIELDS, t: T = enT): Record<string, RowErrors> {
+  const out: Record<string, RowErrors> = {};
+  for (const row of rows) {
+    const key = rowKey(row);
+    const values = Object.fromEntries(fields.map((f) => [f, cellValue(row.cells[f], draft[key]?.[f])])) as Partial<Record<OcrField, string>>;
+    const errors = validateLedgerValues(values, t);
+    if (Object.keys(errors).length) out[key] = errors;
+  }
+  return out;
+}
+
 /** Value shown in the review table: unsaved edit > saved correction > extracted. */
 export function cellValue(cell: OcrCell, draft?: string): string {
   if (draft !== undefined) return draft;

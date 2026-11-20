@@ -82,16 +82,18 @@ describe('ledger totals', () => {
   it('sums payments and computes outstanding without float drift', () => {
     const tx = (amount: number, commissionAmount: number | null = null, propertyAmount: number | null = null) => ({ amount, commissionAmount, propertyAmount });
     expect(ledgerTotals(1400000, [tx(50000, 2500, 47500), tx(250000.1, null, 0.1), tx(0.2)])).toEqual({
-      agreedValue: 1400000, totalReceived: 300000.3, totalCommission: 2500, totalProperty: 47500.1, outstanding: 1099999.7,
+      agreedValue: 1400000, totalReceived: 300000.3, totalCommission: 2500, totalProperty: 47500.1, totalPayment: 1402500, outstanding: 1102499.7,
     });
-    expect(ledgerTotals(1000, [])).toEqual({ agreedValue: 1000, totalReceived: 0, totalCommission: 0, totalProperty: 0, outstanding: 1000 });
+    expect(ledgerTotals(1000, [])).toEqual({ agreedValue: 1000, totalReceived: 0, totalCommission: 0, totalProperty: 0, totalPayment: 1000, outstanding: 1000 });
     expect(ledgerTotals(1000, [tx(1200)]).outstanding).toBe(-200);
   });
 
   it('never folds commission or property amount into total received', () => {
     const t = ledgerTotals(100000, [{ amount: 60000, commissionAmount: 5000, propertyAmount: 95000 }]);
     expect(t.totalReceived).toBe(60000);
-    expect(t.outstanding).toBe(40000);
+    // To be paid = property value + commission − received.
+    expect(t.totalPayment).toBe(105000);
+    expect(t.outstanding).toBe(45000);
   });
 });
 

@@ -29,6 +29,8 @@ const trim = (v: string) => String(v ?? '').trim();
 /** Drops undefined / null / '' so optional fields are omitted rather than sent empty. */
 const compact = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null && v !== ''));
 /** yyyy-mm-dd (date input) → "yyyy-mm-ddT00:00:00Z" (swagger: date-time); full ISO strings pass through. */
+/** Ids from the URL are strings ("6"); the API's int fields need a number (6). */
+const asNumberId = (v: Id): Id => (typeof v === 'string' && /^\d+$/.test(v.trim()) ? Number(v) : v);
 export const isoDate = (d: string) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T00:00:00Z` : d);
 
 export const realEstateApi = {
@@ -115,7 +117,7 @@ export const realEstateApi = {
      * documentUrl is left to the backend: the UI never builds storage URLs.
      */
     create: async (d: DocumentInput): Promise<RealEstateDocument> => {
-      const doc = toDocument(await post('/documents', { bookingId: d.bookingId, documentType: d.documentType, blobName: d.blob.blobName }));
+      const doc = toDocument(await post('/documents', { bookingId: asNumberId(d.bookingId), documentType: d.documentType, blobName: d.blob.blobName }));
       return { ...doc, fileName: doc.fileName || d.blob.fileName };
     },
   },

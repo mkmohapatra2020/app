@@ -59,11 +59,14 @@ export default function RealEstateDashboardPage() {
             <Tile label={t('Bookings')} value={o?.bookings ?? null} to={`${RE_ROOT}/bookings`} hint={o?.activeBookings != null ? t('{n} active', { n: o.activeBookings }) : undefined} />
           </dl>
           <dl className="re-stats re-stats-ledger" aria-label={t('Ledger totals')}>
-            {o?.totalAgreedValue != null && <Tile label={t('Total property value')} value={amount(o.totalAgreedValue)} />}
+            {o?.totalAgreedValue != null && <Tile label={t('Property value')} value={amount(o.totalAgreedValue)} />}
+            <Tile label={t('Commission')} value={amount(o?.totalCommission)} tone="re-stat-commission" />
+            {o?.totalAgreedValue != null && <Tile label={t('Total payment')} value={amount(o.totalAgreedValue + (o.totalCommission ?? 0))} tone="re-stat-property" />}
             <Tile label={t('Total received')} value={amount(o?.totalReceived)} tone="re-stat-good" />
-            <Tile label={t('Total commission')} value={amount(o?.totalCommission)} tone="re-stat-commission" />
-            <Tile label={t('Total property amount')} value={amount(o?.totalProperty)} tone="re-stat-property" />
-            {o?.outstanding != null && <Tile label={t('Outstanding')} value={amount(o.outstanding)} tone={o.outstanding > 0 ? 're-stat-due' : 're-stat-good'} />}
+            {o?.totalAgreedValue != null && (() => {
+              const due = o.totalAgreedValue + (o.totalCommission ?? 0) - (o.totalReceived ?? 0);
+              return <Tile label={t('To be paid')} value={amount(due)} tone={due > 0 ? 're-stat-due' : 're-stat-good'} />;
+            })()}
             <Tile label={t('OCR batches awaiting review')} value={o?.ocrAwaitingReview ?? null} tone="re-stat-warn" to={`${RE_ROOT}/ocr`} />
             {/* Not in the live response today: shown only if the API adds it. */}
             {o?.ocrReadyToImport != null && <Tile label={t('OCR batches ready to import')} value={o.ocrReadyToImport} to={`${RE_ROOT}/ocr`} />}
@@ -71,8 +74,8 @@ export default function RealEstateDashboardPage() {
           <section className="re-card" aria-labelledby="re-next">
             <h2 id="re-next">{t('Quick actions')}</h2>
             <div className="re-actions">
-              {access.has('Bookings') && <Link className="btn btn-outline" to={`${RE_ROOT}/bookings`}>{t('New booking')}</Link>}
-              {access.has('Ledger') && <Link className="btn btn-outline" to={`${RE_ROOT}/ledger`}>{t('Transaction and documents details')}</Link>}
+              {access.has('Bookings') && access.has('Ledger') && <Link className="btn btn-outline" to={`${RE_ROOT}/ledger?new=1`}>{t('New booking')}</Link>}
+              {access.has('Ledger') && <Link className="btn btn-outline" to={`${RE_ROOT}/ledger`}>{t('Booking and transaction details')}</Link>}
               {access.has('OCR') && <Link className="btn btn-primary" to={`${RE_ROOT}/ocr/new`}>{t('Import a ledger page')}</Link>}
             </div>
           </section>

@@ -77,7 +77,7 @@ export default function PlotsPage() {
                       <td data-label={t('Status')}><RealEstateStatusBadge status={String(p.status)} /></td>
                       <td>
                         {canBook && p.status === 'Available'
-                          ? <Link className="btn btn-outline btn-sm" to={`${RE_ROOT}/bookings?projectId=${encodeURIComponent(projectId)}&plotId=${encodeURIComponent(String(p.id))}`}>{t('Book')}</Link>
+                          ? <Link className="btn btn-outline btn-sm" to={`${RE_ROOT}/ledger?projectId=${encodeURIComponent(projectId)}&plotId=${encodeURIComponent(String(p.id))}`}>{t('Book')}</Link>
                           : <span className="re-sub" aria-label={t('Not bookable')}>—</span>}
                       </td>
                     </tr>

@@ -1,14 +1,15 @@
 /**
- * Popup shown after GPT-6 Luna has analysed an uploaded ledger page: every extracted
+ * Popup shown after an uploaded ledger page has been read: every extracted
  * transaction as one editable table row, with a Documents column and an "Attach document"
  * strip under the row (receipt, agreement, …). "Submit" hands the edits and attachments to the page, which sends
  * them to the backend. Nothing is imported into the ledger from here.
+ * Every field is checked here (validateLedgerValues); Submit is refused while a row has errors.
  */
 import { Fragment, useEffect, useId, useRef, useState } from 'react';
 import { useT } from '../../../i18n/language.ts';
 import { OCR_AMOUNT_FIELDS, OCR_FIELDS, OCR_FIELD_LABELS, type OcrBatch, type OcrDraft, type OcrField } from '../types/ocrTypes.ts';
 import { DOCUMENT_TYPES, type StoredBlob } from '../types/realEstateTypes.ts';
-import { allIssues, buildCorrections, cellInputId, cellState, cellValue, rowKey } from '../utils/ocr.ts';
+import { allIssues, buildCorrections, cellInputId, cellState, cellValue, ledgerErrors, rowKey } from '../utils/ocr.ts';
 import BlobUploadField from './BlobUploadField.tsx';
 import { DOCUMENT_TYPE_LABEL } from './DocumentsPanel.tsx';
 import { SelectInput } from './FormFields.tsx';
@@ -69,6 +70,10 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
   const edits = buildCorrections(batch.rows, draft).length;
   const docCount = Object.values(attachments).reduce((n, l) => n + l.length, 0);
   const issues = allIssues(batch).filter((i) => i.rowIndex === null);
+  // Checked live on the values being edited; these replace the server's older row issues.
+  const errors = ledgerErrors(batch.rows, draft, DIALOG_FIELDS, t);
+  const errorCount = Object.values(errors).reduce((n, e) => n + Object.keys(e).length, 0);
+  const [tried, setTried] = useState(false);
   const [attachOpen, setAttachOpen] = useState<string | null>(null);
   const locked = !editable || pending;
   // "One by one": one customer (ledger row) at a time with Previous / Next; "All rows": the table.
@@ -79,7 +84,7 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
   const go = (n: number) => { setStep(Math.max(0, Math.min(total - 1, n))); setAttachOpen(null); };
   const rowFlags = (row: OcrBatch['rows'][number]) => {
     const key = rowKey(row);
-    const hasError = row.issues.some((i) => i.severity === 'Error');
+    const hasError = !!errors[key];
     const edited = Object.keys(draft[key] ?? {}).length > 0;
     return { key, hasError, edited, docs: (attachments[key] ?? []).length };
   };
@@ -106,6 +111,20 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = overflow; previous?.focus?.(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /** Submit only when every row passes; otherwise show the first row with an error and focus its field. */
+  const trySubmit = () => {
+    setTried(true);
+    const firstRow = batch.rows.findIndex((r) => errors[rowKey(r)]);
+    if (firstRow < 0) { onSubmit(); return; }
+    const row = batch.rows[firstRow];
+    const field = DIALOG_FIELDS.find((f) => errors[rowKey(row)]?.[f]);
+    if (view === 'one') go(firstRow);
+    if (field) {
+      const id = view === 'one' ? `step-${cellInputId(row.index, field)}` : `dlg-${cellInputId(row.index, field)}`;
+      setTimeout(() => document.getElementById(id)?.focus(), 0);
+    }
+  };
 
   const changes = [
     edits ? t(edits === 1 ? '{n} value changed' : '{n} values changed', { n: edits }) : '',
@@ -170,8 +189,8 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
                   </h3>
                   <div className="re-ocr-step-grid">
                     {DIALOG_FIELDS.map((f) => {
-                      const state = cellState(current, f, draft[key]?.[f]);
-                      const rowIssue = current.issues.find((i) => i.field === f);
+                      const fieldError = errors[key]?.[f];
+                      const state = fieldError ? 'error' : cellState({ ...current, issues: [] }, f, draft[key]?.[f]);
                       const inputId = `step-${cellInputId(current.index, f)}`;
                       return (
                         <div key={f} className={`re-ocr-step-field re-cell-${state}${TONE[f] ? ` re-col-${TONE[f]}` : ''}`}>
@@ -179,16 +198,17 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
                           <input
                             id={inputId} className="f-input" disabled={locked}
                             inputMode={OCR_AMOUNT_FIELDS.includes(f) ? 'decimal' : undefined}
+                            placeholder={f === 'transactionDate' ? 'YYYY-MM-DD' : undefined}
                             value={cellValue(current.cells[f], draft[key]?.[f])}
-                            aria-invalid={state === 'error' || undefined}
+                            aria-invalid={!!fieldError || undefined}
+                            aria-describedby={fieldError ? `${inputId}-err` : undefined}
                             onChange={(e) => onEdit(key, f, e.target.value)}
                           />
-                          {rowIssue && <small className={rowIssue.severity === 'Error' ? 'f-error' : 'f-hint'}>{rowIssue.message}</small>}
+                          {fieldError && <small className="f-error" id={`${inputId}-err`}>{fieldError}</small>}
                         </div>
                       );
                     })}
                   </div>
-                  {current.issues.filter((i) => !i.field).map((i, n) => <p key={n} className={`f-alert ${i.severity === 'Error' ? 'f-alert-error' : 'f-alert-info'}`}>{i.message}</p>)}
                   <div className="re-ocr-step-docs">
                     {docs.length > 0 && (
                       <ul className="re-doc-list">
@@ -246,20 +266,21 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
                             {pct(row.confidence) && <small title={t('Confidence {n}', { n: pct(row.confidence)! })}>{pct(row.confidence)}</small>}
                           </th>
                           {DIALOG_FIELDS.map((f) => {
-                            const state = cellState(row, f, draft[key]?.[f]);
-                            const rowIssue = row.issues.find((i) => i.field === f);
+                            const fieldError = errors[key]?.[f];
+                            const state = fieldError ? 'error' : cellState({ ...row, issues: [] }, f, draft[key]?.[f]);
                             return (
                               <td key={f} data-label={t(OCR_FIELD_LABELS[f])} className={`re-cell-${state}${TONE[f] ? ` re-col-${TONE[f]}` : ''}`}>
                                 <input
                                   id={`dlg-${cellInputId(row.index, f)}`} className="f-input" disabled={locked}
                                   aria-label={`${t(OCR_FIELD_LABELS[f])}, ${label}`}
                                   inputMode={OCR_AMOUNT_FIELDS.includes(f) ? 'decimal' : undefined}
+                                  placeholder={f === 'transactionDate' ? 'YYYY-MM-DD' : undefined}
                                   value={cellValue(row.cells[f], draft[key]?.[f])}
-                                  aria-invalid={state === 'error' || undefined}
-                                  title={rowIssue?.message}
+                                  aria-invalid={!!fieldError || undefined}
+                                  title={fieldError}
                                   onChange={(e) => onEdit(key, f, e.target.value)}
                                 />
-                                {rowIssue && <small className={rowIssue.severity === 'Error' ? 'f-error' : 'f-hint'}>{rowIssue.message}</small>}
+                                {fieldError && <small className="f-error">{fieldError}</small>}
                               </td>
                             );
                           })}
@@ -302,10 +323,15 @@ export default function OcrAnalysisDialog({ batch, fileName, draft, attachments,
 
         <div className="re-ocr-dialog-foot">
           {error && <p className="f-alert f-alert-error" role="alert">{error}</p>}
+          {errorCount > 0 && (
+            <p className={`f-alert ${tried ? 'f-alert-error' : 'f-alert-info'}`} role={tried ? 'alert' : undefined}>
+              {t(errorCount === 1 ? 'Fix 1 field before submitting.' : 'Fix {n} fields before submitting.', { n: errorCount })}
+            </p>
+          )}
           <span className="re-sub" aria-live="polite">{changes}</span>
           <div className="re-actions">
             <button type="button" className="btn btn-outline" onClick={onClose} disabled={pending}>{t('Close')}</button>
-            <button type="button" className="btn btn-primary" onClick={onSubmit} disabled={pending || !editable || batch.rows.length === 0}>
+            <button type="button" className="btn btn-primary" onClick={trySubmit} disabled={pending || !editable || batch.rows.length === 0}>
               {pending ? t('Submitting…') : t('Submit')}
             </button>
           </div>

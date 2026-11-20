@@ -14,6 +14,9 @@ import { InlineError } from './ApiStateView.tsx';
 import BlobUploadField from './BlobUploadField.tsx';
 import { SelectInput } from './FormFields.tsx';
 
+const IMAGE = /\.(jpe?g|png|webp|gif|bmp|heic)$/i;
+const isImage = (d: RealEstateDocument) => IMAGE.test(d.fileName) || IMAGE.test(d.documentUrl.split('?')[0]);
+
 export const DOCUMENT_TYPE_LABEL: Record<string, string> = { PaymentReceipt: 'Payment receipt', IdentityProof: 'Identity proof', SitePhoto: 'Site photo', LedgerPage: 'Ledger page' };
 
 export default function DocumentsPanel({ bookingId, initial = [] }: { bookingId: Id; initial?: RealEstateDocument[] }) {
@@ -38,23 +41,37 @@ export default function DocumentsPanel({ bookingId, initial = [] }: { bookingId:
     <section className="re-card" aria-labelledby="re-docs">
       <h2 id="re-docs">{t('Documents and images')}</h2>
       {docs.length === 0 ? <p className="re-sub">{t('No documents for this booking yet.')}</p> : (
-        <ul className="re-doc-list">
-          {docs.map((d, i) => (
-            <li key={`${String(d.id)}-${i}`}>
-              <span className="re-badge re-badge-info">{t(DOCUMENT_TYPE_LABEL[d.documentType] ?? d.documentType)}</span>
-              {/* Only a URL the backend returned is linked — the UI never builds storage URLs. */}
-              {d.documentUrl ? <a href={d.documentUrl} target="_blank" rel="noopener noreferrer">{d.fileName || t('Open')}</a> : <span>{d.fileName || 'N/A'}</span>}
-              {d.uploadedDate && <small className="re-sub">{date(d.uploadedDate)}</small>}
-            </li>
-          ))}
+        <ul className="re-doc-grid">
+          {docs.map((d, i) => {
+            const name = d.fileName || 'N/A';
+            // Only a URL the backend returned is linked — the UI never builds storage URLs.
+            const preview = d.documentUrl && isImage(d)
+              ? <img src={d.documentUrl} alt={name} loading="lazy" />
+              : <span className="re-doc-icon" aria-hidden="true">{/\.pdf$/i.test(name) ? '📄' : '🗂️'}</span>;
+            return (
+              <li key={`${String(d.id)}-${i}`} className="re-doc-card">
+                {d.documentUrl
+                  ? <a className="re-doc-thumb" href={d.documentUrl} target="_blank" rel="noopener noreferrer" aria-label={t('Open {name}', { name })}>{preview}</a>
+                  : <div className="re-doc-thumb">{preview}</div>}
+                <div className="re-doc-meta">
+                  <span className="re-badge re-badge-info">{t(DOCUMENT_TYPE_LABEL[d.documentType] ?? d.documentType)}</span>
+                  {d.documentUrl
+                    ? <a className="re-doc-name" href={d.documentUrl} target="_blank" rel="noopener noreferrer" title={name}>{name}</a>
+                    : <span className="re-doc-name" title={name}>{name}</span>}
+                  {d.uploadedDate && <small className="re-sub">{date(d.uploadedDate)}</small>}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
-      <div className="re-form">
+      <h3 className="re-subhead">{t('Add a document or image')}</h3>
+      <div className="re-doc-upload">
         <SelectInput label={t('Document type')} value={type} onChange={(e) => setType(e.target.value)}
           options={DOCUMENT_TYPES.map((d) => ({ value: d, label: t(DOCUMENT_TYPE_LABEL[d] ?? d) }))} />
-        <BlobUploadField key={uploadKey} label={t('Add a document or image')} purpose="Document" disabled={create.pending} onUploaded={(b) => void record(b)} />
-        <InlineError error={create.error} />
+        <BlobUploadField key={uploadKey} label={t('File')} purpose="Document" disabled={create.pending} onUploaded={(b) => void record(b)} />
       </div>
+      <InlineError error={create.error} />
     </section>
   );
 }

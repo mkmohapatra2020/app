@@ -4,6 +4,7 @@
  * history, record-a-payment form, and the booking's documents and images.
  * Buyer payments use the Real Estate transactions API, never the membership payment API.
  */
+import { useEffect, useId } from 'react';
 import { useT } from '../../../i18n/language.ts';
 import { useToast } from '../../../context/ToastContext.jsx';
 import { useRealEstateAccess } from '../access/RealEstateAccessProvider.tsx';
@@ -19,7 +20,14 @@ import LedgerTable, { LedgerSummary } from './LedgerTable.tsx';
 import RealEstateStatusBadge from './RealEstateStatusBadge.tsx';
 import TransactionForm from './TransactionForm.tsx';
 
-export default function BookingLedgerView({ bookingId }: { bookingId: string }) {
+interface Props {
+  bookingId: string;
+  /** Record-a-payment popup, opened from the page's toolbar. */
+  recording?: boolean;
+  onRecordingChange?: (open: boolean) => void;
+}
+
+export default function BookingLedgerView({ bookingId, recording = false, onRecordingChange }: Props) {
   const t = useT();
   const { toast } = useToast();
   const access = useRealEstateAccess();
@@ -34,11 +42,21 @@ export default function BookingLedgerView({ bookingId }: { bookingId: string }) 
   const agreed = b?.agreedValue || recent?.agreedValue || 0;
   const totals = ledgerTotals(agreed, tx.data ?? []);
 
+  const titleId = useId();
+  const close = () => { if (!create.pending) onRecordingChange?.(false); };
+  useEffect(() => {
+    if (!recording) return undefined;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !create.pending) onRecordingChange?.(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [recording, create.pending, onRecordingChange]);
+
   const record = async (input: TransactionInput) => {
     const created = await create.run(input);
     if (!created) return false;
     toast(t('Payment of {amount} recorded', { amount: money(created.amount || input.amount) }));
     tx.setData((l) => [...(l ?? []), created]);
+    onRecordingChange?.(false);
     return true;
   };
 
@@ -79,17 +97,22 @@ export default function BookingLedgerView({ bookingId }: { bookingId: string }) 
           {tx.loading && <LoadingState text={t('Loading ledger…')} />}
           {tx.error && <ErrorView error={tx.error} onRetry={tx.reload} />}
           {tx.data && <LedgerSummary totals={totals} agreedKnown={agreed > 0} />}
-          <div className="re-stack">
-            <section className="re-card" aria-labelledby="re-history">
-              <h2 id="re-history">{t('Transaction history')}</h2>
-              {tx.data && tx.data.length === 0 && <EmptyView title={t('No payments yet')}>{t('Record the first installment with the form.')}</EmptyView>}
-              {tx.data && tx.data.length > 0 && <LedgerTable transactions={tx.data} />}
-            </section>
-            <section className="re-card" aria-labelledby="re-new-tx">
-              <h2 id="re-new-tx">{t('Record a payment')}</h2>
-              <TransactionForm pending={create.pending} error={create.error} onSubmit={record} />
-            </section>
-          </div>
+          <section className="re-card" aria-labelledby="re-history">
+            <h2 id="re-history">{t('Transaction history')}</h2>
+            {tx.data && tx.data.length === 0 && <EmptyView title={t('No payments yet')}>{t('Use “Record a payment” to add the first installment.')}</EmptyView>}
+            {tx.data && tx.data.length > 0 && <LedgerTable transactions={tx.data} />}
+          </section>
+          {recording && (
+            <div className="re-dialog-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
+              <div className="re-dialog re-payment-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+                <div className="re-card-head">
+                  <h2 id={titleId}>{t('Record a payment')}</h2>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={close} aria-label={t('Close')}>✕</button>
+                </div>
+                <TransactionForm pending={create.pending} error={create.error} onSubmit={record} />
+              </div>
+            </div>
+          )}
         </>
       )}
       {access.has('Bookings') && (details.data || details.error) && (

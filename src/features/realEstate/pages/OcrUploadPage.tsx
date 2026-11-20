@@ -24,7 +24,7 @@ import RealEstateLayout, { RE_ROOT } from '../components/RealEstateLayout.tsx';
 import RealEstateStatusBadge from '../components/RealEstateStatusBadge.tsx';
 import type { OcrBatch, OcrDraft, OcrField } from '../types/ocrTypes.ts';
 import type { StoredBlob } from '../types/realEstateTypes.ts';
-import { allValuesAsCorrections, buildCorrections, documentCorrections, isEditable } from '../utils/ocr.ts';
+import { allValuesAsCorrections, buildCorrections, documentCorrections, isEditable, ledgerErrors } from '../utils/ocr.ts';
 import { buildLocalImport, downloadLocalImport, saveLocalImport, type LocalImport } from '../utils/localImports.ts';
 import { rememberBatch } from '../utils/recent.ts';
 
@@ -109,6 +109,7 @@ export default function OcrUploadPage() {
   /** Send the edited values as corrections, validate, then continue on the review page. */
   const submit = async () => {
     if (!batch) return;
+    if (Object.keys(ledgerErrors(batch.rows, draft, DIALOG_FIELDS, t)).length) { setError(t('Some fields need fixing before the data can be submitted.')); return; }
     setBusy('submit'); setError('');
     const docCount = Object.values(attachments).reduce((n, l) => n + l.length, 0);
     try {

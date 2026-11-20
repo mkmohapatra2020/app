@@ -19,7 +19,7 @@ export const TABS: { to: string; label: string; icon: string; feature: RealEstat
   { to: RE_ROOT, label: 'Overview', icon: '📊', feature: null },
   { to: `${RE_ROOT}/projects`, label: 'Projects and plots', icon: '🏘️', feature: 'Projects' },
   { to: `${RE_ROOT}/bookings`, label: 'Customer and booking details', icon: '👥', feature: 'Bookings' },
-  { to: `${RE_ROOT}/ledger`, label: 'Transaction and documents details', icon: '📒', feature: 'Ledger', also: [`${RE_ROOT}/bookings/`] },
+  { to: `${RE_ROOT}/ledger`, label: 'Booking and transaction details', icon: '📒', feature: 'Ledger', also: [`${RE_ROOT}/bookings/`] },
   { to: `${RE_ROOT}/ocr`, label: 'Ledger OCR', icon: '🧾', feature: 'OCR' },
 ];
 const under = (path: string, base: string) => (base.endsWith('/') ? path.startsWith(base) : path === base || path.startsWith(`${base}/`));
@@ -32,11 +32,13 @@ interface Props {
   crumbs?: [string | null, string][];
   /** Shows "← Back": goes to the previous page, or to this path when there is none (opened from a link). */
   back?: string;
+  /** Buttons shown on the right of the Back button (same row). */
+  toolbar?: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
 }
 
-export default function RealEstateLayout({ title, intro, feature, crumbs = [], back, actions, children }: Props) {
+export default function RealEstateLayout({ title, intro, feature, crumbs = [], back, toolbar, actions, children }: Props) {
   const navigate = useNavigate();
   const goBack = () => {
     const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
@@ -98,8 +100,11 @@ export default function RealEstateLayout({ title, intro, feature, crumbs = [], b
           ))}
         </nav>
       )}
-      {access.enabled && back && (
-        <button type="button" className="btn btn-outline btn-sm re-back" onClick={goBack}>← {t('Back')}</button>
+      {access.enabled && (back || toolbar) && (
+        <div className="re-backbar">
+          {back ? <button type="button" className="btn btn-outline btn-sm" onClick={goBack}>← {t('Back')}</button> : <span />}
+          {toolbar && <div className="re-backbar-actions">{toolbar}</div>}
+        </div>
       )}
       {body}
     </PageShell>

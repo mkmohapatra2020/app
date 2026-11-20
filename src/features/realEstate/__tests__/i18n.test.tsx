@@ -35,7 +35,7 @@ const dynamicKeys = [
   'Extract rows', 'Save corrections', 'Validate rows', 'Approve batch', 'Import approved rows', 'Reject batch',
   'Business name', 'Contact person', 'Phone', 'Partner', 'Project name', 'Location', 'District', 'State', 'Plot number', 'Area', 'Area unit',
   'Name', 'Customer', 'Plot', 'Booking amount', 'Agreed value', 'Transaction date', 'Total received', 'Payment mode',
-  'Overview', 'Projects and plots', 'Customer and booking details', 'Transaction and documents details', 'Ledger OCR',
+  'Overview', 'Projects and plots', 'Customer and booking details', 'Booking and transaction details', 'Ledger OCR',
   'Commission (lower black amount)', 'Property amount (red)', 'From the previous column', 'Lower amount written in black, after Payment Details', 'Amount written in red',
   'Matching hint, not an id', 'Error', 'Warning', 'Agreement', 'Payment receipt', 'Identity proof', 'Site photo', 'Ledger page',
   'Scanned ledger page', 'PDF', 'Excel', 'Active', 'Inactive', 'Extract rows', 'Review and approve', 'Import', 'View',
@@ -88,14 +88,14 @@ describe('language switcher', () => {
   });
 
   it('re-renders Real Estate text live in Odia', async () => {
-    view = await render(<MemoryRouter><RealEstateStatusBadge status="Available" /><LedgerSummary totals={{ agreedValue: 100, totalReceived: 40, totalCommission: 2, totalProperty: 38, outstanding: 60 }} /></MemoryRouter>);
+    view = await render(<MemoryRouter><RealEstateStatusBadge status="Available" /><LedgerSummary totals={{ agreedValue: 100, totalReceived: 40, totalCommission: 2, totalProperty: 38, totalPayment: 102, outstanding: 62 }} /></MemoryRouter>);
     expect(document.body.textContent).toContain('Available');
-    expect(document.body.textContent).toContain('Outstanding');
-    await view.rerender(<MemoryRouter><RealEstateStatusBadge status="Available" /><LedgerSummary totals={{ agreedValue: 100, totalReceived: 40, totalCommission: 2, totalProperty: 38, outstanding: 60 }} /></MemoryRouter>);
+    expect(document.body.textContent).toContain('To be paid');
+    await view.rerender(<MemoryRouter><RealEstateStatusBadge status="Available" /><LedgerSummary totals={{ agreedValue: 100, totalReceived: 40, totalCommission: 2, totalProperty: 38, totalPayment: 102, outstanding: 62 }} /></MemoryRouter>);
     setLanguage('or');
-    await view.rerender(<MemoryRouter><RealEstateStatusBadge status="Available" /><LedgerSummary totals={{ agreedValue: 100, totalReceived: 40, totalCommission: 2, totalProperty: 38, outstanding: 60 }} /></MemoryRouter>);
+    await view.rerender(<MemoryRouter><RealEstateStatusBadge status="Available" /><LedgerSummary totals={{ agreedValue: 100, totalReceived: 40, totalCommission: 2, totalProperty: 38, totalPayment: 102, outstanding: 62 }} /></MemoryRouter>);
     expect(document.body.textContent).toContain('ଉପଲବ୍ଧ');
-    expect(document.body.textContent).toContain('ବକେୟା');
+    expect(document.body.textContent).toContain('ଦେବାକୁ ବାକି');
     // the status value sent to the API is unchanged
     expect(document.querySelector('.re-badge')?.getAttribute('data-status')).toBe('Available');
   });

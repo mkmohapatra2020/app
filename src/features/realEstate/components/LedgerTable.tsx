@@ -15,13 +15,14 @@ export function LedgerSummary({ totals, agreedKnown = true }: { totals: LedgerTo
   const due = totals.outstanding > 0;
   return (
     <dl className="re-stats re-stats-ledger" aria-label={t('Ledger summary')}>
-      {agreedKnown && <div className="re-stat"><dt>{t('Total property value')}</dt><dd>{money(totals.agreedValue)}</dd></div>}
+      {/* Property value, commission, total payment (= property value + commission), total received, to be paid (= total payment − received). */}
+      {agreedKnown && <div className="re-stat"><dt>{t('Property value')}</dt><dd>{money(totals.agreedValue)}</dd></div>}
+      <div className="re-stat re-stat-commission"><dt>{t('Commission')}</dt><dd>{money(totals.totalCommission)}</dd></div>
+      {agreedKnown && <div className="re-stat re-stat-property"><dt>{t('Total payment')}</dt><dd>{money(totals.totalPayment)}</dd></div>}
       <div className="re-stat re-stat-good"><dt>{t('Total received')}</dt><dd>{money(totals.totalReceived)}</dd></div>
-      <div className="re-stat re-stat-commission"><dt>{t('Total commission')}</dt><dd>{money(totals.totalCommission)}</dd></div>
-      <div className="re-stat re-stat-property"><dt>{t('Total property amount')}</dt><dd>{money(totals.totalProperty)}</dd></div>
       {agreedKnown && (
         <div className={`re-stat ${due ? 're-stat-due' : 're-stat-good'}`}>
-          <dt>{totals.outstanding < 0 ? t('Overpaid') : t('Outstanding')}</dt>
+          <dt>{totals.outstanding < 0 ? t('Overpaid') : t('To be paid')}</dt>
           <dd>{money(Math.abs(totals.outstanding))}</dd>
         </div>
       )}

@@ -17,6 +17,15 @@ const expectKind = async (p: Promise<unknown>, kind: string) => {
   expect((e as ApiError).kind).toBe(kind);
 };
 
+describe('documents', () => {
+  it('sends a booking id taken from the URL ("6") as a number', async () => {
+    signIn();
+    const calls = stubApi(() => ok({ Id: 1, BookingId: 6, DocumentType: 'PaymentReceipt', BlobName: 're/r.jpg' }));
+    await realEstateApi.documents.create({ bookingId: '6', documentType: 'PaymentReceipt', blob: { blobName: 're/r.jpg', container: 're', contentType: 'image/jpeg', size: 5, fileName: 'r.jpg' } });
+    expect(calls.find((c) => c.url === '/realestate/documents')?.body).toMatchObject({ bookingId: 6 });
+  });
+});
+
 describe('realEstateApi', () => {
   it('rejects before any request when signed out', async () => {
     const calls = stubApi(() => ok([]));

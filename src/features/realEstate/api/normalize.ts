@@ -132,6 +132,7 @@ export const toTransaction = (o: unknown): LedgerTransaction => ({
 
 export const toPaymentRow = (o: unknown): PaymentRow => ({
   ...toTransaction(o),
+  bookingDate: str(pick(o, 'bookingDate')),
   customerName: str(pick(o, 'customerName')),
   customerPhone: str(pick(o, 'customerPhone')),
   plotNumber: str(pick(o, 'plotNumber')),

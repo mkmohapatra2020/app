@@ -15,10 +15,11 @@ import { RE_ROOT } from './RealEstateLayout.tsx';
 export const PAYMENTS_PAGE_SIZE = 10;
 const opt = (n: number | null) => (n === null ? 'N/A' : money(n));
 
-export default function PaymentsTable() {
+/** Change `reloadKey` to load the list again (e.g. after a new booking's first payment). */
+export default function PaymentsTable({ reloadKey = 0 }: { reloadKey?: number }) {
   const t = useT();
   const [page, setPage] = useState(1);
-  const q = useRealEstateQuery((s) => realEstateApi.ledger.payments(page, PAYMENTS_PAGE_SIZE, s), [page]);
+  const q = useRealEstateQuery((s) => realEstateApi.ledger.payments(page, PAYMENTS_PAGE_SIZE, s), [page, reloadKey]);
   const items = q.data?.items ?? [];
   return (
     <section className="re-card" aria-labelledby="re-all-payments">
@@ -32,11 +33,11 @@ export default function PaymentsTable() {
             <table className="re-table">
               <thead>
                 <tr>
-                  <th scope="col">{t('Date')}</th>
+                  <th scope="col">{t('Booking date')}</th>
                   <th scope="col">{t('Booking number')}</th>
                   <th scope="col">{t('Customer name')}</th>
+                  <th scope="col">{t('Phone')}</th>
                   <th scope="col" className="num re-col-property">{t('Property amount')}</th>
-                  <th scope="col" className="num re-col-commission">{t('Commission')}</th>
                   <th scope="col" className="num">{t('Total paid')}</th>
                   <th scope="col">{t('Action')}</th>
                 </tr>
@@ -44,11 +45,11 @@ export default function PaymentsTable() {
               <tbody>
                 {items.map((tx) => (
                   <tr key={String(tx.id)}>
-                    <td data-label={t('Date')}>{date(tx.transactionDate)}</td>
+                    <td data-label={t('Booking date')}>{tx.bookingDate ? date(tx.bookingDate) : 'N/A'}</td>
                     <td data-label={t('Booking number')}>{tx.bookingId ? `#${String(tx.bookingId)}` : 'N/A'}</td>
                     <td data-label={t('Customer name')}>{tx.customerName || 'N/A'}</td>
+                    <td data-label={t('Phone')}>{tx.customerPhone || 'N/A'}</td>
                     <td data-label={t('Property amount')} className="num re-col-property">{opt(tx.propertyAmount)}</td>
-                    <td data-label={t('Commission')} className="num re-col-commission">{opt(tx.commissionAmount)}</td>
                     <td data-label={t('Total paid')} className="num re-amount-in">{money(tx.amount)}</td>
                     <td data-label={t('Action')}>
                       {tx.bookingId

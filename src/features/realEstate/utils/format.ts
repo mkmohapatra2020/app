@@ -39,19 +39,22 @@ export function maskPan(v: string): string {
 
 /**
  * Each amount column is summed on its own (in paise, to avoid floating-point drift).
- * Commission and property amounts are never added to or subtracted from total received.
- * Outstanding = agreed value − total received.
+ * Total payment = property (agreed) value + total commission.
+ * To be paid (outstanding) = total payment − total received.
  */
 export function ledgerTotals(agreedValue: number, transactions: Pick<LedgerTransaction, 'amount' | 'commissionAmount' | 'propertyAmount'>[]): LedgerTotals {
   const paise = (n: number | null) => Math.round((n !== null && Number.isFinite(n) ? n : 0) * 100);
   const sum = (pick: (t: (typeof transactions)[number]) => number | null) => transactions.reduce((s, t) => s + paise(pick(t)), 0);
   const received = sum((t) => t.amount);
   const agreed = paise(agreedValue);
+  const commission = sum((t) => t.commissionAmount);
+  const payment = agreed + commission;
   return {
     agreedValue: agreed / 100,
     totalReceived: received / 100,
-    totalCommission: sum((t) => t.commissionAmount) / 100,
+    totalCommission: commission / 100,
     totalProperty: sum((t) => t.propertyAmount) / 100,
-    outstanding: (agreed - received) / 100,
+    totalPayment: payment / 100,
+    outstanding: (payment - received) / 100,
   };
 }

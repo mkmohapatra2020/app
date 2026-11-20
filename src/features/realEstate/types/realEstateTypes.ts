@@ -139,6 +139,8 @@ export interface LedgerTransaction {
 }
 /** One payment in the all-payments list (GET /realestate/transactions?view=payments). */
 export interface PaymentRow extends LedgerTransaction {
+  /** Date of the booking this payment belongs to. */
+  bookingDate: string;
   customerName: string;
   customerPhone: string;
   plotNumber: string;
@@ -187,6 +189,9 @@ export interface LedgerTotals {
   totalReceived: number;
   totalCommission: number;
   totalProperty: number;
+  /** Property value + total commission: everything the buyer pays. */
+  totalPayment: number;
+  /** Total payment − total received ("To be paid"). */
   outstanding: number;
 }
 
