@@ -675,6 +675,7 @@ export const OR_STRINGS: Record<string, string> = {
   'Press Submit, choose the project and press OK: the rows are imported in one step.': 'ଦାଖଲ ଦବାନ୍ତୁ, ପ୍ରକଳ୍ପ ବାଛନ୍ତୁ ଓ OK ଦବାନ୍ତୁ: ଧାଡିଗୁଡିକ ଗୋଟିଏ ପଦକ୍ଷେପରେ ଆମଦାନୀ ହେବ।',
   'Opening…': 'ଖୋଲୁଛି…',
   'This batch could not be opened. Please try again.': 'ଏହି ବ୍ୟାଚ୍ ଖୋଲିହେଲା ନାହିଁ। ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
+  'Upload ledger': 'ଲେଜର ଅପଲୋଡ୍ କରନ୍ତୁ',
 };
 
 registerStrings('or', OR_STRINGS);

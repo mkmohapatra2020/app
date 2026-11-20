@@ -16,7 +16,6 @@ import { useToast } from '../../../context/ToastContext.jsx';
 import { analyseLedgerFile, LedgerAnalysisError, LEDGER_OCR_MODE } from '../api/ledgerVisionApi.ts';
 import { realEstateApi } from '../api/realEstateApi.ts';
 import { realEstateOcrApi } from '../api/realEstateOcrApi.ts';
-import { ocrInputType } from '../api/realEstateUpload.ts';
 import BlobUploadField from '../components/BlobUploadField.tsx';
 import ConfirmDialog from '../components/ConfirmDialog.tsx';
 import UnfinishedImports from '../components/UnfinishedImports.tsx';
@@ -25,14 +24,12 @@ import { useRealEstateQuery } from '../hooks/useRealEstateQuery.ts';
 import { localBlob } from '../components/BlobUploadField.tsx';
 import OcrAnalysisDialog, { DIALOG_FIELDS, type RowAttachment, type RowAttachments } from '../components/OcrAnalysisDialog.tsx';
 import RealEstateLayout from '../components/RealEstateLayout.tsx';
-import RealEstateStatusBadge from '../components/RealEstateStatusBadge.tsx';
 import type { OcrBatch, OcrDraft, OcrField } from '../types/ocrTypes.ts';
 import type { StoredBlob } from '../types/realEstateTypes.ts';
 import { allValuesAsCorrections, buildCorrections, documentCorrections, isEditable, ledgerErrors, rowKey } from '../utils/ocr.ts';
 import { buildLocalImport, downloadLocalImport, saveLocalImport, type LocalImport } from '../utils/localImports.ts';
 import { rememberBatch } from '../utils/recent.ts';
 
-const INPUT_LABEL: Record<string, string> = { ScannedLedgerPage: 'Scanned ledger page', Pdf: 'PDF', Excel: 'Excel' };
 type Busy = 'analyse' | 'submit' | 'continue' | null;
 const STATIC = LEDGER_OCR_MODE === 'static';
 /** The page reads the file itself via /api/ledger-ocr (static and direct modes). */
@@ -223,65 +220,36 @@ export default function OcrUploadPage() {
   return (
     <RealEstateLayout title={t('Ledger OCR')} feature="OCR" crumbs={[[null, t('Ledger OCR')]]}
       intro={t('Upload a photo of a ledger page, check every row, then import it. Nothing is added until you press OK.')}>
-      <div className="re-split">
-        <section className="re-card" aria-labelledby="re-ocr-up">
-          <h2 id="re-ocr-up">{t('1. Upload')}</h2>
-          <ol className="re-steps">
-            <li>{t('Upload a clear, well-lit photo of one ledger page (JPG, PNG or WebP).')}</li>
-            <li>{t('It is read automatically and every transaction is shown, one customer at a time. Correct anything that is wrong, attach documents, and submit.')}</li>
-            <li>{t('Press Submit, choose the project and press OK: the rows are imported in one step.')}</li>
-          </ol>
-          <BlobUploadField key={fieldKey} label={t('Ledger file')} purpose="OcrLedger" localOnly={STATIC} disabled={saved || busy !== null} onFile={chooseFile} onUploaded={setBlob} />
-          {blob && !saved && !STATIC && (
-            <p className="re-sub">{t('Input type: {type}', { type: t(INPUT_LABEL[ocrInputType(blob.contentType)]) })}</p>
-          )}
-          {alreadyImported && !saved && (
-            <p className="f-alert f-alert-error" role="alert">
-              {t('This file was already imported (batch {id}). The same ledger page can be imported only once.', { id: String(alreadyImported.id) })}
-            </p>
-          )}
-          {error && !open && <p className="f-alert f-alert-error" role="alert">{error}</p>}
+      <section className="re-card re-ocr-upload" aria-labelledby="re-ocr-up">
+        <h2 id="re-ocr-up">{t('Upload ledger')}</h2>
+        {/* File on the left, buttons on the right (stacked on phones). */}
+        <div className="re-ocr-upload-body">
+        <div className="re-ocr-upload-main">
+        <BlobUploadField key={fieldKey} label={t('Ledger photo')} purpose="OcrLedger" localOnly={STATIC} disabled={saved || busy !== null} onFile={chooseFile} onUploaded={setBlob} />
+        {alreadyImported && !saved && (
+          <p className="f-alert f-alert-error" role="alert">
+            {t('This file was already imported (batch {id}). The same ledger page can be imported only once.', { id: String(alreadyImported.id) })}
+          </p>
+        )}
+        {error && !open && <p className="f-alert f-alert-error" role="alert">{error}</p>}
+        {localSaved && (
+          <p className="f-alert f-alert-info">{t('Saved on this device. There is no backend yet, so nothing was sent. Download the JSON to keep a copy or to send it later.')}</p>
+        )}
+        </div>
+        <div className="re-ocr-upload-actions">
           {!analysed && !localSaved && (
             <button type="button" className="btn btn-primary" disabled={(DIRECT ? !file : !blob) || busy !== null || (!!alreadyImported && !saved)} onClick={() => void analyse()}>
               {busy === 'analyse' ? t('Analysing the ledger…') : t('Analyse ledger')}
             </button>
           )}
-          {busy === 'analyse' && <p className="re-sub" aria-live="polite">{t('Reading the ledger page can take up to a minute or two. Please keep this page open.')}</p>}
-        </section>
-
-        <section className="re-card" aria-labelledby="re-ocr-res" aria-live="polite">
-          <h2 id="re-ocr-res">{t('2. Analysis')}</h2>
-          {localSaved ? (
-            <div className="re-local-saved">
-              <p className="f-alert f-alert-info">
-                {t('Saved on this device. There is no backend yet, so nothing was sent. Download the JSON to keep a copy or to send it later.')}
-              </p>
-              <dl className="re-facts">
-                <div><dt>{t('File')}</dt><dd>{localSaved.fileName}</dd></div>
-                <div><dt>{t('Rows found')}</dt><dd>{localSaved.rows.length}</dd></div>
-                <div><dt>{t('Documents')}</dt><dd>{localSaved.rows.reduce((n, r) => n + r.documents.length, 0)}</dd></div>
-              </dl>
-              <div className="re-actions">
-                <button type="button" className="btn btn-primary" onClick={() => downloadLocalImport(localSaved)}>⬇ {t('Download JSON')}</button>
-                <button type="button" className="btn btn-outline" onClick={() => setOpen(true)}>{t('Show analysis')}</button>
-                <button type="button" className="btn btn-outline" onClick={startOver}>{t('New import')}</button>
-              </div>
-            </div>
-          ) : !batch ? <p className="re-sub">{t('After the upload, choose “Analyse ledger”. The result opens in a popup.')}</p> : (
-            <>
-              <dl className="re-facts">
-                {saved && <div><dt>{t('Batch ID')}</dt><dd>{String(batch.id)}</dd></div>}
-                <div><dt>{t('File')}</dt><dd>{batch.fileName || blob?.fileName}</dd></div>
-                <div><dt>{t('Status')}</dt><dd><RealEstateStatusBadge status={String(batch.status)} /></dd></div>
-                {analysed && <div><dt>{t('Rows found')}</dt><dd>{batch.rows.length}</dd></div>}
-              </dl>
-              <div className="re-actions">
-                {analysed && <button type="button" className="btn btn-primary" onClick={() => setOpen(true)}>{t('Show analysis')}</button>}
-              </div>
-            </>
-          )}
-        </section>
-      </div>
+          {/* Popup closed before OK: reopen it, or start again with another photo. */}
+          {(analysed || localSaved) && <button type="button" className="btn btn-primary" onClick={() => setOpen(true)}>{t('Show analysis')}</button>}
+          {localSaved && <button type="button" className="btn btn-outline" onClick={() => downloadLocalImport(localSaved)}>⬇ {t('Download JSON')}</button>}
+          {(analysed || localSaved) && <button type="button" className="btn btn-outline" onClick={startOver}>{t('New import')}</button>}
+        </div>
+        </div>
+        {busy === 'analyse' && <p className="re-sub" aria-live="polite">{t('Reading the ledger page can take up to a minute or two. Please keep this page open.')}</p>}
+      </section>
 
       {!STATIC && (
         <UnfinishedImports batches={myBatches.data ?? []} currentId={open ? batch?.id ?? null : null} onChanged={myBatches.reload}
